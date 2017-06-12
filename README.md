@@ -2,6 +2,8 @@ Pega-LogViewer
 ==============
 Pega-LogViewer is a Java Swing based tool to view PegaRULES Log and Alert files.
 
+The tool can be downloaded from [Releases page](https://github.com/pegasystems/pega-logviewer/releases) under **Downloads** section.
+
 Extract 'logviewer-2.0-bin.zip' to a folder.
 Run 'logviewer.cmd' to launch the tool.
 
