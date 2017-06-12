@@ -20,13 +20,15 @@ For ALERT log, only Critical Alerts entries are coded Red.
  
 The timeline graph is governed by the data in the table. in case you filter the data in the table using any of the column filter, the chart will change.
 
-You can open very huge log files. In case of OOM, just change the heap size in the cmd file and try again. 
+You can open very huge log files. In case of OOM, just change the heap size in the cmd file and try again.
+
 Features
-	a. See memory, requestor counts in a chart. also system starts, exceptions and thread dump occurences are superimposed on the timeline.
-	b. Search within the file output for useful content. results are highlighted in yellow
-	d. Set Filters for certain log and alert data columns.
-	e. Overview dialog to show (if any)- 
-		1. System Start details
-		2. Errors
-		3. Thread Dumps
+  * See memory, requestor counts in a chart.
+  * System starts, exceptions and thread dump occurences are superimposed on the timeline.
+  * Search within the file output for useful content. results are highlighted in yellow
+  * Set Filters for certain Log and Alert data columns.
+  * Overview dialog to show (if any)-
+    1. System Start details
+    2. Errors
+    3. Thread Dumps
 
