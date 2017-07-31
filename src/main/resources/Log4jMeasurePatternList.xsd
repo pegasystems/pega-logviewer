@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:element name="Log4jMeasurePatternList">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="Log4jMeasurePattern" minOccurs="1"
+					maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Name" type="xs:string" />
+							<xs:element name="PatternString" type="xs:string" />
+							<xs:element name="Unit" type="xs:string" minOccurs="0" />
+							<xs:element name="Color" type="xs:string" minOccurs="0" />
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

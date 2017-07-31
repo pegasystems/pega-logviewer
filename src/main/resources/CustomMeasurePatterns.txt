@@ -1,0 +1,5 @@
+## this is a comment line.
+## each line is an Measure entry to show a graph.
+## the format of each line is - <Name of the measure>==<unit of measure>==<Regex Pattern in the log entry>
+## below line will parse - oLog.infoForced("HandleExecuteWebContainer - time taken: " + (after-before) + " millis");
+## HandleExecuteWebContainer==millis==(.*)HandleExecuteWebContainer(.*)time taken:[ ]+(.*)millis

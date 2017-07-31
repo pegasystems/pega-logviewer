@@ -1,0 +1,90 @@
+/************************************************************/
+/* HTML Block element styles
+/************************************************************/
+BODY {
+	background-color: transparent;
+	margin-left: 10px;
+	margin-right: 10px;
+	margin-top: 0px;
+	margin-bottom: 0px;
+	overflow: auto;
+	color: black;
+	scrollbar-face-color: #F8F9FD;
+	scrollbar-shadow-color: #F8F9FD;
+	scrollbar-highlight-color: #F8F9FD;
+	scrollbar-3dlight-color: #5270A4;
+	scrollbar-darkshadow-color: #5270A4;
+	scrollbar-arrow-color: #5270A4;
+	scrollbar-track-color: white;
+}
+
+TABLE {
+	font-family: Verdana, Arial, sans-serif;
+	font-size: 10pt;
+	color: black;
+	padding: 0px;
+	margin: 0px;
+	table-layout: fixed;
+}
+
+TD {
+	font-family: Verdana, Arial, sans-serif;
+	font-size: 10pt;
+	font-weight: normal;
+}
+
+/************************************************************/
+/* Headings
+/************************************************************/
+H1 {
+	font-family: Verdana, Arial, sans-serif;
+	font-size: 14pt;
+	color: black;
+	font-weight: bold;
+}
+
+H2 {
+	font-family: Verdana, Arial, sans-serif;
+	font-size: 12pt;
+	color: black;
+	font-weight: bold;
+}
+
+H3 {
+	font-family: Verdana, Arial, sans-serif;
+	font-size: 10pt;
+	color: black;
+	font-weight: bold;
+}
+
+A {
+	font-family: Verdana, Arial, sans-serif;
+	font-size: 10pt;
+	font-weight: normal;
+}
+
+/************************************************************/
+/* HEADER ROW                                               */
+/************************************************************/
+.tableHeaderCenter {
+	font-family: Verdana, Arial, sans-serif;
+	font-size: 10pt;
+	font-weight: bold;
+	text-align: center;
+	padding: 1px 3px 1px 3px;
+	vertical-align: center;
+	background-color: #C8D2E4;
+}
+
+/************************************************************/
+/* Table Data                                               */
+/************************************************************/
+.nameColumn {
+	min-width: 10%;
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+.valueColumn {
+	width: 100%;
+}

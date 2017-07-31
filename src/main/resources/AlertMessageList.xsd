@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:simpleType name="Severity">
+		<xs:restriction base="xs:string">
+			<xs:enumeration value="NORMAL" />
+			<xs:enumeration value="CRITICAL" />
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:element name="AlertMessageList">
+		<xs:complexType>
+			<xs:sequence>
+				<xs:element name="AlertMessage" minOccurs="1" maxOccurs="unbounded">
+					<xs:complexType>
+						<xs:sequence>
+							<xs:element name="Id" type="xs:int" />
+							<xs:element name="MessageID" type="xs:string" />
+							<xs:element name="Category" type="xs:string" />
+							<xs:element name="Subcategory" type="xs:string" />
+							<xs:element name="Title" type="xs:string" />
+							<xs:element name="Severity" type="Severity" />
+							<xs:element name="PDNURL" type="xs:string" />
+							<xs:element name="Description" type="xs:string" />
+							<xs:element name="DSSEnableConfig" type="xs:string" minOccurs="0"/>
+							<xs:element name="DSSEnabled" type="xs:string" minOccurs="0"/>
+							<xs:element name="DSSThresholdConfig" type="xs:string" minOccurs="0"/>
+							<xs:element name="DSSValueType" type="xs:string" minOccurs="0"/>
+							<xs:element name="DSSValueUnit" type="xs:string" minOccurs="0"/>
+							<xs:element name="DSSDefaultValue" type="xs:string" minOccurs="0"/>
+							<xs:element name="ChartColor" type="xs:string" minOccurs="0"/>
+						</xs:sequence>
+					</xs:complexType>
+				</xs:element>
+			</xs:sequence>
+		</xs:complexType>
+	</xs:element>
+</xs:schema>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Log4jMeasurePatternList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:noNamespaceSchemaLocation="Log4jMeasurePatternList.xsd">
+	<Log4jMeasurePattern>
+		<Name>Name</Name>
+		<PatternString>PatternString</PatternString>
+		<Unit>Unit</Unit>
+		<Color>Color</Color>
+	</Log4jMeasurePattern>
+</Log4jMeasurePatternList>
