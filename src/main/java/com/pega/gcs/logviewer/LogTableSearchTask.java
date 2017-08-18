@@ -168,7 +168,7 @@ public class LogTableSearchTask extends SwingWorker<List<Integer>, ProgressTaskI
 
 			int secs = (int) Math.ceil((double) diff / 1E3);
 
-			System.out.println("Search updated '" + searchStrObj + "' completed in " + secs + " secs. "
+			LOG.info("Search updated '" + searchStrObj + "' completed in " + secs + " secs. "
 					+ searchResultList.size() + " results found.");
 		}
 
@@ -223,7 +223,7 @@ public class LogTableSearchTask extends SwingWorker<List<Integer>, ProgressTaskI
 
 			int secs = (int) Math.ceil((double) diff / 1E3);
 
-			System.out.println("Search updated '" + searchStrObj + "' completed in " + secs + " secs. "
+			LOG.info("Search updated '" + searchStrObj + "' completed in " + secs + " secs. "
 					+ searchResultList.size() + " results found.");
 		}
 

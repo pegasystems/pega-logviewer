@@ -50,13 +50,13 @@ public class LogViewer extends BaseFrame {
 
 	private static final Log4j2Helper LOG = new Log4j2Helper(LogViewer.class);
 
-	private static final String APPNAME = "Pega-LogViewer v3.0b3";
-
 	private static final String FILE_CHOOSER_FILTER_DESC = "Log Files";
 
 	protected static final String[] FILE_CHOOSER_FILTER_EXT = { "log", "" };
 
 	private static final String FILE_CHOOSER_DIALOG_TITLE_PEGARULES = "Select PegaRULES log file";
+
+	private String appName;
 
 	private LogViewerSetting logViewerSetting;
 
@@ -256,7 +256,7 @@ public class LogViewer extends BaseFrame {
 			@Override
 			public void actionPerformed(ActionEvent event) {
 				if (alertCheatSheetFrame == null) {
-					alertCheatSheetFrame = new AlertCheatSheetFrame(APPNAME, getAppIcon(), LogViewer.this);
+					alertCheatSheetFrame = new AlertCheatSheetFrame(getAppName(), getAppIcon(), LogViewer.this);
 					alertCheatSheetFrame.addWindowListener(new WindowAdapter() {
 
 						@Override
@@ -349,7 +349,20 @@ public class LogViewer extends BaseFrame {
 	 */
 	@Override
 	protected String getAppName() {
-		return APPNAME;
+		
+		if (appName == null) {
+
+			Package p = LogViewer.class.getPackage();
+
+			StringBuffer sb = new StringBuffer();
+			sb.append(p.getImplementationTitle());
+			sb.append(" ");
+			sb.append(p.getImplementationVersion());
+
+			appName = sb.toString();
+		}
+
+		return appName;
 	}
 
 	/*
@@ -591,6 +604,14 @@ public class LogViewer extends BaseFrame {
 								LOG.info("getopt() returned " + c);
 								break;
 							}
+						}
+
+						// handle non option arguments - for ex starting using open-with menu command on
+						// windows. assume them as file names
+						for (int i = getopt.getOptind(); i < args.length; i++) {
+							String filename = args[i];
+							LOG.info("Non option arg element: " + filename + "\n");
+							fileNameList.add(filename);
 						}
 
 						if (isReport) {
