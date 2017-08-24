@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/pegasystems/pega-logviewer.svg?branch=master)](https://travis-ci.org/pegasystems/pega-logviewer)
+
 Pega-LogViewer
 ==============
 Pega-LogViewer is a Java Swing based tool to view Pega RULES and Pega ALERT log files.
