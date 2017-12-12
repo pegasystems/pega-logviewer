@@ -147,7 +147,7 @@ public class ScanResult {
 
 				List<String> hybridHotfixList = hybridHotfixListProvider.getReleaseHotfixIdMap().get(pvStr);
 
-				if (hybridHotfixList.contains(hotfixId)) {
+				if ((hybridHotfixList != null) && (hybridHotfixList.contains(hotfixId))) {
 					hybrid = true;
 				}
 			}
