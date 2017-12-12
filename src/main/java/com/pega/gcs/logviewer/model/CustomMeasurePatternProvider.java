@@ -112,13 +112,4 @@ public class CustomMeasurePatternProvider {
 	public List<Log4jMeasurePattern> getCustomMeasurePatternList() {
 		return customMeasurePatternList;
 	}
-
-	/**
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-
-	}
-
 }

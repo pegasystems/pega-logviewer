@@ -536,7 +536,7 @@ public class Log4jPatternParser extends LogParser {
 
 				for (String line : additionalLines) {
 
-					fullLogEntryTextSB.append("\n");
+					fullLogEntryTextSB.append(System.getProperty("line.separator"));
 					fullLogEntryTextSB.append(line);
 
 					Map<String, List<Integer>> errorLogEntryIndexMap = log4jLogEntryModel.getErrorLogEntryIndexMap();

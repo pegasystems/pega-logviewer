@@ -213,7 +213,6 @@ public class LogSystemStartParser {
 			systemStartMap.put(systemSourceURLKey, matchObject.getValue());
 		}
 
-		// todo asda
 		String jvmVendorKey = "JVM Vendor";
 		matchObject = applyPattern(systemStartLogEntryList, messageColIndex, ssIndex, jvmVendorPattern);
 		if (matchObject != null) {

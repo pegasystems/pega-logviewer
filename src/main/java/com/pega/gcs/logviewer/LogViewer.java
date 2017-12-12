@@ -19,6 +19,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
@@ -29,6 +31,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.SwingUtilities;
+import javax.swing.filechooser.FileFilter;
 
 import com.pega.gcs.fringecommon.guiutilities.BaseFrame;
 import com.pega.gcs.fringecommon.guiutilities.RecentFile;
@@ -50,11 +53,25 @@ public class LogViewer extends BaseFrame {
 
 	private static final Log4j2Helper LOG = new Log4j2Helper(LogViewer.class);
 
-	private static final String FILE_CHOOSER_FILTER_DESC = "Log Files";
+	private static final String LOG_FILE_CHOOSER_FILTER_DESC = "Log Files";
 
-	protected static final String[] FILE_CHOOSER_FILTER_EXT = { "log", "" };
+	protected static final String[] LOG_FILE_CHOOSER_FILTER_EXT = { "log", "" };
 
-	private static final String FILE_CHOOSER_DIALOG_TITLE_PEGARULES = "Select PegaRULES log file";
+	private static final String LOG_FILE_CHOOSER_DIALOG_TITLE_PEGARULES = "Select Pega log or Alert file";
+
+	public static final String RECENT_FILE_PREV_COMPARE_FILE = "prevCompareFile";
+
+	public static final String SYSTEM_SCAN_FILE_CHOOSER_FILTER_DESC = "Pega Inventory File";
+
+	public static final String[] SYSTEM_SCAN_FILE_CHOOSER_FILTER_EXT = { "zip", "PEGA", "" };
+
+	public static final String SYSTEM_SCAN_FILE_NAME_REGEX = "ScanResults(.*?)|INVENTORY(.*?)";
+
+	public static final String SYSTEM_SCAN_FILE_CHOOSER_DIALOG_TITLE_PEGARULES = "Select Pega Hotfix Inventory File";
+
+	public static final String SYSTEM_SCAN_CATALOG_FILE_NAME = "CATALOG.PEGA";
+
+	public static final String SYSTEM_SCAN_CATALOG_ZIP_FILE = "/CATALOG.ZIP";
 
 	private String appName;
 
@@ -76,6 +93,7 @@ public class LogViewer extends BaseFrame {
 	 * @throws Exception
 	 */
 	public LogViewer() throws Exception {
+
 		super();
 
 		// setPreferredSize(new Dimension(1200, 700));
@@ -110,11 +128,74 @@ public class LogViewer extends BaseFrame {
 		return recentFileContainer;
 	}
 
+	public static boolean isSystemScanFile(File systemScanFile) {
+
+		boolean scanResultZipFile = false;
+
+		if (systemScanFile.isFile()) {
+
+			String ext = FileUtilities.getExtension(systemScanFile);
+
+			for (String fileExt : SYSTEM_SCAN_FILE_CHOOSER_FILTER_EXT) {
+
+				if (fileExt.equalsIgnoreCase(ext)) {
+					scanResultZipFile = true;
+					break;
+				}
+			}
+
+			if (scanResultZipFile) {
+
+				String filename = FileUtilities.getNameWithoutExtension(systemScanFile);
+
+				Pattern fileNamePattern = Pattern.compile(SYSTEM_SCAN_FILE_NAME_REGEX);
+
+				Matcher fileNameMatcher = fileNamePattern.matcher(filename);
+
+				if (fileNameMatcher.matches()) {
+					scanResultZipFile = true;
+				} else {
+					scanResultZipFile = false;
+				}
+			}
+		}
+
+		return scanResultZipFile;
+
+	}
+
+	public static FileFilter getSystemScanFileFilter() {
+
+		FileFilter systemScanFileFilter = new FileFilter() {
+
+			@Override
+			public String getDescription() {
+				return SYSTEM_SCAN_FILE_CHOOSER_FILTER_DESC;
+			}
+
+			@Override
+			public boolean accept(File f) {
+
+				boolean retVal = true;
+
+				// pass through directories
+				if (f.isFile()) {
+					retVal = isSystemScanFile(f);
+				}
+
+				return retVal;
+			}
+		};
+
+		return systemScanFileFilter;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
 	 * @see com.pega.fringe.common.gui.BaseFrame#initialize()
 	 */
+	@SuppressWarnings("unchecked")
 	@Override
 	protected void initialize() throws Exception {
 
@@ -125,7 +206,7 @@ public class LogViewer extends BaseFrame {
 
 		if (byteArray != null) {
 			try {
-				logViewerSetting = (LogViewerSetting) KryoSerializer.decompress(byteArray, LogViewerSetting.class);
+				logViewerSetting = KryoSerializer.decompress(byteArray, LogViewerSetting.class);
 			} catch (Exception e) {
 				LOG.error("Error decompressing logViewerSetting.", e);
 			}
@@ -142,7 +223,7 @@ public class LogViewer extends BaseFrame {
 
 		if (byteArray != null) {
 			try {
-				openFileList = (ArrayList<String>) KryoSerializer.decompress(byteArray, ArrayList.class);
+				openFileList = KryoSerializer.decompress(byteArray, ArrayList.class);
 			} catch (Exception e) {
 				LOG.error("Error decompressing open file list.", e);
 			}
@@ -179,27 +260,55 @@ public class LogViewer extends BaseFrame {
 
 		fileJMenu.setMnemonic(KeyEvent.VK_F);
 
-		JMenuItem pegaRULESJMenuItem = new JMenuItem("Load Pega Log File");
+		JMenuItem pegaLogJMenuItem = new JMenuItem("Load Pega Log File");
 
-		pegaRULESJMenuItem.setMnemonic(KeyEvent.VK_L);
-		pegaRULESJMenuItem.setToolTipText("Load PegaRULES or Alert Log File");
+		pegaLogJMenuItem.setMnemonic(KeyEvent.VK_L);
+		pegaLogJMenuItem.setToolTipText("Load PegaRULES or Alert Log File");
 
 		ImageIcon ii = FileUtilities.getImageIcon(this.getClass(), "open.png");
 
-		pegaRULESJMenuItem.setIcon(ii);
+		pegaLogJMenuItem.setIcon(ii);
 
-		pegaRULESJMenuItem.addActionListener(new ActionListener() {
+		pegaLogJMenuItem.addActionListener(new ActionListener() {
 
 			@Override
 			public void actionPerformed(ActionEvent event) {
 
 				File selectedFile = getSelectedFile();
 
-				File aFile = openFileChooser(LogViewer.this, LogViewer.class, FILE_CHOOSER_DIALOG_TITLE_PEGARULES,
-						Arrays.asList(FILE_CHOOSER_FILTER_EXT), FILE_CHOOSER_FILTER_DESC, selectedFile);
+				FileFilter fileFilter = LogViewer.getDefaultFileFilter(LogViewer.LOG_FILE_CHOOSER_FILTER_DESC,
+						Arrays.asList(LogViewer.LOG_FILE_CHOOSER_FILTER_EXT));
+
+				File aFile = openFileChooser(LogViewer.this, LogViewer.class, LOG_FILE_CHOOSER_DIALOG_TITLE_PEGARULES,
+						fileFilter, selectedFile);
 
 				if (aFile != null) {
-					loadFile(aFile);
+					loadLogFile(aFile);
+				}
+			}
+		});
+
+		JMenuItem scanResultJMenuItem = new JMenuItem("Load Hotfix Inventory File");
+
+		scanResultJMenuItem.setMnemonic(KeyEvent.VK_S);
+		scanResultJMenuItem.setToolTipText("Load Hotfix Inventory zip or .PEGA File");
+
+		scanResultJMenuItem.setIcon(ii);
+
+		scanResultJMenuItem.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent event) {
+
+				File selectedFile = getSelectedFile();
+
+				FileFilter fileFilter = getSystemScanFileFilter();
+
+				File aFile = openFileChooser(LogViewer.this, LogViewer.class,
+						SYSTEM_SCAN_FILE_CHOOSER_DIALOG_TITLE_PEGARULES, fileFilter, selectedFile);
+
+				if (aFile != null) {
+					loadSystemScanFile(aFile);
 				}
 			}
 		});
@@ -236,7 +345,8 @@ public class LogViewer extends BaseFrame {
 		});
 
 		// fileJMenu.addSeparator();
-		fileJMenu.add(pegaRULESJMenuItem);
+		fileJMenu.add(pegaLogJMenuItem);
+		fileJMenu.add(scanResultJMenuItem);
 		fileJMenu.add(recentFileJMenu);
 		fileJMenu.add(clearRecentJMenuItem);
 		fileJMenu.add(exitJMenuItem);
@@ -349,7 +459,7 @@ public class LogViewer extends BaseFrame {
 	 */
 	@Override
 	protected String getAppName() {
-		
+
 		if (appName == null) {
 
 			Package p = LogViewer.class.getPackage();
@@ -422,7 +532,7 @@ public class LogViewer extends BaseFrame {
 		}
 	}
 
-	public RecentFileJMenu getRecentFileJMenu() {
+	private RecentFileJMenu getRecentFileJMenu() {
 
 		if (recentFileJMenu == null) {
 
@@ -509,6 +619,46 @@ public class LogViewer extends BaseFrame {
 
 			JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile), "Error loading file: ",
 					JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	protected void loadLogFile(File aFile) {
+
+		this.selectedFile = aFile;
+
+		LogTabbedPane logTabbedPane = getLogTabbedPane();
+
+		try {
+
+			logTabbedPane.loadLogFile(selectedFile);
+
+			saveOpenFileList();
+
+		} catch (Exception e) {
+			LOG.error("Error loading Log file: " + selectedFile, e);
+
+			JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile), "Error loading Log file: ",
+					JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	protected void loadSystemScanFile(File aFile) {
+
+		this.selectedFile = aFile;
+
+		LogTabbedPane logTabbedPane = getLogTabbedPane();
+
+		try {
+
+			logTabbedPane.loadSystemScanFile(selectedFile);
+
+			saveOpenFileList();
+
+		} catch (Exception e) {
+			LOG.error("Error loading Scan Result Zip file: " + selectedFile, e);
+
+			JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile),
+					"Error loading Scan Result Zip file: ", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 

@@ -168,14 +168,12 @@ public class ThreadDumpTableModel extends FilterTableModel<String> {
 
 	@Override
 	protected boolean search(String key, Object searchStrObj) {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
 	@Override
 	protected FilterTableModelNavigation<String> getNavigationRowIndex(List<String> resultList,
 			int currSelectedRowIndex, boolean forward, boolean first, boolean last, boolean wrap) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -210,31 +208,26 @@ public class ThreadDumpTableModel extends FilterTableModel<String> {
 
 	@Override
 	public int getIndexOfKey(String key) {
-		// TODO Auto-generated method stub
 		return 0;
 	}
 
 	@Override
 	public Object getEventForKey(String key) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public AbstractTreeTableNode getTreeNodeForKey(String key) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public void clearSearchResults(boolean clearResults) {
-		// TODO Auto-generated method stub
 
 	}
 
 	@Override
 	public SearchModel<String> getSearchModel() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 

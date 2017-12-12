@@ -144,10 +144,9 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
 		Locale locale = logTableModel.getLocale();
 		TimeZone displayTimezone = logTableModel.getLogTimeZone();
 
-		RecentFile recentFile = logTableModel.getRecentFile();
-		String logFilePath = (String) recentFile.getAttribute(RecentFile.KEY_FILE);
+		String filePath = logTableModel.getFilePath();
 
-		File logFile = new File(logFilePath);
+		File logFile = new File(filePath);
 
 		LOG.info("LogFileLoadTask - Using Charset: " + charset + " Locale: " + locale + " Display Timezone: "
 				+ displayTimezone);
@@ -370,6 +369,7 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
 							progressBar.setString("Waiting...");
 						}
 
+						RecentFile recentFile = logTableModel.getRecentFile();
 						recentFile.setAttribute(RecentFile.KEY_SIZE, fileSize.get());
 
 						Message.MessageType messageType = MessageType.INFO;

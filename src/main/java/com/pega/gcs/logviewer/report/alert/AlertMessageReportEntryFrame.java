@@ -826,6 +826,7 @@ public class AlertMessageReportEntryFrame extends JFrame {
 
 	private void updateOUTLIERS(DefaultListModel<AlertReportListEntry> defaultListModel) {
 
+		@SuppressWarnings("unchecked")
 		List<Double> outliersList = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getOutliers();
 
 		List<Integer> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();

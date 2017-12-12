@@ -1,4 +1,6 @@
 /target/
+/plugins/
 /.settings/
 /logs/
 *.log
+CATALOG.ZIP

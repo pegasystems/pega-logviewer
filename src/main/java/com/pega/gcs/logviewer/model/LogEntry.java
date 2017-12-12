@@ -69,7 +69,7 @@ public abstract class LogEntry implements Identifiable<Integer>, Serializable {
 		LogEntryData logEntryData = null;
 
 		try {
-			logEntryData = (LogEntryData) KryoSerializer.decompress(compressedLogEntryData, LogEntryData.class);
+			logEntryData = KryoSerializer.decompress(compressedLogEntryData, LogEntryData.class);
 		} catch (Exception e) {
 			LOG.error("Error decompressing log entry data", e);
 		}

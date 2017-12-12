@@ -314,7 +314,7 @@ public class LogPatternSelectionDialog extends JDialog {
 
 		for (String line : readLineList) {
 			textSB.append(line);
-			textSB.append("\n");
+			textSB.append(System.getProperty("line.separator"));
 		}
 
 		readLineListJTextArea.setText(textSB.toString());

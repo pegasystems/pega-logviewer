@@ -31,6 +31,15 @@
 			<outputDirectory>/</outputDirectory>
 			<destName>${artifactId}-${version}.cmd</destName>
 			<filtered>true</filtered>
+
+		</file>
+		<file>
+			<source>README.md</source>
+			<outputDirectory>/</outputDirectory>
+		</file>
+		<file>
+			<source>LICENSE</source>
+			<outputDirectory>/</outputDirectory>
 		</file>
 	</files>
 	<dependencySets>

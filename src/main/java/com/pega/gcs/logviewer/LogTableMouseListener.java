@@ -70,6 +70,7 @@ public class LogTableMouseListener extends MouseAdapter {
 			final List<Integer> selectedRowList = new LinkedList<Integer>();
 
 			final LogTable source = (LogTable) e.getSource();
+			final LogTableModel logTableModel = (LogTableModel) source.getModel();
 
 			int[] selectedRows = source.getSelectedRows();
 
@@ -106,22 +107,10 @@ public class LogTableMouseListener extends MouseAdapter {
 					public void actionPerformed(ActionEvent e) {
 						Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 
-						LogTableModel logTableModel = (LogTableModel) source.getModel();
+						int[] array = selectedRowList.stream().mapToInt(i -> i).toArray();
+						String selectedRowsData = logTableModel.getSelectedRowsData(array);
 
-						StringBuffer logEntryTextSB = new StringBuffer();
-
-						for (int selectedRow : selectedRowList) {
-
-							LogEntry logEntry = (LogEntry) logTableModel.getValueAt(selectedRow, 0);
-
-							if (logEntry != null) {
-								logEntryTextSB.append(logEntry.getLogEntryText());
-								logEntryTextSB.append("\n");
-
-							}
-						}
-
-						clipboard.setContents(new StringSelection(logEntryTextSB.toString()), copyMenuItem);
+						clipboard.setContents(new StringSelection(selectedRowsData), copyMenuItem);
 
 						popupMenu.setVisible(false);
 
@@ -129,8 +118,6 @@ public class LogTableMouseListener extends MouseAdapter {
 				});
 
 				popupMenu.add(copyMenuItem);
-
-				LogTableModel logTableModel = (LogTableModel) source.getModel();
 
 				final BookmarkModel<Integer> bookmarkModel = logTableModel.getBookmarkModel();
 

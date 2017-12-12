@@ -1391,46 +1391,133 @@
 	<AlertMessage>
 		<Id>88</Id>
 		<MessageID>PEGA0088</MessageID>
-		<Category>Exception</Category>
-		<Subcategory>Exception</Subcategory>
+		<Category>Performance</Category>
+		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
 		<Title>member has disconnected from the cluster</Title>
 		<Severity>NORMAL</Severity>
-		<PDNURL/>
-		<Description/>
+		<PDNURL>https://pdn.pega.com/node/1396436</PDNURL>
+		<Description>This alert is generated for Apache Ignite servers when a client node (Pega® Platform node) has disconnected from the cluster. This alert occurs only when Pega Platform is configured as a client in an Apache Ignite client-server topology.</Description>
+		<DSSEnableConfig>PERMANENT</DSSEnableConfig>
+		<DSSValueType>STATE</DSSValueType>
 		<ChartColor>#2bce48</ChartColor>
 	</AlertMessage>
 	<AlertMessage>
 		<Id>89</Id>
 		<MessageID>PEGA0089</MessageID>
-		<Category>Exception</Category>
-		<Subcategory>Exception</Subcategory>
-		<Title>member unexpectably disconnected from the cluster</Title>
+		<Category>Performance</Category>
+		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Title>A node left the cluster</Title>
 		<Severity>NORMAL</Severity>
-		<PDNURL/>
-		<Description/>
+		<PDNURL>https://pdn.pega.com/node/1393796</PDNURL>
+		<Description>This alert is generated for servers or clients in an Apache Ignite client-server topology when a node unexpectedly disconnects from the cluster and is considered failed.</Description>
+		<DSSEnableConfig>PERMANENT</DSSEnableConfig>
+		<DSSValueType>STATE</DSSValueType>
 		<ChartColor>#ffc099</ChartColor>
 	</AlertMessage>
 	<AlertMessage>
 		<Id>90</Id>
 		<MessageID>PEGA0090</MessageID>
-		<Category>Exception</Category>
-		<Subcategory>Exception</Subcategory>
-		<Title>Segmentation detected</Title>
+		<Category>Performance</Category>
+		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Title>Cluster segmentation causes subclusters to form</Title>
 		<Severity>NORMAL</Severity>
-		<PDNURL/>
-		<Description/>
+		<PDNURL>https://pdn.pega.com/node/1393791</PDNURL>
+		<Description>This alert is generated for servers or clients in an Apache Ignite client-server topology when two or more subclusters are formed from cluster segmentation. Nodes in each subcluster do not see the nodes from the other subcluster and depending on how the subclusters were formed, the data might be lost.</Description>
+		<DSSEnableConfig>PERMANENT</DSSEnableConfig>
+		<DSSValueType>STATE</DSSValueType>
 		<ChartColor>#808080</ChartColor>
 	</AlertMessage>
 	<AlertMessage>
 		<Id>91</Id>
 		<MessageID>PEGA0091</MessageID>
-		<Category>Exception</Category>
-		<Subcategory>Exception</Subcategory>
-		<Title>Data lost detected for cache</Title>
+		<Category>Performance</Category>
+		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Title>Data stored in one or more cluster caches is lost</Title>
+		<Severity>NORMAL</Severity>
+		<PDNURL>https://pdn.pega.com/node/1393741</PDNURL>
+		<Description>This alert is generated for servers or clients in an Apache Ignite client-server topology when data that is stored in one or more cluster caches is lost. The data that can be lost is the distributed features data that is spread across the cluster among different nodes.</Description>
+		<DSSEnableConfig>PERMANENT</DSSEnableConfig>
+		<DSSValueType>STATE</DSSValueType>
+		<ChartColor>#94ebb5</ChartColor>
+	</AlertMessage>
+	<AlertMessage>
+		<Id>92</Id>
+		<MessageID>PEGA0092</MessageID>
+		<Category>Performance</Category>
+		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Title>Number of servers in the cluster falls below the recommended settings</Title>
+		<Severity>NORMAL</Severity>
+		<PDNURL>https://pdn.pega.com/node/1392991</PDNURL>
+		<Description>This alert is generated for Apache Ignite servers when the number of servers in the cluster falls below the recommended minimum. The recommended minimum number of server nodes deployed in the cluster is based on the failover strategies for distributed assets that are configured on the cluster. You need at least three Apache Ignite servers in a cluster. The alert is raised by all remaining operating nodes. If, after a first alert is sent, another server is removed from the cluster, a new alert is sent.</Description>
+		<DSSEnableConfig>com.pega.platform.cluster.internal.util.ClusterMembershipManager</DSSEnableConfig>
+		<DSSEnabled>true</DSSEnabled>
+		<DSSValueType>COUNT</DSSValueType>
+		<DSSValueUnit>NUMBER</DSSValueUnit>
+		<DSSDefaultValue>2 (DSS - cluster/data/backup)</DSSDefaultValue>
+		<ChartColor>#0075dc</ChartColor>
+	</AlertMessage>
+	<AlertMessage>
+		<Id>93</Id>
+		<MessageID>PEGA0093</MessageID>
+		<Category>Performance</Category>
+		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Title>Distinct Values query time above threshold</Title>
 		<Severity>NORMAL</Severity>
 		<PDNURL/>
 		<Description/>
-		<ChartColor>#94ebb5</ChartColor>
+		<DSSEnableConfig>com.pega.pegarules.data.internal.rd.SqlReportExecutor\ncom.pega.pegarules.data.internal.rd.SQLExecutorResultsCP</DSSEnableConfig>
+		<DSSEnabled>true</DSSEnabled>
+		<ChartColor>#993f00</ChartColor>
+	</AlertMessage>
+	<AlertMessage>
+		<Id>94</Id>
+		<MessageID>PEGA0095</MessageID>
+		<Category>Performance</Category>
+		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Title> IH aggregated data is not up to date</Title>
+		<Severity>NORMAL</Severity>
+		<PDNURL/>
+		<Description>Raise an alert when the IH aggregated data is not up to date and we need to go to the database more often than the set threshold value.</Description>
+		<DSSEnableConfig>"DSM Alerts"</DSSEnableConfig>
+		<DSSEnabled>true</DSSEnabled>
+		<DSSThresholdConfig>alerts/ihAggregationReadIHPercentage</DSSThresholdConfig>
+		<DSSValueType>COUNT</DSSValueType>
+		<DSSValueUnit>PERCENT</DSSValueUnit>
+		<DSSDefaultValue>20</DSSDefaultValue>
+		<ChartColor>#4c005c</ChartColor>
+	</AlertMessage>
+	<AlertMessage>
+		<Id>95</Id>
+		<MessageID>PEGA0096</MessageID>
+		<Category>Performance</Category>
+		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Title>Average read time for IH aggregated data is above the threshold value.</Title>
+		<Severity>NORMAL</Severity>
+		<PDNURL/>
+		<Description>Raise an alert when the average read time for IH aggregated data is above the set threshold value.</Description>
+		<DSSEnableConfig>"DSM Alerts"</DSSEnableConfig>
+		<DSSEnabled>true</DSSEnabled>
+		<DSSThresholdConfig>alerts/ihAggregationReadTimeThreshold</DSSThresholdConfig>
+		<DSSValueType>TIME</DSSValueType>
+		<DSSValueUnit>MILLISECOND</DSSValueUnit>
+		<DSSDefaultValue>20</DSSDefaultValue>
+		<ChartColor>#005c31</ChartColor>
+	</AlertMessage>
+	<AlertMessage>
+		<Id>96</Id>
+		<MessageID>PEGA0097</MessageID>
+		<Category>Performance</Category>
+		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Title>Maximum active sessions limit reached</Title>
+		<Severity>NORMAL</Severity>
+		<PDNURL/>
+		<Description>Raise an alert when maximum active sessions limit reached</Description>
+		<DSSEnabled>false</DSSEnabled>
+		<DSSThresholdConfig>cluster/requestors/browser/maxactive/block</DSSThresholdConfig>
+		<DSSValueType>STATE</DSSValueType>
+		<DSSValueUnit>BOOLEAN</DSSValueUnit>
+		<DSSDefaultValue>false</DSSDefaultValue>
+		<ChartColor>#ff0010</ChartColor>
 	</AlertMessage>
 	<AlertMessage>
 		<Id>201</Id>

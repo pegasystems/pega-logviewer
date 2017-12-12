@@ -20,8 +20,8 @@ import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
-import java.io.FileInputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -142,14 +142,22 @@ public class LogDataMainPanel extends JPanel {
 
 	private AlertPALReportDialog alertPALReportDialog;
 
+	@SuppressWarnings("unchecked")
 	public LogDataMainPanel(File selectedFile, RecentFileContainer recentFileContainer,
 			LogViewerSetting logViewerSetting) {
 
 		super();
 
 		this.logViewerSetting = logViewerSetting;
-		this.recentFile = getRecentFile(selectedFile, recentFileContainer, logViewerSetting);
 		this.logFileLoadTask = null;
+
+		String charset = logViewerSetting.getCharset();
+		Locale locale = logViewerSetting.getLocale();
+
+		Map<String, Object> defaultAttribsIfNew = new HashMap<>();
+		defaultAttribsIfNew.put(RecentFile.KEY_LOCALE, locale);
+
+		this.recentFile = recentFileContainer.getRecentFile(selectedFile, charset, defaultAttribsIfNew);
 
 		SearchData<Integer> searchData = new SearchData<>(null);
 
@@ -157,6 +165,13 @@ public class LogDataMainPanel extends JPanel {
 
 		BookmarkContainer<Integer> bookmarkContainer;
 		bookmarkContainer = (BookmarkContainer<Integer>) recentFile.getAttribute(RecentFile.KEY_BOOKMARK);
+
+		if (bookmarkContainer == null) {
+
+			bookmarkContainer = new BookmarkContainer<Integer>();
+
+			recentFile.setAttribute(RecentFile.KEY_BOOKMARK, bookmarkContainer);
+		}
 
 		BookmarkModel<Integer> bookmarkModel = new BookmarkModel<Integer>(bookmarkContainer, logTableModel);
 
@@ -1078,54 +1093,6 @@ public class LogDataMainPanel extends JPanel {
 
 	}
 
-	public static RecentFile getRecentFile(File selectedFile, RecentFileContainer recentFileContainer,
-			LogViewerSetting logViewerSetting) {
-
-		RecentFile recentFile = null;
-
-		// identify the recent file
-		for (RecentFile rf : recentFileContainer.getRecentFileList()) {
-
-			String file = (String) rf.getAttribute(RecentFile.KEY_FILE);
-
-			if ((file != null) && (file.toLowerCase().equals(selectedFile.getPath().toLowerCase()))) {
-				// found in recent files
-				recentFile = rf;
-				break;
-			}
-		}
-
-		if (recentFile == null) {
-			String charset = logViewerSetting.getCharset();
-			Locale locale = logViewerSetting.getLocale();
-
-			recentFile = new RecentFile(selectedFile.getPath(), charset);
-			recentFile.setAttribute(RecentFile.KEY_LOCALE, locale);
-		}
-
-		BookmarkContainer<Integer> bookmarkContainer;
-		bookmarkContainer = (BookmarkContainer<Integer>) recentFile.getAttribute(RecentFile.KEY_BOOKMARK);
-
-		if (bookmarkContainer == null) {
-
-			bookmarkContainer = new BookmarkContainer<Integer>();
-
-			recentFile.setAttribute(RecentFile.KEY_BOOKMARK, bookmarkContainer);
-		}
-
-		try (FileInputStream fis = new FileInputStream(selectedFile)) {
-			long totalSize = fis.getChannel().size();
-			recentFile.setAttribute(RecentFile.KEY_SIZE, totalSize);
-		} catch (Exception e) {
-			LOG.error("Error getting filesize :" + selectedFile, e);
-		}
-
-		// save and bring it to front
-		recentFileContainer.addRecentFile(recentFile);
-
-		return recentFile;
-	}
-
 	protected void loadFile(final JComponent parent, final LogTableModel logTableModel,
 			LogViewerSetting logViewerSetting, final boolean waitMode) {
 
@@ -1138,7 +1105,8 @@ public class LogDataMainPanel extends JPanel {
 
 		if (recentFile != null) {
 
-			final String logFilePath = (String) recentFile.getAttribute(RecentFile.KEY_FILE);
+			// final String logFilePath = (String)
+			// recentFile.getAttribute(RecentFile.KEY_FILE);
 
 			UIManager.put("ModalProgressMonitor.progressText", "Loading log file");
 
@@ -1166,7 +1134,7 @@ public class LogDataMainPanel extends JPanel {
 				protected void done() {
 
 					if (!waitMode) {
-						completeLoad(this, mProgressMonitor, logFilePath, parent, logTableModel);
+						completeLoad(this, mProgressMonitor, parent, logTableModel);
 					}
 				}
 			};
@@ -1174,7 +1142,7 @@ public class LogDataMainPanel extends JPanel {
 			logFileLoadTask.execute();
 
 			if (waitMode) {
-				completeLoad(logFileLoadTask, mProgressMonitor, logFilePath, parent, logTableModel);
+				completeLoad(logFileLoadTask, mProgressMonitor, parent, logTableModel);
 			}
 		} else {
 			logTableModel.setMessage(new Message(MessageType.ERROR, "No file selected for model"));
@@ -1184,8 +1152,10 @@ public class LogDataMainPanel extends JPanel {
 	// because of continuous read, complete load may never occur unless there is
 	// some error. hence all the post load actions needs to be triggered using
 	// table model from within LogFileLoadTask
-	protected void completeLoad(LogFileLoadTask tflt, ModalProgressMonitor mProgressMonitor, String logFilePath,
-			JComponent parent, LogTableModel logTableModel) {
+	protected void completeLoad(LogFileLoadTask tflt, ModalProgressMonitor mProgressMonitor, JComponent parent,
+			LogTableModel logTableModel) {
+
+		String filePath = logTableModel.getFilePath();
 
 		try {
 
@@ -1197,14 +1167,14 @@ public class LogDataMainPanel extends JPanel {
 
 			logTableModel.fireTableDataChanged();
 
-			LOG.info("LogFileLoadTask - Done: " + logFilePath + " processedCount:" + processedCount);
+			LOG.info("LogFileLoadTask - Done: " + filePath + " processedCount:" + processedCount);
 
 		} catch (CancellationException ce) {
 
-			LOG.error("LogFileLoadTask - Cancelled " + logFilePath);
+			LOG.error("LogFileLoadTask - Cancelled " + filePath);
 
 			MessageType messageType = MessageType.ERROR;
-			Message modelmessage = new Message(messageType, logFilePath + " - file loading cancelled.");
+			Message modelmessage = new Message(messageType, filePath + " - file loading cancelled.");
 			logTableModel.setMessage(modelmessage);
 
 		} catch (ExecutionException ee) {
@@ -1215,12 +1185,12 @@ public class LogDataMainPanel extends JPanel {
 
 			if (ee.getCause() instanceof OutOfMemoryError) {
 
-				message = "Out Of Memory Error has occured while loading " + logFilePath
+				message = "Out Of Memory Error has occured while loading " + filePath
 						+ ".\nPlease increase the JVM's max heap size (-Xmx) and try again.";
 
 				JOptionPane.showMessageDialog(parent, message, "Out Of Memory Error", JOptionPane.ERROR_MESSAGE);
 			} else {
-				message = ee.getCause().getMessage() + " has occured while loading " + logFilePath + ".";
+				message = ee.getCause().getMessage() + " has occured while loading " + filePath + ".";
 
 				JOptionPane.showMessageDialog(parent, message, "Error", JOptionPane.ERROR_MESSAGE);
 			}
@@ -1230,12 +1200,12 @@ public class LogDataMainPanel extends JPanel {
 			logTableModel.setMessage(modelmessage);
 
 		} catch (Exception e) {
-			LOG.error("Error loading file: " + logFilePath, e);
+			LOG.error("Error loading file: " + filePath, e);
 			MessageType messageType = MessageType.ERROR;
 
 			StringBuffer messageB = new StringBuffer();
 			messageB.append("Error loading file: ");
-			messageB.append(logFilePath);
+			messageB.append(filePath);
 
 			Message message = new Message(messageType, messageB.toString());
 			logTableModel.setMessage(message);

@@ -93,6 +93,7 @@ public class AlertMessageReportModelFactory {
 		} else if ("PEGA0020".equalsIgnoreCase(messageId)) {
 			alertMessageReportModel = new PEGA0020ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
 		} else if ("PEGA0021".equalsIgnoreCase(messageId)) {
+			alertMessageReportModel = new PEGA0021ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
 		} else if ("PEGA0022".equalsIgnoreCase(messageId)) {
 		} else if ("PEGA0023".equalsIgnoreCase(messageId)) {
 		} else if ("PEGA0024".equalsIgnoreCase(messageId)) {
@@ -133,6 +134,7 @@ public class AlertMessageReportModelFactory {
 		} else if ("PEGA0042".equalsIgnoreCase(messageId)) {
 			alertMessageReportModel = new PEGA0042ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
 		} else if ("PEGA0043".equalsIgnoreCase(messageId)) {
+			alertMessageReportModel = new PEGA0043ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
 		} else if ("PEGA0044".equalsIgnoreCase(messageId)) {
 			alertMessageReportModel = new PEGA0044ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
 		} else if ("PEGA0045".equalsIgnoreCase(messageId)) {
@@ -213,6 +215,8 @@ public class AlertMessageReportModelFactory {
 			alertMessageReportModel = new PEGA0085ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
 		} else if ("PEGA0086".equalsIgnoreCase(messageId)) {
 			alertMessageReportModel = new PEGA0086ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
+		} else if ("PEGA0087".equalsIgnoreCase(messageId)) {
+			alertMessageReportModel = new PEGA0087ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
 		} else if ("PEGA0088".equalsIgnoreCase(messageId)) {
 			alertMessageReportModel = new PEGA0088ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
 		} else if ("PEGA0089".equalsIgnoreCase(messageId)) {
@@ -221,6 +225,15 @@ public class AlertMessageReportModelFactory {
 			alertMessageReportModel = new PEGA0090ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
 		} else if ("PEGA0091".equalsIgnoreCase(messageId)) {
 			alertMessageReportModel = new PEGA0091ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
+		} else if ("PEGA0092".equalsIgnoreCase(messageId)) {
+		} else if ("PEGA0093".equalsIgnoreCase(messageId)) {
+			alertMessageReportModel = new PEGA0093ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
+		} else if ("PEGA0094".equalsIgnoreCase(messageId)) {
+		} else if ("PEGA0095".equalsIgnoreCase(messageId)) {
+			alertMessageReportModel = new PEGA0095ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
+		} else if ("PEGA0096".equalsIgnoreCase(messageId)) {
+			alertMessageReportModel = new PEGA0096ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
+		} else if ("PEGA0097".equalsIgnoreCase(messageId)) {
 		} else if ("SECU0001".equalsIgnoreCase(messageId)) {
 			alertMessageReportModel = new SECU0001ReportModel(thresholdKPI, kpiUnit, alertLogEntryModel);
 		} else if ("SECU0002".equalsIgnoreCase(messageId)) {
@@ -238,6 +251,9 @@ public class AlertMessageReportModelFactory {
 		} else if ("SECU0009".equalsIgnoreCase(messageId)) {
 		} else if ("SECU0010".equalsIgnoreCase(messageId)) {
 		} else if ("SECU0011".equalsIgnoreCase(messageId)) {
+		} else if ("SECU0012".equalsIgnoreCase(messageId)) {
+		} else if ("SECU0013".equalsIgnoreCase(messageId)) {
+		} else if ("SECU0014".equalsIgnoreCase(messageId)) {
 		}
 
 		return alertMessageReportModel;

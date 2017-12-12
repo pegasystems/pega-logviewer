@@ -117,7 +117,7 @@ public class AlertMessageReportTableMouseListener extends MouseAdapter {
 							alertMessageReportEntrySB.append("\t");
 						}
 
-						alertMessageReportEntrySB.append("\n");
+						alertMessageReportEntrySB.append(System.getProperty("line.separator"));
 
 						for (int selectedRow : selectedRowList) {
 
@@ -129,7 +129,7 @@ public class AlertMessageReportTableMouseListener extends MouseAdapter {
 								alertMessageReportEntrySB.append("\t");
 							}
 
-							alertMessageReportEntrySB.append("\n");
+							alertMessageReportEntrySB.append(System.getProperty("line.separator"));
 						}
 
 						clipboard.setContents(new StringSelection(alertMessageReportEntrySB.toString()), copyMenuItem);

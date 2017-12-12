@@ -96,7 +96,7 @@ public class Log4jLogEntryModel extends LogEntryModel {
 
 	@Override
 	protected void postProcess(LogEntry logEntry, ArrayList<String> logEntryValueList) {
-		// TODO Auto-generated method stub
+
 	}
 
 	@Override

@@ -53,7 +53,7 @@ public class AlertPALTableExportTask extends SwingWorker<Void, Integer> {
 			dataRecordBuffer.append(columnName);
 		}
 
-		dataRecordBuffer.append("\n");
+		dataRecordBuffer.append(System.getProperty("line.separator"));
 
 		String dataRecord = dataRecordBuffer.toString();
 
@@ -84,7 +84,7 @@ public class AlertPALTableExportTask extends SwingWorker<Void, Integer> {
 					}
 				}
 
-				dataRecordBuffer.append("\n");
+				dataRecordBuffer.append(System.getProperty("line.separator"));
 
 				if (row == batchSize) {
 					dataRecord = dataRecordBuffer.toString();

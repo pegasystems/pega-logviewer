@@ -16,7 +16,6 @@ import javax.swing.JTable;
 import javax.swing.TransferHandler;
 
 import com.pega.gcs.fringecommon.guiutilities.FilterTable;
-import com.pega.gcs.logviewer.model.LogEntry;
 
 public class LogTable extends FilterTable<Integer> {
 
@@ -41,23 +40,12 @@ public class LogTable extends FilterTable<Integer> {
 
 				if (selectedRows != null) {
 
-					LogTableModel ltm = (LogTableModel) getModel();
+					LogTableModel logTableModel = (LogTableModel) getModel();
 
-					int columnCount = ltm.getColumnCount();
-
-					for (int selectedRow : selectedRows) {
-
-						LogEntry logEntry = (LogEntry) getValueAt(selectedRow, 0);
-
-						for (int column = 0; column < columnCount; column++) {
-							dataSB.append(ltm.getFormattedLogEntryValue(logEntry, column));
-							dataSB.append("\t");
-						}
-
-						dataSB.append("\n");
-					}
-
+					String selectedRowData = logTableModel.getSelectedRowsData(selectedRows);
+					dataSB.append(selectedRowData);
 				}
+
 				return new StringSelection(dataSB.toString());
 			}
 

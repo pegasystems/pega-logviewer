@@ -89,70 +89,76 @@ public class AlertLogParser extends LogParser {
 
 			fields = line.split("\\*");
 
-			// int fieldsLen = fields.length;
+			int fieldsLen = fields.length;
 
-			alertVersion = Integer.parseInt(fields[1]);
+			// 22 is the lowest count of fields, for Alert Version 4.
+			if (fieldsLen >= 22) {
 
-			// // 37 is max column count for v8 alert
-			// if (fieldsLen > 37) {
-			// oldStyleIndex = 12;
-			// }
+				alertVersion = Integer.parseInt(fields[1]);
 
-			switch (alertVersion) {
+				// // 37 is max column count for v8 alert
+				// if (fieldsLen > 37) {
+				// oldStyleIndex = 12;
+				// }
 
-			case 4:
-				logEntryColumnList = getAlertColumnListV4();
-				timestampIndex = oldStyleIndex + 0;
-				messageIDIndex = oldStyleIndex + 2;
-				observedKPIIndex = oldStyleIndex + 3;
-				palDataIndex = oldStyleIndex + 20;
-				break;
+				switch (alertVersion) {
 
-			case 5:
-				logEntryColumnList = getAlertColumnListV5();
-				timestampIndex = oldStyleIndex + 0;
-				messageIDIndex = oldStyleIndex + 2;
-				observedKPIIndex = oldStyleIndex + 3;
-				palDataIndex = oldStyleIndex + 20;
-				break;
+				case 4:
+					logEntryColumnList = getAlertColumnListV4();
+					timestampIndex = oldStyleIndex + 0;
+					messageIDIndex = oldStyleIndex + 2;
+					observedKPIIndex = oldStyleIndex + 3;
+					palDataIndex = oldStyleIndex + 20;
+					break;
 
-			case 6:
-				logEntryColumnList = getAlertColumnListV6();
-				timestampIndex = oldStyleIndex + 0;
-				messageIDIndex = oldStyleIndex + 2;
-				observedKPIIndex = oldStyleIndex + 3;
-				palDataIndex = oldStyleIndex + 22;
-				break;
+				case 5:
+					logEntryColumnList = getAlertColumnListV5();
+					timestampIndex = oldStyleIndex + 0;
+					messageIDIndex = oldStyleIndex + 2;
+					observedKPIIndex = oldStyleIndex + 3;
+					palDataIndex = oldStyleIndex + 20;
+					break;
 
-			case 7:
-				logEntryColumnList = getAlertColumnListV7();
-				timestampIndex = oldStyleIndex + 0;
-				messageIDIndex = oldStyleIndex + 2;
-				observedKPIIndex = oldStyleIndex + 3;
-				palDataIndex = oldStyleIndex + 24;
-				break;
+				case 6:
+					logEntryColumnList = getAlertColumnListV6();
+					timestampIndex = oldStyleIndex + 0;
+					messageIDIndex = oldStyleIndex + 2;
+					observedKPIIndex = oldStyleIndex + 3;
+					palDataIndex = oldStyleIndex + 22;
+					break;
 
-			case 8:
-				logEntryColumnList = getAlertColumnListV8();
-				timestampIndex = oldStyleIndex + 0;
-				messageIDIndex = oldStyleIndex + 2;
-				observedKPIIndex = oldStyleIndex + 3;
-				palDataIndex = oldStyleIndex + 29;
-				break;
+				case 7:
+					logEntryColumnList = getAlertColumnListV7();
+					timestampIndex = oldStyleIndex + 0;
+					messageIDIndex = oldStyleIndex + 2;
+					observedKPIIndex = oldStyleIndex + 3;
+					palDataIndex = oldStyleIndex + 24;
+					break;
 
-			default:
-				// set to v6 alert.
-				logEntryColumnList = getAlertColumnListV6();
-				timestampIndex = oldStyleIndex + 0;
-				messageIDIndex = oldStyleIndex + 2;
-				observedKPIIndex = oldStyleIndex + 3;
-				palDataIndex = oldStyleIndex + 22;
-				break;
+				case 8:
+					logEntryColumnList = getAlertColumnListV8();
+					timestampIndex = oldStyleIndex + 0;
+					messageIDIndex = oldStyleIndex + 2;
+					observedKPIIndex = oldStyleIndex + 3;
+					palDataIndex = oldStyleIndex + 29;
+					break;
+
+				default:
+					// set to v6 alert.
+					logEntryColumnList = getAlertColumnListV6();
+					timestampIndex = oldStyleIndex + 0;
+					messageIDIndex = oldStyleIndex + 2;
+					observedKPIIndex = oldStyleIndex + 3;
+					palDataIndex = oldStyleIndex + 22;
+					break;
+				}
+
+				LOG.info("logEntryColumnList: " + logEntryColumnList);
+
+				alertLogEntryModel.setLogEntryColumnList(logEntryColumnList);
+			} else {
+				LOG.info("discarding line: " + line);
 			}
-
-			LOG.info("logEntryColumnList: " + logEntryColumnList);
-
-			alertLogEntryModel.setLogEntryColumnList(logEntryColumnList);
 		}
 
 		if (logEntryColumnList != null) {

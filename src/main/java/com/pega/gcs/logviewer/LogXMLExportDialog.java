@@ -32,7 +32,6 @@ import javax.swing.JProgressBar;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import com.pega.gcs.fringecommon.guiutilities.ClickableFilePathPanel;
-import com.pega.gcs.fringecommon.guiutilities.RecentFile;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.FileUtilities;
 
@@ -68,10 +67,9 @@ public class LogXMLExportDialog extends JDialog {
 
 		this.logXMLExportTask = null;
 
-		RecentFile recentFile = logTableModel.getRecentFile();
-		String recentFileStr = (String) recentFile.getAttribute(RecentFile.KEY_FILE);
+		String filePath = logTableModel.getFilePath();
 
-		logFile = new File(recentFileStr);
+		logFile = new File(filePath);
 
 		// check if the default output file is available
 		String fileName = getDefaultXMLFileName();

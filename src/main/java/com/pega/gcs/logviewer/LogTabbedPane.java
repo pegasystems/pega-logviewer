@@ -32,6 +32,7 @@ import com.pega.gcs.fringecommon.guiutilities.ButtonTabComponent;
 import com.pega.gcs.fringecommon.guiutilities.RecentFileContainer;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
+import com.pega.gcs.logviewer.systemscan.SystemScanMainPanel;
 
 public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 
@@ -45,6 +46,8 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 
 	private Map<String, Integer> fileTabIndexMap;
 
+	private List<String> tailingFileList;
+
 	private Border normalBorder;
 
 	public LogTabbedPane(LogViewerSetting logViewerSetting, RecentFileContainer recentFileContainer) {
@@ -54,6 +57,8 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 		this.recentFileContainer = recentFileContainer;
 
 		fileTabIndexMap = new LinkedHashMap<String, Integer>();
+
+		tailingFileList = new ArrayList<>();
 
 		setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 
@@ -83,7 +88,6 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 
 	@Override
 	public void dragOver(DropTargetDragEvent dtde) {
-		// TODO Auto-generated method stub
 
 	}
 
@@ -172,9 +176,24 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 
 	@Override
 	public void remove(int index) {
+
 		super.remove(index);
 
+		String filePath = null;
+
+		int count = 0;
+
+		for (String key : fileTabIndexMap.keySet()) {
+
+			if (count == index) {
+				filePath = key;
+				break;
+			}
+			count++;
+		}
+
 		fileTabIndexMap.values().remove(index);
+		tailingFileList.remove(filePath);
 
 		int tabIndex = 0;
 
@@ -189,6 +208,15 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 
 	public void loadFile(final File selectedFile) throws Exception {
 
+		if (LogViewer.isSystemScanFile(selectedFile)) {
+			loadSystemScanFile(selectedFile);
+		} else {
+			loadLogFile(selectedFile);
+		}
+	}
+
+	public void loadLogFile(final File selectedFile) throws Exception {
+
 		Integer index = fileTabIndexMap.get(selectedFile.getPath());
 
 		if (index != null) {
@@ -202,16 +230,16 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 			// One thread reserved for search functionality.
 			// One thread reserved for file load, in case user de-selects 'tail'
 			// setting.
-			int totalTabCount = fileTabIndexMap.size();
+			int totalTailingTabCount = tailingFileList.size();
 
 			boolean tailLogFile = logViewerSetting.isTailLogFile();
 
-			if (tailLogFile && (totalTabCount == 8)) {
+			if (tailLogFile && (totalTailingTabCount == 8)) {
 
 				StringBuffer messageSB = new StringBuffer();
 				messageSB.append(
 						"Unable to load file because 'tail log file' setting is enabled. Maximun of 8 tabs can be opened.");
-				messageSB.append("\n");
+				messageSB.append(System.getProperty("line.separator"));
 				messageSB.append("Either close existing tabs or disable 'tail log file' setting.");
 
 				JOptionPane.showMessageDialog(this, messageSB.toString(), "Error - Max Tabs ",
@@ -221,8 +249,28 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 				LogDataMainPanel logDataMainPanel = new LogDataMainPanel(selectedFile, recentFileContainer,
 						logViewerSetting);
 
+				tailingFileList.add(selectedFile.getPath());
+
 				addTab(selectedFile, logDataMainPanel);
 			}
+		}
+
+	}
+
+	public void loadSystemScanFile(final File selectedFile) throws Exception {
+
+		Integer index = fileTabIndexMap.get(selectedFile.getPath());
+
+		if (index != null) {
+
+			setSelectedIndex(index);
+
+		} else {
+
+			SystemScanMainPanel systemScanMainPanel = new SystemScanMainPanel(selectedFile, recentFileContainer,
+					logViewerSetting);
+
+			addTab(selectedFile, systemScanMainPanel);
 		}
 
 	}

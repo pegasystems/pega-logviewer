@@ -162,7 +162,6 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
 	 */
 	@Override
 	public int getIndexOfKey(Integer key) {
-		// TODO Auto-generated method stub
 		return 0;
 	}
 
@@ -175,7 +174,6 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
 	 */
 	@Override
 	public Object getEventForKey(Integer key) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -188,7 +186,6 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
 	 */
 	@Override
 	public AbstractTreeTableNode getTreeNodeForKey(Integer key) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
@@ -200,7 +197,6 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
 	 */
 	@Override
 	public void clearSearchResults(boolean clearResults) {
-		// TODO Auto-generated method stub
 
 	}
 
@@ -212,7 +208,6 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
 	 */
 	@Override
 	public SearchModel<Integer> getSearchModel() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 

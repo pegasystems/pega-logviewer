@@ -96,7 +96,6 @@ public class CombinedDomainCategoryPlotMouseListener implements ChartMouseListen
 	 */
 	@Override
 	public void chartMouseMoved(ChartMouseEvent event) {
-		// TODO Auto-generated method stub
 
 	}
 

@@ -94,7 +94,7 @@ public class ThreadDumpTable extends FilterTable<String> {
 
 									if (threadDumpThreadInfo != null) {
 										logEntryTextSB.append(threadDumpThreadInfo.getThreadDumpString());
-										logEntryTextSB.append("\n");
+										logEntryTextSB.append(System.getProperty("line.separator"));
 
 									}
 								}

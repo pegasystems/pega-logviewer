@@ -91,7 +91,6 @@ public class CombinedDomainXYPlotMouseListener implements ChartMouseListener {
 	 */
 	@Override
 	public void chartMouseMoved(ChartMouseEvent event) {
-		// TODO Auto-generated method stub
 
 	}
 

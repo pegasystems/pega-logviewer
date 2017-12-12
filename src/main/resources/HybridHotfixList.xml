@@ -1,0 +1,1183 @@
+<HybridHotfixList>
+  <HybridHotfix>
+    <Id>1</Id>
+    <PegaVersion>0720_ML1</PegaVersion>
+    <HotfixId>HFIX-34911</HotfixId>
+    <Title>ApplicationFlatter hotfixes</Title>
+    <SupportRequest>SR-B51731</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>2</Id>
+    <PegaVersion>0720_ML1</PegaVersion>
+    <HotfixId>HFIX-35426</HotfixId>
+    <Title>ApplicationFlatter hotfixes</Title>
+    <SupportRequest>SR-B51731</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>3</Id>
+    <PegaVersion>0720_ML0</PegaVersion>
+    <HotfixId>HFIX-32153</HotfixId>
+    <Title>Backport option to not add auto-added filters in extract in 7.2</Title>
+    <SupportRequest>SR-B30757</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>4</Id>
+    <PegaVersion>0710_ML9</PegaVersion>
+    <HotfixId>HFIX-24731</HotfixId>
+    <Title>Assembled classes writer exceptions after upgrade to Pega 7.1.9</Title>
+    <SupportRequest>SR-A11091</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>5</Id>
+    <PegaVersion>0710_ML9</PegaVersion>
+    <HotfixId>HFIX-28346</HotfixId>
+    <Title>CyberArk integration</Title>
+    <SupportRequest>SR-A85937</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>6</Id>
+    <PegaVersion>0710_ML8</PegaVersion>
+    <HotfixId>HFIX-23323</HotfixId>
+    <Title>VPD security Update</Title>
+    <SupportRequest>SR-A5100</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>7</Id>
+    <PegaVersion>0710_ML8</PegaVersion>
+    <HotfixId>HFIX-23645</HotfixId>
+    <Title>System hangs when Map Value opened</Title>
+    <SupportRequest>SR-A5355</SupportRequest>
+    <References></References>
+    <Notes>The Hfix which contains rule changes (HFix-23645.jar) can be installed via update manager. The data instance (pxHFix-23645.jar) has to be imported manually to make the hfix installation complete.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>8</Id>
+    <PegaVersion>0710_ML8</PegaVersion>
+    <HotfixId>HFIX-24850</HotfixId>
+    <Title>The correct rule does not get picked up at run time</Title>
+    <SupportRequest>SR-A10179</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>9</Id>
+    <PegaVersion>0710_ML8</PegaVersion>
+    <HotfixId>HFIX-29349</HotfixId>
+    <Title>Static Assembly utility error in batch mode</Title>
+    <SupportRequest>SR-A86673</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>10</Id>
+    <PegaVersion>0710_ML8</PegaVersion>
+    <HotfixId>HFIX-29519</HotfixId>
+    <Title>PR_SYS_QUEUE_SLA entries remain after progressing an item via  background job</Title>
+    <SupportRequest>SR-B462</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>11</Id>
+    <PegaVersion>0710_ML8</PegaVersion>
+    <HotfixId>HFIX-30131</HotfixId>
+    <Title>Backport Extract option to not add standard filters to BIX query</Title>
+    <SupportRequest>SR-B793</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>12</Id>
+    <PegaVersion>0710_ML8</PegaVersion>
+    <HotfixId>HFIX-30178</HotfixId>
+    <Title>Backport Extract option to not add standard filters to BIX query</Title>
+    <SupportRequest>SR-B793</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>13</Id>
+    <PegaVersion>0710_ML7</PegaVersion>
+    <HotfixId>HFIX-20277</HotfixId>
+    <Title>static content retrieved too often</Title>
+    <SupportRequest>SR-123056</SupportRequest>
+    <References></References>
+    <Notes>Install the HFix and deploy 7.1.7 Gateway .war along with FCM installation.  .war attached to SE-20277.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>14</Id>
+    <PegaVersion>0710_ML7</PegaVersion>
+    <HotfixId>HFIX-20315</HotfixId>
+    <Title>Login page does not support offline functionality</Title>
+    <SupportRequest>SR-123555</SupportRequest>
+    <References>https://mesh.pega.com/docs/DOC-70602</References>
+    <Notes>DO NOT SEND HFix-20315 TO EXTERNAL CUSTOMERS without prior approval from Stephanie Louis (Pega Senior Product Manager).  This is a feature add of the offline login functionality planned in 7.1.8 for POCs and demos only.  See the mesh page for documentation.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>15</Id>
+    <PegaVersion>0710_ML7</PegaVersion>
+    <HotfixId>HFIX-20919</HotfixId>
+    <Title>Email Not Sent when userID and password are not specified</Title>
+    <SupportRequest>SR-125447 (but classified as hybrid on SR-A6065)</SupportRequest>
+    <References></References>
+    <Notes>HFIX was created for SR-125447 (note the resolution notes for additional actions) : but suspect was not added to this spreadsheet at that time; as the DL-creation process itself flags this up automatically now it seems: it lists &apos;additional actions&apos; now - perhaps we don&apos;t need this spreadsheet anymore.....? PRITJ, 3rd/Sep/2015</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>16</Id>
+    <PegaVersion>0710_ML7</PegaVersion>
+    <HotfixId>HFIX-22658</HotfixId>
+    <Title>EmailListener doest not detect autoreply; causing infinite loops</Title>
+    <SupportRequest>SR-A959 (but classified as hybrid on SR-A6065)</SupportRequest>
+    <References></References>
+    <Notes>HFIX was created for SR-A959, but noticed that it should (or perhaps there is no need anymore?) be added during work on SR-A6065. PRITJ, 3rd/Sep/2015</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>17</Id>
+    <PegaVersion>0710_ML7</PegaVersion>
+    <HotfixId>HFIX-21248</HotfixId>
+    <Title>Enable BIX usage by Cloud customers running Pega Platform 7.1.7</Title>
+    <SupportRequest>SR-128795</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>18</Id>
+    <PegaVersion>0710_ML6</PegaVersion>
+    <HotfixId>HFIX-9841</HotfixId>
+    <Title>IAC gadget re-sizing the window not aligning dynamically.</Title>
+    <SupportRequest>SR-114917</SupportRequest>
+    <References></References>
+    <Notes>Issue is specific to IAC gadget. Provided Hfix-9841. For this hotfix to work, a new IAC div attribute with name PegaSizeInPercentage needs to be specified with the value as &quot;true&quot;. A sample has been given below for the same:-
+ 
+&lt;div align=&quot;left&quot; id=&quot;61sp2_IAC&quot;
+                style=&quot;overflow:auto;&quot;
+                PegaGadget=&quot;61sp2_IAC&quot;
+                PegaA=&quot;createNewWork&quot;
+                     PegaA_className=&quot;PegaSample-CustomerRequest&quot;
+                     PegaA_flowName=&quot;CustomerFeedback&quot;
+                PegaResize=&quot;stretch&quot;
+                PegaA_model=&quot;&quot;
+                PegaA_readOnly=&quot;false&quot;
+                PegaDefer=&quot;false&quot;
+                PegaSizeInPercentage=&quot;true&quot;
+                PegaA_params={UserIdentifier:&quot;MyOperator&quot;,Password:&quot;XXXXX&quot;}&gt;
+                &lt;/div&gt;
+ 
+ 
+ 
+Once this hot fix is installed it is mandatory to download a fresh PegaInternetApplicationComposer.js file to use in Gadget root folder.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>19</Id>
+    <PegaVersion>0710_ML6</PegaVersion>
+    <HotfixId>HFIX-27530</HotfixId>
+    <Title>Conditions in query impact BIX performace</Title>
+    <SupportRequest>SR-A24359</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>20</Id>
+    <PegaVersion>0710_ML5</PegaVersion>
+    <HotfixId>HFIX-9485</HotfixId>
+    <Title>client side activated property Error messages not accessible</Title>
+    <SupportRequest>SR-111968</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>21</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-6373</HotfixId>
+    <Title>improved performance and stability of alerts and AES</Title>
+    <SupportRequest>SR-80857</SupportRequest>
+    <References></References>
+    <Notes>NOTE: This is a two part hotfix: HFIX-6373.jar is an engine change and is installable by Update Manager and AES_Rules_HFIX_6373.zip is a patch for AES and is NOT installable by Update Manager (FNIBUM)</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>22</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-6520</HotfixId>
+    <Title>Process Extender for SAP Business Suite Hotfix needed for 63sp1</Title>
+    <SupportRequest>SR-81179</SupportRequest>
+    <References>https://pdn.pega.com/integration/pega-process-extender-for-sap-business-suite</References>
+    <Notes>Besides installing the DL using update manager, follow pxReadMe.txt (in HFIX-6520-SAP.zip) and bootReadMe.txt (in HFIX-6520-boot.zip) for manual steps.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>23</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-6646</HotfixId>
+    <Title>Eng initiated Hotfix for 6.3 SP1 for some ABA perf &amp; bug fixes</Title>
+    <SupportRequest>None</SupportRequest>
+    <References>https://pdn.pega.com/user-interface/troubleshooting-after-prpc-63-sp1-upgrade-portal-styles-are-lost-and-application-screens-are-not-usa</References>
+    <Notes>Has sql script to clear out cache tables after application of the hotfix.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>24</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-6693</HotfixId>
+    <Title>Case Management Mid process dependency issue - OFF comms</Title>
+    <SupportRequest>SR-83685</SupportRequest>
+    <References></References>
+    <Notes>Beware Hybrid Hotfixes, Simple example</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>25</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-7038</HotfixId>
+    <Title>FW: Application Centric Cache Synchronization issues in Product</Title>
+    <SupportRequest>SR-85328</SupportRequest>
+    <References>https://pdn.pega.com/system-operations/troubleshooting-prpc-63-sp1-cached-rules-not-the-same-across-multiple-jvms-hfix-7038</References>
+    <Notes>First, install HFix-7038.jar with Update Manager.
+Next, open HFix-7038.zip,  extract the WAR/EAR appropriate for your system, and install the WAR/EAR by  hand. Read the PDN Article for more details, manual steps that are required.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>26</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-7125</HotfixId>
+    <Title>System hangs during development</Title>
+    <SupportRequest>SR-87144</SupportRequest>
+    <References>https://pdn.pega.com/system-operations/troubleshooting-prpc-63-sp1-application-based-assembly-performance-and-timeout-issues-with-sql-serve</References>
+    <Notes>JAR plus SQL for constraint change.
+See Completion Notes, Documentation.
+HFix-7125 includes HFix-7038. Read the PDN Articles and follow the installation instructions for both hotfixes.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>27</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-7134</HotfixId>
+    <Title>Hover-over not disappearing property</Title>
+    <SupportRequest>SR-86444</SupportRequest>
+    <References></References>
+    <Notes>This hot fix appears to have a side-effect in that the Report Scheduler popup no longer works.
+Please also consider applying Hfix-7811 to address this side-effect.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>28</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-7185</HotfixId>
+    <Title>Kerberos connectivity issues with PRPC utils</Title>
+    <SupportRequest>SR-87958</SupportRequest>
+    <References></References>
+    <Notes>This hot fix has a functional dependency on HFix-6841 (pure FNIBUM).  Attached Kerberos Configuration Guide to hfix-7185. Step 6 outlines additional manual changes that need to be made to prpcUtils.xml file to achive Kerberos connectivity in prpcUtils after HFix-7185 has been installed.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>29</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-7213</HotfixId>
+    <Title>Performance bug  in Code-.ApplicationSetup</Title>
+    <SupportRequest>SR-88648</SupportRequest>
+    <References></References>
+    <Notes></Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>30</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-7271</HotfixId>
+    <Title>Dot in when rules causing expression generation errors</Title>
+    <SupportRequest></SupportRequest>
+    <References>https://mesh.pega.com/message/89518#89518</References>
+    <Notes>Post-Installation: Delete the file PegaRULES_Extract_Marker.txt prior to restarting the application server. This will prevent a Fail  ** @(Pega-RULES:DecisionTable).ObtainValue(tools, primary, pyTaggedDataInstances) 4  when you try to log in.
+
+Priority: Moderate – Install if you have encountered this issue. This HFix replaces HFix-6399, HFix-6573, HFix-6615, and HFix-6904.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>31</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-7350</HotfixId>
+    <Title>PRPC 6.3 SP1 - Connect-File File format specification</Title>
+    <SupportRequest>SR-89493</SupportRequest>
+    <References></References>
+    <Notes>After installation, you must open up all existing Rule-File-Connect Rules manually and set the newly created &apos;EnabledBOM&apos; Property on the Rule File to the desired setting and re-save.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>32</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-7571</HotfixId>
+    <Title>Casting a DB2 zOS DATE coltype and writing values to DATE cols</Title>
+    <SupportRequest>SR-89850</SupportRequest>
+    <References></References>
+    <Notes>If Customer is not on DB2/zOS after applying Hfix-7571 report definition functionality is broken and throws BadTableMappingException. Please refer to SR-99439 for details. Hfix-8285 has been created to fix this issue, is related to Hfix-7571, and cannot be taken without it. If a customer has taken Hfix-7571 they should take Hfix-8285 as well.  This hotfix is a dependant hotfix for many other DB-related HFixes.  Make sure to check for it in the dependants list when creating a DL.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>33</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-7613</HotfixId>
+    <Title>Fields on work user/manager portals not localized</Title>
+    <SupportRequest>SR-108813</SupportRequest>
+    <References></References>
+    <Notes>HFix-7613 has three known issues: 
+1. missing custom cab installer 
+2. incorrectly handles files with multi-dots in the name, e.g. file named &quot;foo.goo.boo.txt&quot; will come out as &quot;foo.goo&quot; when dropped. 
+3. when dropping files with no extension (e.g. foo) thedrag&amp;drop popup crashes with error &quot;Subscript out of range&quot;.
+
+If we have HFix-7613 installed, we need HFix-8469 and HFix-8390. Without these 2 hotfixes, we would run into issues with Drag and Drop Files ActiveX control.
+The HFIX-8469  package contains Pegasystems ActiveX controls and the custom CABInstaller
+The HFIX-8390  package contains the fixes for invalid security certificates for some OCX controls
+
+HFix-7613 may introduce ArrayIndexOutOfBoundsException problems.
+If your customer is seeing this, or to potentially avoid running into the problem, please also send HFix-8171</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>34</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-7711</HotfixId>
+    <Title>AXIS 2 not releasing connection when http 504 occurs</Title>
+    <SupportRequest>SR-93076</SupportRequest>
+    <References></References>
+    <Notes>1) Install the DL. 2) Clear browser cache, delete PRPC temp directory, 3) Restart server</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>35</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-7777</HotfixId>
+    <Title>Bouncy Castle Jars updated to 149 version</Title>
+    <SupportRequest>SR-108897</SupportRequest>
+    <References></References>
+    <Notes>See HFIX-8643 if you are also installing that hotfix, otherwise: 1) Install the DL. 2) Shut down Pega, delete extract marker. 3) Run the SQL query posted as a comment in the Hfix-7777 item in PS. 4) Start PS.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>36</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-7804</HotfixId>
+    <Title>Implicit privileges not applied to called activities</Title>
+    <SupportRequest>SR-94016</SupportRequest>
+    <References>https://pdn.pega.com/reuse-and-version-management/troubleshooting-prpc-63-sp1-runs-wrong-rule-or-fails-to-see-a-new-function-after-application-enhanc</References>
+    <Notes>Post-installation: In prconfig.xml, set assembly/activity/rewriteJava/pmd/rule/DetectDispatch to true.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>37</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-8243</HotfixId>
+    <Title>Remove requirement in prpcUtils to provide prpc username and password</Title>
+    <SupportRequest>SR-98668</SupportRequest>
+    <References></References>
+    <Notes>This hot fix has a functional dependency on HFix-6841 (pure FNIBUM).  Then HFix-8243 has a part to be installed via update manager and other steps to manually be done.  If the customer also wants to user Kerberos connectivity with prpcUtils they would need to repeat the manual update to prpcUtils documented in the Kerberos Connectivity User&apos;s Guide. (See HFix-7185 above)</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>38</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-8246</HotfixId>
+    <Title>Support IE 10 quirks mode and metadata in head tag</Title>
+    <SupportRequest>SR-97945</SupportRequest>
+    <References></References>
+    <Notes>As the changes are in RUF files, either 1) delete the PegaRULES_Extract_Marker file and restart the server OR 2) generate the library on these RUFs and then resave the Harness.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>39</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-8398</HotfixId>
+    <Title>Pega menu leaks</Title>
+    <SupportRequest>SR-99576</SupportRequest>
+    <References></References>
+    <Notes>Hot fixes HFix-8398, HFix-8399 have been produceded to rectify a leak in the Pega menu.
+However, if you install these you should install both, plus HFix-8516 (to allow the Pega menu to disappear if you click outside of the area).
+ HFix-8398
+ HFix-8399
+ HFix-8516
+
+As of 2015/03/30 it looks like HFix-8399 also brings in HFix-7613, which has some further dependencies on
+        HFix-8171
+ HFix-8390
+        HFix-8469</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>40</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-8399</HotfixId>
+    <Title>Pega menu leaks</Title>
+    <SupportRequest>SR-99576</SupportRequest>
+    <References></References>
+    <Notes>Hot fixes HFix-8398, HFix-8399 have been produceded to rectify a leak in the Pega menu.
+However, if you install these you should install both, plus HFix-8516 (to allow the Pega menu to disappear if you click outside of the area).
+ HFix-8398
+ HFix-8399
+ HFix-8516
+
+As of 2015/03/30 it looks like HFix-8399 also brings in HFix-7613, which has some further dependencies on
+        HFix-8171
+ HFix-8390
+        HFix-8469</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>41</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-8643</HotfixId>
+    <Title>PRPC as A SAML 2.0 web service provider</Title>
+    <SupportRequest>SR-108897</SupportRequest>
+    <References></References>
+    <Notes>HFIX-8643 is hybrid and includes HFIX-7777 and HFIX-6520 as hybrid dependent hotfixes.  The following DB script applies the needed deletes for HFIX-8643 and HFIX-7777 and are provided here.  More details on HFIX-8643 can be found attached with the hfix item. HFIX-9464 addresses an issue with this  hotfix.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>42</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-8647</HotfixId>
+    <Title>When ever operator id is getting created, and there is CSRF attack, with the help of request parameters hacker is able to create a operator ID in PRPC system</Title>
+    <SupportRequest>SR-101181</SupportRequest>
+    <References>https://mesh.pega.com/message/96661</References>
+    <Notes>The HFix ReadMe.txt does not mention the manual actions required to enable this HFix, there are various Dynamic System Settings associated with such. See the &quot;Implementation&quot; and &quot;Documentation&quot; sections under &quot;Completion Notes&quot; in HFix-8647.  
+
+SOLOM confirmed that this can be disabled via config setting and I believe it is off by default (prconfig/security/csrf/mitigation/default).  
+
+Also note the Design Word document attached to the HFix item..</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>43</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-9073</HotfixId>
+    <Title>Tidy tags in the server files</Title>
+    <SupportRequest>SR-107759</SupportRequest>
+    <References></References>
+    <Notes>Instructions attached in word document to Hfix-9073</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>44</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-9355</HotfixId>
+    <Title>Add BIX Manifest feature to 6.3sp1</Title>
+    <SupportRequest>SR-111336</SupportRequest>
+    <References></References>
+    <Notes>Hfix-9355 has a functional dependency on HFix-9367.  Basically HFix-9355 contains the code changes and HFix-9367 contains the rule changes for the manifest feature.  HFix-9355 is installable via update manager.  This hot fix is dependent on HFix-7571 and HFix-7613 which are also both hybrid hot fixes.  To cover all of these you should create a DL item which contains HFix-9355, HFix-8285, HFix-8469, and HFix-8390 like with DL-33328.  To get this to install you need to have customer delete the extract marker after installing the DL upon restarting.  Here are the instructions for installing this completely.
+
+This package needs to installed first. This package includes hfix-9355 and a large number of dependents. Please install this hotfix, then shutdown your system, delete the PegaRULES_Extract_Marker.txt file from your PRPC temporary directory, then restart. 
+
+Hfix-9367 is a non-standard hotfix package. This file should be imported using the standard (Pega Button) Application - Distribution -&gt; Import feature from the developer portal. This hotfix *MUST* be installed after hfix-9355. 
+
+Here are the full sequence of steps:
+•Install hfix-9355 (DL-33328.zip) via the Update Manager
+•Shutdown PRPC
+•Delete the PegaRULES_Extract_Marker.txt file from the PRPC temporary directory
+•Restart PRPC
+•Install hfix-9367 (pxHFix-9367.zip) via (Pega Button) Application - Distribution -&gt; Import feature from the developer portal</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>45</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-9464</HotfixId>
+    <Title>WS Trust STS external service call receives exception</Title>
+    <SupportRequest>SR-111889</SupportRequest>
+    <References>https://mesh.pega.com/message/92901#92901</References>
+    <Notes>Requires execution of SQL script to remove the old jars from PRPC database prior to importing DL.
+Refer to &quot;HFIX-9464 Installation document.docx&quot; attached to the HFix item. This (or previous related hotfix HFIX-8643) break SOAP request header generation. HFIX-21731 addresses this issue and should be installed along with HFIX-9464. (HFIX-21731 has no additional instructions)</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>46</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-9500</HotfixId>
+    <Title>WS Trust STS SCT external service call receives exception</Title>
+    <SupportRequest>SR-111889</SupportRequest>
+    <References>https://mesh.pega.com/message/92901#92901</References>
+    <Notes>Requires execution of SQL script to remove the old jars from PRPC database prior to importing DL.
+
+In addition to deploying three updated .jar files to the system, the implementation of the hot fix (if feature is needed) requires an amendment to the STS Service Policy (defined on the Rule-Connect-Soap form) to add an additional rampart configuration option to enable the inclusion of the wst:TokenType element i.e. telling the code it is a secure conversation:
+
+&lt;ramp:secureConversation&gt;true&lt;/ ramp:secureConversation&gt;
+
+Refer to &quot;HFIX-9500.docx&quot; attached to the HFix item for installation and implementation details.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>47</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-9511</HotfixId>
+    <Title>Low disk space due to high number of AXIS2 jar files in /tmp</Title>
+    <SupportRequest>SR-114902</SupportRequest>
+    <References></References>
+    <Notes>HFix-9511 has 2 dependent hotfixes (HFix-7777 and HFix-8643) that are hybrid hotfixes. The SQL script needs to be run to remove old versions of some jar files as described in the instruction.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>48</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-9531</HotfixId>
+    <Title>Rampart WS-TRUST handling response with no header</Title>
+    <SupportRequest>SR-111889</SupportRequest>
+    <References>https://mesh.pega.com/message/92901#92901</References>
+    <Notes>Requires execution of SQL script to remove the old jars from PRPC database prior to importing DL.
+
+In addition to deploying three updated .jar files to the system, the implementation of the hot fix (if feature is required) requires an amendment to the STS Service Policy (defined on the Rule-Connect-Soap form) to add an additional rampart configuration option to disable the requirement for SOAP Header in the response i.e. telling the code to skip the SOAP Header verification:
+
+&lt;ramp:skipSecurityHeader&gt;true&lt;/ramp:skipSecurityHeader&gt;
+
+Refer to &quot;HFIX-9531.docx&quot; attached to the HFix item for installation and implementation details.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>49</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-9599</HotfixId>
+    <Title>Unsubscribe screen accidentally introduced Save/Update buttons</Title>
+    <SupportRequest>SR-128123</SupportRequest>
+    <References></References>
+    <Notes>Hfix-9599 inadvertently enabled two additional buttons (Save, Update) on the Unsubscribe screen for a report schedule.
+And if the user tries the Save option then they receive a &quot;Lock Lost&quot; error.
+
+If you&apos;re sending this hot fix to a customer it would be advisable to send HFix-22792 as well (this will remove the two buttons)</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>50</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-9723</HotfixId>
+    <Title>Rule resolution is not picking the latest rule</Title>
+    <SupportRequest>SR-111606</SupportRequest>
+    <References></References>
+    <Notes>Depending on HFIX-7038 and HFIX-6646 and HFIX-7125 and HFIX-7271, see the relevant hotfix for details.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>51</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-9832</HotfixId>
+    <Title>Enhanced filenames for BIX 6.3.1 on PRPC 6.3sp1</Title>
+    <SupportRequest>SR-115895</SupportRequest>
+    <References></References>
+    <Notes>Hfix-9832 has a functional dependency on HFix-9830.  Basically HFix-9832 contains the code changes and HFix-9830 contains the rule changes for the filename feature.  HFix-9832 is installable via update manager.  These hot fixes are functionally dependent on HFix-9355/HFix-9367 which is also a hybrid.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>52</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-9889</HotfixId>
+    <Title>Authentication verification error for SOAP Service 63sp1</Title>
+    <SupportRequest>SR-116448</SupportRequest>
+    <References></References>
+    <Notes>There are two depdendent hotfixes HFIX-8643 and HFIX-7777 are hybrid, see above for details.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>53</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-10211</HotfixId>
+    <Title>Optional tag in XML stream rule showing up in the generated XML</Title>
+    <SupportRequest></SupportRequest>
+    <References></References>
+    <Notes>from the hfix completion notes:     
+
+To leverage the fix provided :
+1) A new DSS needs to be created as below :
+ Owning Ruleset : Pega-IntegrationEngine  
+ Purpose : StreamXML/DetectEmptyProperties
+ Value : true 
+
+2) After creating the DSS, one among the below two actions to be performed :
+ a) Stream XML rules should be re-generated (using Connector &amp; Metadata Accelerator)
+ b) Stream XML rules (generated before applying the HFix) should be re-saved.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>54</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId></HotfixId>
+    <Title>SSL_TLS support needed for connect-soap</Title>
+    <SupportRequest>SR-124812</SupportRequest>
+    <References></References>
+    <Notes>Please Clear the PRPC temp folder and restart the server.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>55</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-20557</HotfixId>
+    <Title>SSL_TLS support needed for connect-soap</Title>
+    <SupportRequest>SR-124812</SupportRequest>
+    <References></References>
+    <Notes>Please Clear the PRPC temp folder and restart the server.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>56</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-21254</HotfixId>
+    <Title>Enabled BIX to run on PegaCloud</Title>
+    <SupportRequest>SR-128578</SupportRequest>
+    <References></References>
+    <Notes>HFix-21330 (Rule changes to support BIX on cloud) should be imported after Hfix-21254</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>57</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-21627</HotfixId>
+    <Title>BIX Extracts Date Formats are different for commad line vs. App Server</Title>
+    <SupportRequest>SR-129690</SupportRequest>
+    <References></References>
+    <Notes>DL for SE-21627 has some dependencies missing. We should install hot fix for SE-20801 to overcome the issue after installing DL.
+
+Also note that there are other hybrid dependent hot fixes - see HFix-9832, HFix-9355 and HFix-21254 above.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>58</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-27840</HotfixId>
+    <Title>Service invocations spike after upgrade from 6.1</Title>
+    <SupportRequest>SR-A24266</SupportRequest>
+    <References></References>
+    <Notes>Search on a remote node returns [Limited Results] when Hfix-27840 is applied. 
+Hfix-27840 needs to be installed with Hfix-7881. Create a DL with both Hfixes</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>59</Id>
+    <PegaVersion>0603_SP1</PegaVersion>
+    <HotfixId>HFIX-28176</HotfixId>
+    <Title>sppr_sys_reservequeueitem_b updates</Title>
+    <SupportRequest>SR-B77166</SupportRequest>
+    <References></References>
+    <Notes>The stored procedure supplied with Hfix-28176 is not valid. Please ship Hfix-37222 instead</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>60</Id>
+    <PegaVersion>0602_SP2_ML1</PegaVersion>
+    <HotfixId>HFIX-9424</HotfixId>
+    <Title>Data Transform called from connectors on Flows lose Param page</Title>
+    <SupportRequest>SR-111935</SupportRequest>
+    <References></References>
+    <Notes>The hot fix supplies a new R-U-F (RULE-UTILITY-FUNCTION FLOWFUA PROCESSCONNECTOR).
+After deploying the hot fix using Update Manager, the following additional steps are required:
+1) Re-generate the newly supplied function ProcessConnector either using SMA (Administration -&gt; Rule Utility Library Extractor) or by restarting PRPC removing the PegaRULES_Extract_Marker.txt file.
+2) Re-Save Flow instances that require the revised behaviour provided once the function ProcessConnector has been re-generated.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>61</Id>
+    <PegaVersion>0602_SP2_ML1</PegaVersion>
+    <HotfixId>HFIX-10203</HotfixId>
+    <Title>PRPC62SP2ML1[Rep]AVG Function always showing integer in RepDef</Title>
+    <SupportRequest>SR-119260</SupportRequest>
+    <References></References>
+    <Notes>HFix installation process:
+1. Use Update Manager to upload the entire DL-xxxxx.zip archive.
+2. Shutdown the server.
+3. Clear the contents in the PegaTemp directory.
+4. Re-start the server.
+5. Open RULE-OBJ-PROPERTY @BASECLASS PYSUMMARYVALUE and save a copy of this rule into your own ruleset.
+6. In the new PYSUMMARYVALUE, remove “formatSummaryDecimal” control.
+7. Go to the Advanced tab. Add pyDecimalPrecision as Property Qualifiers and set your desired precision.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>62</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-4708</HotfixId>
+    <Title>IAC browser inconsistencies -Hash Validation broken</Title>
+    <SupportRequest>None</SupportRequest>
+    <References></References>
+    <Notes>IAC post install instructions - see Hotfix Self Service/Pub-4708  or ReadMe.txt of this hotfix</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>63</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-4848</HotfixId>
+    <Title>Operator need access to another application to fulf</Title>
+    <SupportRequest>SR-89630</SupportRequest>
+    <References>https://mesh.pega.com/message/78519</References>
+    <Notes>Beware Hybrid Hotfixes, Case Study 2</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>64</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-4864</HotfixId>
+    <Title>Improve the functionality for pega:lookup tag and related RUF</Title>
+    <SupportRequest>SR-98027</SupportRequest>
+    <References></References>
+    <Notes>System Scanner will break after installing this HFIX. Actually came across this issue when testing another HFIX (HFIX-8662): SME who is helping out identified that HFIX-4864 (a dependant) is a &apos;hybrid&apos; : it requires you to: Stop PRPC. Clear Pega Temp. Restart PRPC. (Or, actually SME did this: Stop PRPC, Start PRPC. Use SMA to recompile the RUF). Note also: If the target system happens to have the &apos;rollback/commit hfix&apos; feature installed - the issue will not occur. (We think because the enhancement update manager will automatically do the re-compilation of the RUF). Full screenshots (for HFIX-8662) are available here for references / error messages etc : \\rpega.com\netdrivesuk\XDRIVE\TECH\GCS\SRs\98000\98000\SR-98027\repro-hfix-8862</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>65</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-5430</HotfixId>
+    <Title>Edit Options - Read Only does not propogate included sections</Title>
+    <SupportRequest>SR-72088</SupportRequest>
+    <References></References>
+    <Notes>Is a Prerequisite of HFix-5654.
+Install HFix-5430 first.
+1.      Stop server.
+2.      Install HFix-5430.
+3.      Restart server.
+4.      Install HFix-5654.
+5.      Log out and log in.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>66</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-5493</HotfixId>
+    <Title>Security Violation Exception on PRPC 6.2 SP2</Title>
+    <SupportRequest>SR-72088</SupportRequest>
+    <References></References>
+    <Notes>FNIBUM portion of fix needs to be installed after Update Manager compatible portion.  See the hotfix&apos;s readme file for instructions.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>67</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-5535</HotfixId>
+    <Title>Implementation of Implicit Privilege Pardigm 6.2 SP2</Title>
+    <SupportRequest>KR-1052
+KR-1055 SR-73170</SupportRequest>
+    <References>https://pdn.pega.com/security/access-group-settings-for-privilege-control-available-in-prpc-61-sp2-hfix-5536-and-prpc-62-sp2-hfix
+
+https://mesh.pega.com/message/92083</References>
+    <Notes>Potential installation error, PRRuntime Error (if encountered) requires these manual steps: Stop the app server, delete PegaRULES_Extract_Marker.txt, restart the server.  See the HFix Completion Notes and Notes.
+
+If this HFIX appears as a dependent of the primary hotfix for which you spun off a DL, then please create a separate DL with HFIX-5535 alone, install it, follow the above manual steps, only then proceed with the installation of the DL containing the actual primary hotfix.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>68</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-5592</HotfixId>
+    <Title>AP Sizing Spreadsheet Updates</Title>
+    <SupportRequest>SR-99031</SupportRequest>
+    <References></References>
+    <Notes>I reached out to the SME assigned to this HFIX regarding PUB-5592 notes: &quot;IMPORTANT: HFix-5641, HFix-5730, HFix-6121, and HFix-6299 are prerequisites. Install these hotfixes before installing HFix-5592.&quot;
+
+HFIX-5730 &amp; HFIX-6299 to date are automatically part of the dependency structure. HFIX-5730 &amp; HFIX-6299 are missing so these are &quot;soft&quot; dependencies but are still important. The SME was not familiar with the validity of the customer&apos;s claim for a schema change described in SR-99031. Adam also could not verify the customer&apos;s claim, so I am not listing that as a special step at this time and removing it.
+
+So in order to abide by the PUB pre-requisite notes, the special/hybrid installation instructions are as follows:
+
+1) Package a DL item with HFix-5641, HFix-5730, HFix-6121, and HFix-6299. Then install this using update manager. (Be sure to perform any necessary HFIX dependency analysis on that DL item for any hybrid or special installs, for example I know HFix-6121 is already a Hybrid itself.)
+
+2) Install HFIX-5552 through an independent DL after you have performed step 1 (which could be your current DL which pulled this as a dependency in the first place.)</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>69</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-5601</HotfixId>
+    <Title>Port Update Manager changes for Roll Back Feature to 6.2 SP2</Title>
+    <SupportRequest>SR-86172
+SR-89160</SupportRequest>
+    <References>https://mesh.pega.com/docs/DOC-37827</References>
+    <Notes>Beware Hybrid Hotfixes, Case Study 1
+Affects Update Manager. Failure to install the hybrid hotfix completely,  using the special procedures will cause Update Manager to fail or be  inoperable. DO NOT GENERATE DL item from Support Application. Only use the DL provided in DOC-37827.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>70</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-5654</HotfixId>
+    <Title>Specification modal always opens as read-only from discovery map</Title>
+    <SupportRequest>None</SupportRequest>
+    <References></References>
+    <Notes>Install HFix-5430 first.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>71</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-5831</HotfixId>
+    <Title>NBB624[Install]Failed to TEST-Unable to oobtain unique id</Title>
+    <SupportRequest>SR-75846</SupportRequest>
+    <References></References>
+    <Notes>Restart the JVM after installing hotfix via update manager or the changes will not take effect.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>72</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-6121</HotfixId>
+    <Title>Spell Checker enhancements in RTE for JPMC</Title>
+    <SupportRequest>None</SupportRequest>
+    <References></References>
+    <Notes>FNIBUM portion of fix needs to be installed after Update Manager compatible portion.  See the hotfix&apos;s readme file for instructions.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>73</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-6247</HotfixId>
+    <Title>Porting Pega Document scanning functionality from PRPC 6.3</Title>
+    <SupportRequest>SR-79806</SupportRequest>
+    <References></References>
+    <Notes>FNIBUM portion of fix needs to be installed after Update Manager compatible portion.  See the hotfix&apos;s readme file for instructions.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>74</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-6383</HotfixId>
+    <Title>Error message appears during import (a 0kb SQL DDL is generated)</Title>
+    <SupportRequest>SR-98027</SupportRequest>
+    <References></References>
+    <Notes>This HFIX (which is a dependent of HFIX-8862) will break one of the tables in the Import Wizard. TO FIX: install HFIX-7214. See same notes on X:\ Drive for full notes / screenshots for more information.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>75</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-6647 (INCLUDES 5535, GOES WITH 6560)</HotfixId>
+    <Title>Latest version of rule not run unless RA Cache is cleared.</Title>
+    <SupportRequest>SR-81102
+KR-1052</SupportRequest>
+    <References>PDN Article 43894
+https://pdn.pega.com/reuse-and-version-management/troubleshooting-prpc-62-sp2-runs-wrong-rule-or-fails-to-see-a-new-function-after-application-enhanc</References>
+    <Notes>Stop the application server.
+    Delete the file PegaRULES_Extract_Marker.txt.
+    Truncate three tables: pr_sys_cache_entry, pr_sys_cache_impl, and pr-sys_cache_dep.
+    Restart the application server to recycle the JVM.
+    Make sure there are no errors in the Pega log files.
+Truncate three tables: pr_sys_cache_entry, pr_sys_cache_impl, and pr-sys_cache_dep. Optionally, create database indexes to improve performance.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>76</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-7369</HotfixId>
+    <Title>found flaw in SOAPAppender-unmanaged threads crash AES+PRPC</Title>
+    <SupportRequest>SR-98981</SupportRequest>
+    <References>e-mail from Andy Werden</References>
+    <Notes>To ensure that AES does not have an impact on monitored systems, update prlogging.xml to add the following parameters to all appenders implemented by com.pega.apache.log4j.AsyncAppender:
+
+ &lt;param name=&quot;BufferSize&quot; value=&quot;512&quot;/&gt;
+ &lt;param name=&quot;Blocking&quot; value=&quot;false&quot;/&gt;</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>77</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-7496 </HotfixId>
+    <Title>IE10, IE11 User portal UI problems</Title>
+    <SupportRequest>SR-A228</SupportRequest>
+    <References></References>
+    <Notes>Installing this Hfix can break smart info popups if the smartinfopopup js rule is not at a suitable Hfix level.  Also include Hfix-21404 in package as this contains the current latest version of this rule.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>78</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-7884</HotfixId>
+    <Title>FDBK-4234 Disable HTTP-only cookies Requirement for Editing in Excel (data tables)</Title>
+    <SupportRequest>SR-95223</SupportRequest>
+    <References></References>
+    <Notes>Install Prerequisite HFix-6049 first.
+HFix-7884 also requires CABInstaller.
+Follow instructions in HFix-7884_CABInstaller.zip ReadMe.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>79</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-8263</HotfixId>
+    <Title>Patch for Roll Back Feature.</Title>
+    <SupportRequest>SR-99132</SupportRequest>
+    <References>https://mesh.pega.com/docs/DOC-37827</References>
+    <Notes>Affects Update Manager. DO NOT GENERATE DL item from Support Application. Only use the DL provided in DOC-37827.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>80</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-8385</HotfixId>
+    <Title>R-C-CMIS using ATOM Server with Global Resource Settings fails</Title>
+    <SupportRequest>SR-103731</SupportRequest>
+    <References></References>
+    <Notes>Summary: 
+We found a bug in the changes from HFix-8385 after they got ported to Pega 7.The issues found means that these things do not work correctly: 
+1. InvokeCMISConnector (Connect-CMIS) no longer sets the repository ID and will fail to connect. 
+2. Getting an error or no results when using the CMIS Browse button on “Advanced Tab” in Application ruleform (6.2 SP2) / Integration Tab (7.x)
+
+These issues are addressed via new HFix-8639 which should be used as the parent hot fix rather than HFix-8385.
+
+Use HFix-8639 as the parent hot fix when creating a DL- which will incorporate HFix-8385 as a dependant (this is fine and expected).
+
+Adding to list to ensure visibility of this later functional dependancy that won&apos;t be obvious if using Update Manager to package HFix-8385.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>81</Id>
+    <PegaVersion>0602_SP2</PegaVersion>
+    <HotfixId>HFIX-6101</HotfixId>
+    <Title>Connect SAP ,Service SAP , Connect SAPJCo and Service SAPJCo</Title>
+    <SupportRequest>SR-122602</SupportRequest>
+    <References></References>
+    <Notes>When providing HFix-6101 standalone or if it comes as a dependency, please also ensure pxHFix-6101.jar is also provided. Inform customer to import pxHFix-6101.jar using the standard Import Utility.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>82</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-4769</HotfixId>
+    <Title>Portlet UI issues</Title>
+    <SupportRequest>SR-65433</SupportRequest>
+    <References></References>
+    <Notes>HFix-4769  can cause two issues if included as a dependant HFix or deployed stand alone:
+
+1) Causes side effect which causes harness button to disappear. This is resolved by HFix-4995
+2) introduces a bug in pega_yui_extensions.js. This is resolved by HFix-8710.
+
+Supply HFix-4995 and HFix-8710 as an additional DL- 
+Note: HFix-4995 requires additional actions when deployed as follows:
+1) Recompile the R-U-F
+2) To ensure the impacted Harnesses are re-compiled using the new R-U-F either save the Harness OR Truncate these cache tables
+
+table PR_SYS_CACHE_ENTRY
+table PR_SYS_CACHE_IMPL
+table PR_SYS_CACHE_DEP
+table PR4_RULE_SYSGEN</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>83</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-4790</HotfixId>
+    <Title>Extra set of icons appear on Button click to Refresh Section</Title>
+    <SupportRequest>SR-65333</SupportRequest>
+    <References></References>
+    <Notes>See instructions to run SQL to delete rows from DB.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>84</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-5350</HotfixId>
+    <Title>Unable to edit flow in process modeller</Title>
+    <SupportRequest>SR-71281</SupportRequest>
+    <References></References>
+    <Notes>Install HFix-7159 first.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>85</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-5812</HotfixId>
+    <Title>Requires additional DB (indexes) changes</Title>
+    <SupportRequest>SR-106253 / SR-107763</SupportRequest>
+    <References></References>
+    <Notes>From the &apos;implementation nodes&apos; on the HFIX item we can see that the following indexes are required:    a. create index pr4_log_rule_usg_dtl_idx1 on pr4_log_rule_usage_details (pxparentruleusagekey, pxassemblycachekey);
+b. create index pr_sys_cache_entry_idx1 on pr_sys_cache_entry( pzentrykey, pzcacheconfigid);
+c. create index pr4_log_rule_usage_tidx1 on pr4_log_rule_usage(pxsystemnode, pylabel, pxlastuse, pzinskey, pxclassname) ;</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>86</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-5988</HotfixId>
+    <Title>Composite portal - multiple scrollbars</Title>
+    <SupportRequest>SR-77331</SupportRequest>
+    <References></References>
+    <Notes>Any customer who takes Hfix-5988 should also take Hfix-6001</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>87</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-6367</HotfixId>
+    <Title>Report tab issue</Title>
+    <SupportRequest>SR-79257</SupportRequest>
+    <References></References>
+    <Notes>Needs HFix-6001 as a prerequisite hotfix.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>88</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-6543</HotfixId>
+    <Title>Cursor changed into ballon</Title>
+    <SupportRequest>SR-82031</SupportRequest>
+    <References></References>
+    <Notes>One of the dependents of HFIX-6543 makes flows uneditable and readonly after install. So make sure HFIX-5350 + HFIX-7159 is also provided. Search for HFIX-7159 in this spreadsheet for more details.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>89</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-6889</HotfixId>
+    <Title>Tab getting read only when there is any error in page</Title>
+    <SupportRequest>SR-83407</SupportRequest>
+    <References></References>
+    <Notes>Includes HFix-6367 as an Additional Related Hotfix, which needs HFix-6001 as a prerequisite.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>90</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-7142</HotfixId>
+    <Title>Difference in IE and Mozilla firefox behavior</Title>
+    <SupportRequest>SR-85992</SupportRequest>
+    <References></References>
+    <Notes>Need to re-generate and deploy the IAC gadget after installing the hotfix.
+Needs HFix-7280 as a prerequisite hotfix.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>91</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-7159</HotfixId>
+    <Title>Repeat grid allows update even if section it is in is read only</Title>
+    <SupportRequest>SR-86069</SupportRequest>
+    <References></References>
+    <Notes>Is a Prerequisite of HFix-5350.
+Install HFix-7159 first.
+1.      Stop server.
+2.      Install HFix-7159.
+3.      Restart server.
+4.      Install HFix-5350.
+5.      Log out and log in.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>92</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-7344</HotfixId>
+    <Title>Local Modal Action with &quot;No HTML&quot; problem in Grid/Navigation</Title>
+    <SupportRequest>SR-88764</SupportRequest>
+    <References></References>
+    <Notes>Needs HFix-7333 as a prerequisite hotfix.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>93</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-7808</HotfixId>
+    <Title>Custom Smartinfo used in Activity does not close popup on tabs</Title>
+    <SupportRequest>SR-93936</SupportRequest>
+    <References></References>
+    <Notes>Needs HFix-6001 as a prerequisite hotfix</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>94</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-7905</HotfixId>
+    <Title>Unable to find undefined class in Application Rulesets</Title>
+    <SupportRequest>SR-93370</SupportRequest>
+    <References></References>
+    <Notes>As per HFix Readme.txt
+NOTE: This is a two part hotfix:
+Part 1: &apos;HFix-7905.jar&apos; is installable by Update Manager via a DL- item.
+Part 2: FileAttachment &apos;pxHFix-7905_data.zip&apos; contains data, and is NOT installable by Update Manager (FNIBUM), and can be installed using the PRPC dropdowns of: Application | Import &amp; Export.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>95</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-9426</HotfixId>
+    <Title>Add BIX Manifest feature to BIX 2.3.1 on PRPC 6.2 sp1</Title>
+    <SupportRequest>SR-112000</SupportRequest>
+    <References></References>
+    <Notes>Hfix-9426 has a functional dependency on HFix-9428.  Basically HFix-9426 contains the code changes and HFix-9428 contains the rule changes for the manifest feature.  HFix-9428 is installable via update manager.  This hot fix is dependent on HFix-5812 which is also a hybrid hot fix. 
+
+To install
+1. Install DL-33663 which contains HFix-9426 and dependent hot fixes via update manager.
+2. Shutdown system
+3. Add the following database indexes (needed to go along with Hfix-5812):
+a. create index pr4_log_rule_usg_dtl_idx1 on pr4_log_rule_usage_details (pxparentruleusagekey, pxassemblycachekey); 
+b. create index pr_sys_cache_entry_idx1 on pr_sys_cache_entry( pzentrykey, pzcacheconfigid); 
+c. create index pr4_log_rule_usage_tidx1 on pr4_log_rule_usage(pxsystemnode, pylabel, pxlastuse, pzinskey, pxclassname) ; 
+4. Start system and import pxHFix-9428.jar</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>96</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-9715</HotfixId>
+    <Title>Backport Advanced Service SOAP Security feature for 6.2 SP1</Title>
+    <SupportRequest>SR-114192</SupportRequest>
+    <References></References>
+    <Notes>Per Readme file of HFIX-9715: *Additional Step - Replace the following files with the ones from
+the FileAttachment named: pxHFix-9715.zip, which contains:
+
+printegrint - config/secConfig.xml
+prwebj2ee - scripts/prtAppPackage.xml</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>97</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-9831</HotfixId>
+    <Title>Enhanced filenames for BIX 2.3sp1 on PRPC 6.2sp1</Title>
+    <SupportRequest>SR-115894</SupportRequest>
+    <References></References>
+    <Notes>Hfix-9831 has a functional dependency on HFix-9829.  Basically HFix-9831 contains the code changes and HFix-9829 contains the rule changes for the filename feature.  HFix-9831 is installable via update manager.  These hot fixes are functionally dependent on HFix-9426/HFix-9428 which is also a hybrid.  
+
+The recommended approach is to install both the manifest and unique filename features together.  If customer does not have hfix-9426/hfix-9428 already installed on their system they should follow these instructions to install them together:
+
+1. Install DL item which contains HFix-9831 and its dependent hot fixes via update manager. 
+2. Shutdown system
+3. Add the following database indexes (needed to go along with Hfix-5812):
+a. create index pr4_log_rule_usg_dtl_idx1 on pr4_log_rule_usage_details (pxparentruleusagekey, pxassemblycachekey); 
+b. create index pr_sys_cache_entry_idx1 on pr_sys_cache_entry( pzentrykey, pzcacheconfigid); 
+c. create index pr4_log_rule_usage_tidx1 on pr4_log_rule_usage(pxsystemnode, pylabel, pxlastuse, pzinskey, pxclassname) ; 
+4. Start system and import pxHFix-9829.jar.  There is no need to import the pxHfix-9428 as updated versions of those rules are in the new hot fix jar.
+
+If customer already has hfix-9426/9428 installed on their system follow these instructions:
+1. Install DL item which contains HFix-9831 and its dependent hot fixes via update manager. 
+2. Shutdown system
+3.  Start system and import pxHFix-9829.jar
+4.  Importing the pxHfix-9829.jar on a system where hfix-9428 is already installed may result in duplicate rules.  Run these deletes to remove duplicate rules if they exist:
+delete from pr4_rule_file where pzinsKey = &apos;RULE-FILE-FORM WEBWB RULE-ADMIN-EXTRACT!HTM #20140603T140312.140 GMT&apos;;
+delete from pr4_rule where pzinsKey = &apos;RULE-OBJ-MODEL RULE-ADMIN-EXTRACT PYDEFAULT #20140603T140338.484 GMT&apos;;
+delete from pr4_rule where pzinsKey = &apos;RULE-OBJ-VALIDATE RULE-ADMIN-EXTRACT EXTRACTVALIDATE #20140603T140439.630 GMT&apos;;</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>98</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-10261</HotfixId>
+    <Title>Config option for Dates under WAI to show more than 10 years</Title>
+    <SupportRequest>SR-119074</SupportRequest>
+    <References></References>
+    <Notes>Please note that this is a two part hotfix.
+
+Part 1: &apos;HFix-10261.jar&apos; is installable by Update Manager via a DL- item
+
+Part 2: FileAttachment &apos;pxHFix-10261.jar&apos; contains dynamic data setting, and
+is NOT installable by Update Manager (also known as FNIBUM), and can be installed
+using the PRPC Import wizard</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>99</Id>
+    <PegaVersion>0602_SP1</PegaVersion>
+    <HotfixId>HFIX-23734</HotfixId>
+    <Title>Large number of AXIS2 jar files in temp directory</Title>
+    <SupportRequest>SE-A6668</SupportRequest>
+    <References></References>
+    <Notes>1) Install the hotfix via the Update Manager.
+2) Stop Pega.
+3) Clear the Pega temp folder.
+4) Start Pega.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>100</Id>
+    <PegaVersion>0601_SP2</PegaVersion>
+    <HotfixId>HFIX-3159</HotfixId>
+    <Title>&quot;Standard Header HTML Generation Bug&quot;</Title>
+    <SupportRequest>SR-128902</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>101</Id>
+    <PegaVersion>0601_SP2</PegaVersion>
+    <HotfixId>HFIX-4946</HotfixId>
+    <Title>61sp2 App Profile throws JS error</Title>
+    <SupportRequest>SR-56132 
+SR-100237</SupportRequest>
+    <References></References>
+    <Notes>Adds a reference to the function &quot;toAbsoluteURL&quot; into WordMergeProposal.  Needs HFIX-4716 and HFIX-4833 as prerequisite hotfixes. These add the definition for this function into SafeURL js but do not get pulled into the DL.
+
+SR-56132 was the original case.
+SR-100237 was the case via which this was identified as a Hybrid.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>102</Id>
+    <PegaVersion>0601_SP2</PegaVersion>
+    <HotfixId>HFIX-5600</HotfixId>
+    <Title>Port Update Manager changes for roll backs ( US-8032) to 6.1 SP2.</Title>
+    <SupportRequest>None</SupportRequest>
+    <References>https://mesh.pega.com/docs/DOC-37827</References>
+    <Notes>Affects Update Manager. Failure to install the hybrid hotfix completely, using the special procedures will cause Update Manager to fail or be inoperable.</Notes>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>103</Id>
+    <PegaVersion>0601_SP2</PegaVersion>
+    <HotfixId>HFIX-5911</HotfixId>
+    <Title>Backporting DL install functionality for prpcUtils</Title>
+    <SupportRequest>SR-79041</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>104</Id>
+    <PegaVersion>0601_SP2</PegaVersion>
+    <HotfixId>HFIX-6030</HotfixId>
+    <Title>Transactional behavior on generate ID - SQL 2008 + JBOSS</Title>
+    <SupportRequest>SR-116245</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>105</Id>
+    <PegaVersion>0601_SP2</PegaVersion>
+    <HotfixId>HFIX-6142</HotfixId>
+    <Title>Stale browser requestor not getting passivated</Title>
+    <SupportRequest>SR-104639
+SR-A11382</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>106</Id>
+    <PegaVersion>0601_SP2</PegaVersion>
+    <HotfixId>HFIX-6822</HotfixId>
+    <Title>In MS Word2003 Getting null pointer exception when for EmailCorr</Title>
+    <SupportRequest>SR-126042</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>107</Id>
+    <PegaVersion>0601_SP2</PegaVersion>
+    <HotfixId>HFIX-7649</HotfixId>
+    <Title>Listener requestors are not being release</Title>
+    <SupportRequest>SR-129484</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>108</Id>
+    <PegaVersion>0601_SP2</PegaVersion>
+    <HotfixId>HFIX-10371</HotfixId>
+    <Title>PRPC61SP2[LV]The comparison operator use &quot;=&quot; instead on &quot;like&quot;</Title>
+    <SupportRequest>SR-120199/SR</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>109</Id>
+    <PegaVersion>0601_SP2</PegaVersion>
+    <HotfixId>HFIX-22014</HotfixId>
+    <Title>BIX rule is running with an incorrect date range even though &quot;Use Last Updated time as Start&quot; checkbox is checked</Title>
+    <SupportRequest>SR-127167</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>110</Id>
+    <PegaVersion>0601_SP2</PegaVersion>
+    <HotfixId>HFIX-22098</HotfixId>
+    <Title>BIX rule is running with an incorrect date range even though &quot;Use Last Updated time as Start&quot; checkbox is checked</Title>
+    <SupportRequest>SR-127167</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>111</Id>
+    <PegaVersion>0601_SP2</PegaVersion>
+    <HotfixId>HFIX-25257</HotfixId>
+    <Title>The flow this assignment corresponds to has been removed</Title>
+    <SupportRequest>SR-A13455</SupportRequest>
+  </HybridHotfix>
+  <HybridHotfix>
+    <Id>112</Id>
+    <PegaVersion>0601_SP1</PegaVersion>
+    <HotfixId>HFIX-9797</HotfixId>
+    <Title>How to enable HttpOnlyCookies</Title>
+    <SupportRequest>SR-114719</SupportRequest>
+    <References></References>
+    <Notes>Follow the steps in attached Hfix-9797.zip to update status.jsp file in web/enterprise in  application war/ear file.
+Add the below setting in prconfig.xml file.
+ &lt;env name=&quot;cookie/HttpOnly&quot; value=&quot;true&quot; /&gt;</Notes>
+  </HybridHotfix>
+</HybridHotfixList>

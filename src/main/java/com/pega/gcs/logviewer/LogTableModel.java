@@ -9,14 +9,12 @@ package com.pega.gcs.logviewer;
 import java.beans.PropertyChangeSupport;
 import java.text.DateFormat;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -41,8 +39,6 @@ import com.pega.gcs.logviewer.logfile.LogFileType;
 import com.pega.gcs.logviewer.model.LogEntry;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.LogEntryModel;
-import com.pega.gcs.logviewer.model.LogIntervalMarker;
-import com.pega.gcs.logviewer.model.LogSeriesCollection;
 
 public class LogTableModel extends FilterTableModel<Integer> {
 
@@ -513,13 +509,9 @@ public class LogTableModel extends FilterTableModel<Integer> {
 			searchModel = new SearchModel<Integer>(searchData) {
 
 				@Override
-				public boolean searchInEvents(final Object searchStrObj, final ModalProgressMonitor mProgressMonitor) {
-
-					boolean search = false;
+				public void searchInEvents(final Object searchStrObj, final ModalProgressMonitor mProgressMonitor) {
 
 					if ((searchStrObj != null) && (!"".equals(searchStrObj.toString()))) {
-
-						search = true;
 
 						LogTableSearchTask ttst = new LogTableSearchTask(mProgressMonitor, LogTableModel.this,
 								searchStrObj) {
@@ -562,15 +554,13 @@ public class LogTableModel extends FilterTableModel<Integer> {
 						ttst.execute();
 
 					}
-
-					return search;
 				}
 
 				@Override
-				public void resetResults(boolean aClearResults) {
+				public void resetResults(boolean clearResults) {
 					// clears search result on search model and reset the search
 					// panel
-					resetSearchResults(aClearResults);
+					resetSearchResults(clearResults);
 
 					// clear search results from within trace events and tree
 					// nodes
@@ -587,5 +577,25 @@ public class LogTableModel extends FilterTableModel<Integer> {
 
 	public LogEntryColumn[] getReportTableColumns() {
 		return logEntryModel.getReportTableColumns();
+	}
+
+	public String getSelectedRowsData(int[] selectedRows) {
+
+		StringBuffer selectedRowsDataSB = new StringBuffer();
+
+		for (int selectedRow : selectedRows) {
+
+			Integer logEntryIndex = getFtmEntryKeyList().get(selectedRow);
+			LogEntry logEntry = getEventForKey(logEntryIndex);
+
+			if (logEntry != null) {
+				selectedRowsDataSB.append(logEntry.getLogEntryText());
+				selectedRowsDataSB.append(System.getProperty("line.separator"));
+
+			}
+
+		}
+
+		return selectedRowsDataSB.toString();
 	}
 }

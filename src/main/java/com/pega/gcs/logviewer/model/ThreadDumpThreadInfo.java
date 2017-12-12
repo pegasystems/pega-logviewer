@@ -118,11 +118,11 @@ public abstract class ThreadDumpThreadInfo implements Comparable<ThreadDumpThrea
 		StringBuffer tdsb = new StringBuffer();
 
 		tdsb.append(threadNameText);
-		tdsb.append("\n");
+		tdsb.append(System.getProperty("line.separator"));
 
 		for (String threadSubLine : threadSubLineList) {
 			tdsb.append(threadSubLine);
-			tdsb.append("\n");
+			tdsb.append(System.getProperty("line.separator"));
 		}
 
 		return tdsb.toString();
