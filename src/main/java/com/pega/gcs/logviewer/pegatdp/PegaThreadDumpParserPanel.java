@@ -478,7 +478,7 @@ public class PegaThreadDumpParserPanel extends JPanel {
 		gbc5.gridwidth = GridBagConstraints.REMAINDER;
 
 		JLabel label1 = new JLabel(
-				"This tab is loaded from 'Pega 7 Thread Dump Parser' tool built by domenico.giffone@pega.com.");
+				"This tab is loaded from 'Pega 7 Thread Dump Parser' tool built by Domenico Giffone");
 		JLabel label2 = new JLabel("Please download the tool from Pega Mesh.");
 		ClickablePathPanel meshClickablePathPanel = new ClickablePathPanel();
 
