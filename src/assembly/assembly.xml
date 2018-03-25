@@ -34,6 +34,13 @@
 
 		</file>
 		<file>
+			<source>${project.build.scriptSourceDirectory}/runCommand.sh</source>
+			<outputDirectory>/</outputDirectory>
+			<destName>${artifactId}-${version}.sh</destName>
+			<filtered>true</filtered>
+			<fileMode>0755</fileMode>
+		</file>
+		<file>
 			<source>README.md</source>
 			<outputDirectory>/</outputDirectory>
 		</file>
