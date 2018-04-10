@@ -1,4 +1,4 @@
 #!/bin/sh
-JAR_EXEC=pega-logviewer-3.2-SNAPSHOT.jar
-JAVA_OPTS="-Xms128M -Xmx1G -XX:+UseParNewGC -XX:+UseConcMarkSweepGC"
-java ${JAVA_OPTS} -jar ${JAR_EXEC} $1 $2
+JAR_EXEC=${bin.name}
+JAVA_OPTS="-Xms${java.heap.min} -Xmx${java.heap.max} -XX:+UseParNewGC -XX:+UseConcMarkSweepGC"
+java ${JAVA_OPTS} -jar ${JAR_EXEC} $*
