@@ -8,7 +8,8 @@ The tool can be downloaded from [Releases page](https://github.com/pegasystems/p
 
 Extract 'pega-logviewer-<*version*>-bin.zip' to a folder.
 
-Run 'pega-logviewer-<*version*>.cmd' to launch the tool.
+Windows: Run 'pega-logviewer-<*version*>.cmd' to launch the tool.
+Mac: Run 'pega-logviewer-<*version*>.sh' to launch the tool.
 
 Features
 ----------
