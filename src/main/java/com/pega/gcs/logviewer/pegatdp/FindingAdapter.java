@@ -4,29 +4,30 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.pegatdp;
 
 import java.util.Map;
 
 public interface FindingAdapter {
 
-	// Finding methods
-	public Integer getId();
+    // Finding methods
+    public Integer getId();
 
-	public String getName();
+    public String getName();
 
-	public String getCategory();
+    public String getCategory();
 
-	public String[] getSymptoms();
+    public String[] getSymptoms();
 
-	public Map<String, String> getApplyTo();
+    public Map<String, String> getApplyTo();
 
-	public String getDescription();
+    public String getDescription();
 
-	public Enum<?> getSeverity();
+    public Enum<?> getSeverity();
 
-	public String getAdvice();
+    public String getAdvice();
 
-	public Map<String, Object> getDetails();
+    public Map<String, Object> getDetails();
 
 }

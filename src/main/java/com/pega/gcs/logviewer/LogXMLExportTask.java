@@ -4,14 +4,14 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -20,184 +20,178 @@ import javax.swing.SwingWorker;
 import org.apache.commons.io.FileUtils;
 import org.dom4j.DocumentFactory;
 import org.dom4j.Element;
-import org.dom4j.io.OutputFormat;
-import org.dom4j.io.XMLWriter;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
 import com.pega.gcs.logviewer.model.LogEntry;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 
 public class LogXMLExportTask extends SwingWorker<Void, Integer> {
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(LogXMLExportTask.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(LogXMLExportTask.class);
 
-	private LogTableModel logTableModel;
+    private LogTableModel logTableModel;
 
-	private File xmlFile;
+    private File xmlFile;
 
-	public LogXMLExportTask(LogTableModel logTableModel, File xmlFile) {
-		super();
-		this.logTableModel = logTableModel;
-		this.xmlFile = xmlFile;
-	}
+    public LogXMLExportTask(LogTableModel logTableModel, File xmlFile) {
+        super();
+        this.logTableModel = logTableModel;
+        this.xmlFile = xmlFile;
+    }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see javax.swing.SwingWorker#doInBackground()
-	 */
-	@Override
-	protected Void doInBackground() throws Exception {
+    /*
+     * (non-Javadoc)
+     * 
+     * @see javax.swing.SwingWorker#doInBackground()
+     */
+    @Override
+    protected Void doInBackground() throws Exception {
 
-		int batchsize = 50;
-		int row = 0;
+        int batchSize = 4194304; // 4096KB
+        StringBuilder outputStrBatch = new StringBuilder();
+        boolean append = false;
+        Charset charset = logTableModel.getCharset();
 
-		publish(row);
+        int row = 0;
 
-		OutputFormat format = new OutputFormat();
-		format.setIndentSize(2);
-		format.setNewlines(true);
-		// format.setTrimText(true);
-		format.setPadText(true);
+        publish(row);
 
-		LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
+        LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-		String logEventName = logEntryModel.getTypeName();
-		String encoding = logTableModel.getCharset();
+        String logEventName = logEntryModel.getTypeName();
 
-		StringBuffer xmlSB = new StringBuffer();
+        StringBuilder xmlSB = new StringBuilder();
 
-		StringBuffer xmlHeaderSB = new StringBuffer();
+        StringBuilder xmlHeaderSB = new StringBuilder();
 
-		xmlHeaderSB.append("<?xml version=\"1.0\" ");
-		xmlHeaderSB.append("encoding=\"");
-		xmlHeaderSB.append(encoding);
-		xmlHeaderSB.append("\"?>\n");
+        xmlHeaderSB.append("<?xml version=\"1.0\" ");
+        xmlHeaderSB.append("encoding=\"");
+        xmlHeaderSB.append(charset);
+        xmlHeaderSB.append("\"?>\n");
 
-		String xmlHeader = xmlHeaderSB.toString();
-		String xmlStylesheet = "<?xml-stylesheet type=\"text/xsl\" href=\"ConvertToExcel.xsl\"?>\n";
+        String xmlHeader = xmlHeaderSB.toString();
+        String xmlStylesheet = "<?xml-stylesheet type=\"text/xsl\" href=\"ConvertToExcel.xsl\"?>\n";
 
-		xmlSB.append(xmlHeader);
-		xmlSB.append(xmlStylesheet);
-		xmlSB.append("<");
-		xmlSB.append(logEventName);
-		xmlSB.append("List>");
+        xmlSB.append(xmlHeader);
+        xmlSB.append(xmlStylesheet);
+        xmlSB.append("<");
+        xmlSB.append(logEventName);
+        xmlSB.append("List>");
 
-		String rootElemStart = xmlSB.toString();
+        outputStrBatch.append(xmlSB.toString());
 
-		String rootElemEnd = "\n</" + logEventName + "List>";
+        String rootElemEnd = "\n</" + logEventName + "List>";
 
-		Element logEventElementTemplate = getLogEventElementTemplate(logEventName);
+        Element logEventElementTemplate = getLogEventElementTemplate(logEventName);
 
-		Map<Integer, LogEntry> logEntryMap = logEntryModel.getLogEntryMap();
+        Map<LogEntryKey, LogEntry> logEntryMap = logEntryModel.getLogEntryMap();
 
-		List<Integer> logEntryKeyList = new LinkedList<Integer>(logEntryMap.keySet());
+        List<LogEntryKey> logEntryKeyList = new ArrayList<>(logEntryMap.keySet());
 
-		Collections.sort(logEntryKeyList);
+        Collections.sort(logEntryKeyList);
 
-		try {
+        try {
 
-			StringBuffer outputStrBatch = new StringBuffer();
+            // FileUtils.writeStringToFile(xmlFile, rootElemStart, logTableModel.getCharset());
 
-			FileUtils.writeStringToFile(xmlFile, rootElemStart, logTableModel.getCharset());
+            for (LogEntryKey logEntryKey : logEntryKeyList) {
 
-			for (Integer logEntryKey : logEntryKeyList) {
+                if (!isCancelled()) {
 
-				if (!isCancelled()) {
-					LogEntry logEntry = logEntryMap.get(logEntryKey);
-					Element logEventElement = getLogEventElement(logEventElementTemplate, logEntry);
+                    LogEntry logEntry = logEntryMap.get(logEntryKey);
+                    Element logEventElement = getLogEventElement(logEventElementTemplate, logEntry);
 
-					String xmlStr = getElementsAsXML(logEventElement, format);
-					outputStrBatch.append(xmlStr);
+                    String xmlStr = GeneralUtilities.getElementAsXML(logEventElement);
+                    outputStrBatch.append(xmlStr);
 
-					if (row == batchsize) {
+                    int accumulatedSize = outputStrBatch.length();
 
-						FileUtils.writeStringToFile(xmlFile, outputStrBatch.toString(), logTableModel.getCharset(),
-								true);
+                    if (accumulatedSize > batchSize) {
 
-						outputStrBatch = new StringBuffer();
-					}
+                        FileUtils.writeStringToFile(xmlFile, outputStrBatch.toString(), charset, append);
 
-					row++;
-					publish(row);
-				}
-			}
+                        outputStrBatch = new StringBuilder();
 
-			if (!isCancelled()) {
+                        if (!append) {
+                            append = true;
+                        }
 
-				FileUtils.writeStringToFile(xmlFile, outputStrBatch.toString(), logTableModel.getCharset(), true);
-				publish(row);
-			}
-		} catch (Exception e) {
-			LOG.error("Error performing LogXMLExportTask", e);
-		} finally {
-			LOG.info("LogXMLExportTask - doInBackground last write");
-			FileUtils.writeStringToFile(xmlFile, rootElemEnd, logTableModel.getCharset(), true);
-			LOG.info("LogXMLExportTask - doInBackground finished");
-		}
+                        publish(row);
+                    }
 
-		return null;
-	}
+                    row++;
+                }
+            }
 
-	private Element getLogEventElement(Element logEventElementTemplate, LogEntry logEntry) {
+            if (!isCancelled()) {
 
-		Element logEventElement = logEventElementTemplate.createCopy();
+                int accumulatedSize = outputStrBatch.length();
 
-		List<String> valueList = logEntry.getLogEntryValueList();
+                if (accumulatedSize > 0) {
 
-		@SuppressWarnings("unchecked")
-		Iterator<Element> logEntryColumnElementIt = logEventElement.elementIterator();
+                    FileUtils.writeStringToFile(xmlFile, outputStrBatch.toString(), charset, append);
 
-		int columnIndex = 0;
+                    if (!append) {
+                        append = true;
+                    }
+                }
 
-		while (logEntryColumnElementIt.hasNext()) {
-			Element logEntryColumnElement = logEntryColumnElementIt.next();
-			String columnValue = valueList.get(columnIndex);
+                publish(row);
+            }
 
-			if (columnValue != null) {
-				logEntryColumnElement.setText(columnValue);
-			}
+        } catch (Exception e) {
+            LOG.error("Error performing LogXMLExportTask", e);
+        } finally {
+            LOG.info("LogXMLExportTask - doInBackground last write");
+            FileUtils.writeStringToFile(xmlFile, rootElemEnd, charset, append);
+            LOG.info("LogXMLExportTask - doInBackground finished");
+        }
 
-			columnIndex++;
-		}
+        return null;
+    }
 
-		return logEventElement;
-	}
+    private Element getLogEventElement(Element logEventElementTemplate, LogEntry logEntry) {
 
-	private Element getLogEventElementTemplate(String logEventName) {
+        Element logEventElement = logEventElementTemplate.createCopy();
 
-		LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
+        List<String> valueList = logEntry.getLogEntryValueList();
 
-		List<String> logEntryColumnList = logEntryModel.getLogEntryColumnList();
+        @SuppressWarnings("unchecked")
+        Iterator<Element> logEntryColumnElementIt = logEventElement.elementIterator();
 
-		DocumentFactory factory = DocumentFactory.getInstance();
+        int columnIndex = 0;
 
-		Element logEventElement = factory.createElement(logEventName);
+        while (logEntryColumnElementIt.hasNext()) {
+            Element logEntryColumnElement = logEntryColumnElementIt.next();
+            String columnValue = valueList.get(columnIndex);
 
-		for (String logEntryColumn : logEntryColumnList) {
-			Element logEntryColumnElement = factory.createElement(logEntryColumn);
-			logEventElement.add(logEntryColumnElement);
-		}
+            if (columnValue != null) {
+                logEntryColumnElement.setText(columnValue);
+            }
 
-		return logEventElement;
-	}
+            columnIndex++;
+        }
 
-	public String getElementsAsXML(Element element, OutputFormat format) {
-		StringWriter sw = new StringWriter();
+        return logEventElement;
+    }
 
-		try {
+    private Element getLogEventElementTemplate(String logEventName) {
 
-			XMLWriter writer = new XMLWriter(sw, format);
+        LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-			writer.write(element);
-			writer.flush();
+        List<String> logEntryColumnList = logEntryModel.getLogEntryColumnList();
 
-			// xmlStr = xmlStr + "\n";
+        DocumentFactory factory = DocumentFactory.getInstance();
 
-		} catch (IOException e) {
-			throw new RuntimeException("IOException while generating " + "textual representation: " + e.getMessage());
-		}
+        Element logEventElement = factory.createElement(logEventName);
 
-		return sw.toString();
-	}
+        for (String logEntryColumn : logEntryColumnList) {
+            Element logEntryColumnElement = factory.createElement(logEntryColumn);
+            logEventElement.add(logEntryColumnElement);
+        }
+
+        return logEventElement;
+    }
 }

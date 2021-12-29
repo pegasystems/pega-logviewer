@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.Color;
@@ -14,17 +15,20 @@ import java.awt.Shape;
 import java.awt.geom.Ellipse2D;
 import java.text.DateFormat;
 import java.text.NumberFormat;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.TimeZone;
+import java.util.TreeSet;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JTree;
 import javax.swing.SwingConstants;
 import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 
 import org.jfree.chart.axis.NumberAxis;
@@ -37,6 +41,7 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.category.BoxAndWhiskerRenderer;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.chart.ui.Layer;
 import org.jfree.data.statistics.BoxAndWhiskerItem;
 import org.jfree.data.statistics.DefaultBoxAndWhiskerCategoryDataset;
 import org.jfree.data.time.Millisecond;
@@ -44,277 +49,429 @@ import org.jfree.data.time.RegularTimePeriod;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.time.TimeSeriesDataItem;
-import org.jfree.ui.Layer;
 
-import com.pega.gcs.logviewer.model.LogEntryModel;
+import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
+import com.pega.gcs.logviewer.catalog.CatalogManagerWrapper;
+import com.pega.gcs.logviewer.catalog.model.HotfixEntry;
 import com.pega.gcs.logviewer.model.LogSeries;
 import com.pega.gcs.logviewer.model.LogSeriesCollection;
 import com.pega.gcs.logviewer.model.LogTimeSeries;
 
 public class LogViewerUtil {
 
-	public static final String ICON_LOCATION = "./images";
+    private static final Log4j2Helper LOG = new Log4j2Helper(LogViewerUtil.class);
 
-	public static ImageIcon createImageIcon(String iconName, String description) {
+    private static final String ICON_LOCATION = "./images";
 
-		String path = ICON_LOCATION + "/" + iconName;
-		java.net.URL imgURL = LogViewerUtil.class.getResource(path);
-		if (imgURL != null) {
-			return new ImageIcon(imgURL, description);
-		} else {
-			System.err.println("Couldn't find file: " + path);
-			return null;
-		}
-	}
+    public static ImageIcon createImageIcon(String iconName, String description) {
 
-	public static JLabel getHeaderJLabel(String labelText, int width) {
+        String path = ICON_LOCATION + "/" + iconName;
+        java.net.URL imgURL = LogViewerUtil.class.getResource(path);
+        if (imgURL != null) {
+            return new ImageIcon(imgURL, description);
+        } else {
+            System.err.println("Couldn't find file: " + path);
+            return null;
+        }
+    }
 
-		JLabel headerJLabel = new JLabel(labelText);
+    public static JLabel getHeaderLabel(String labelText, int width) {
 
-		Font labelFont = headerJLabel.getFont();
-		Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
+        JLabel headerLabel = new JLabel(labelText);
 
-		headerJLabel.setFont(tabFont);
-		headerJLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		headerJLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        Font labelFont = headerLabel.getFont();
+        Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
 
-		Dimension size = new Dimension(width, 20);
-		headerJLabel.setPreferredSize(size);
-		headerJLabel.setSize(size);
+        headerLabel.setFont(tabFont);
+        headerLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        headerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-		return headerJLabel;
-	}
+        if (width > 0) {
+            Dimension size = new Dimension(width, 20);
+            headerLabel.setPreferredSize(size);
+            headerLabel.setSize(size);
+        }
 
-	public static void expandAll(JTree tree, boolean expand) {
+        return headerLabel;
+    }
 
-		Object rootNode = tree.getModel().getRoot();
+    public static void expandAll(JTree tree, boolean expand) {
 
-		TreePath rootPath = new TreePath(rootNode);
+        Object rootNode = tree.getModel().getRoot();
 
-		expandAll(tree, rootPath, expand, 0);
-	}
+        TreePath rootPath = new TreePath(rootNode);
 
-	public static void expandAll(JTree tree, TreePath parent, boolean expand, int level) {
+        expandAll(tree, rootPath, expand, 0);
+    }
 
-		DefaultMutableTreeNode node = (DefaultMutableTreeNode) parent.getLastPathComponent();
+    public static void expandAll(JTree tree, TreePath parent, boolean expand, int level) {
 
-		@SuppressWarnings("unchecked")
-		Enumeration<DefaultMutableTreeNode> en = node.children();
+        DefaultMutableTreeNode node = (DefaultMutableTreeNode) parent.getLastPathComponent();
 
-		while (en.hasMoreElements()) {
-			DefaultMutableTreeNode childNode = en.nextElement();
+        Enumeration<TreeNode> en = node.children();
 
-			TreePath path = parent.pathByAddingChild(childNode);
+        while (en.hasMoreElements()) {
+            DefaultMutableTreeNode childNode = (DefaultMutableTreeNode) en.nextElement();
 
-			expandAll(tree, path, expand, level + 1);
+            TreePath path = parent.pathByAddingChild(childNode);
 
-		}
+            expandAll(tree, path, expand, level + 1);
 
-		// restricting expand/collapse to 1 level onwards
-		if (level > 0) {
-			// Expansion or collapse must be done bottom-up
-			if (expand) {
-				tree.expandPath(parent);
-			} else {
-				tree.collapsePath(parent);
-			}
-		}
-	}
+        }
 
-	// in case of combined plots this will become sub plot hence we don't need
-	// domain axis for every sub plots, hence will be passing null.
-	public static void updatePlots(XYPlot xyPlot, CategoryPlot categoryPlot, LogSeriesCollection logSeriesCollection,
-			DateFormat modelDateFormat, NumberFormat numberFormat, boolean notify) {
+        // restricting expand/collapse to 1 level onwards
+        if (level > 0) {
+            // Expansion or collapse must be done bottom-up
+            if (expand) {
+                tree.expandPath(parent);
+            } else {
+                tree.collapsePath(parent);
+            }
+        }
+    }
 
-		String logSeriesCollectionName = logSeriesCollection.getName();
-		List<LogSeries> logSeriesList = logSeriesCollection.getLogSeriesList();
+    // in case of combined plots this will become sub plot hence we don't need
+    // domain axis for every sub plots, hence will be passing null.
+    public static void updatePlots(XYPlot xyPlot, CategoryPlot categoryPlot, LogSeriesCollection logSeriesCollection,
+            DateFormat modelDateFormat, Locale locale, boolean notify) {
 
-		// UPDATE XYPLOT
-		double size = 4.0;
-		double delta = size / 2.0;
+        String logSeriesCollectionName = logSeriesCollection.getName();
+        Collection<LogSeries> logSeriesList = logSeriesCollection.getLogSeriesList();
 
-		Shape seriesShape = new Ellipse2D.Double(-delta, -delta, size, size);
+        // UPDATE XYPLOT
+        double size = 4.0;
+        double delta = size / 2.0;
 
-		XYToolTipGenerator toolTipGenerator = StandardXYToolTipGenerator.getTimeSeriesInstance();
+        Shape seriesShape = new Ellipse2D.Double(-delta, -delta, size, size);
 
-		// in case of bar chart wit time series
-		// XYItemRenderer xyLineAndShapeRenderer = new XYBarRenderer();
-		XYItemRenderer xyLineAndShapeRenderer = new XYLineAndShapeRenderer(true, true);
+        XYToolTipGenerator toolTipGenerator = StandardXYToolTipGenerator.getTimeSeriesInstance();
 
-		xyLineAndShapeRenderer.setBaseToolTipGenerator(toolTipGenerator);
+        // in case of bar chart wit time series
+        // XYItemRenderer xyLineAndShapeRenderer = new XYBarRenderer();
+        XYItemRenderer xyLineAndShapeRenderer = new XYLineAndShapeRenderer(true, true);
 
-		TimeZone modelTimeZone = modelDateFormat.getTimeZone();
-		TimeSeriesCollection timeSeriesCollection = new TimeSeriesCollection(modelTimeZone);
+        xyLineAndShapeRenderer.setDefaultToolTipGenerator(toolTipGenerator);
 
-		Color color = Color.BLACK;
+        TimeZone modelTimeZone = modelDateFormat.getTimeZone();
+        NumberFormat numberFormat = NumberFormat.getInstance(locale);
 
-		int timeSeriesIndex = 0;
+        TimeSeriesCollection timeSeriesCollection = new TimeSeriesCollection(modelTimeZone);
 
-		// currently only one data set present in the series list,
-		BoxAndWhiskerItem boxAndWhiskerItem = null;
-		Color boxAndWhiskerItemColor = Color.BLACK;
+        Color color = Color.BLACK;
 
-		for (LogSeries logSeries : logSeriesList) {
+        int timeSeriesIndex = 0;
 
-			LogTimeSeries logTimeSeries = (LogTimeSeries) logSeries;
+        // currently only one data set present in the series list,
+        BoxAndWhiskerItem boxAndWhiskerItem = null;
+        Color boxAndWhiskerItemColor = Color.BLACK;
 
-			TimeSeries timeSeries = logTimeSeries.getTimeSeries();
-			color = logTimeSeries.getColor();
+        for (LogSeries logSeries : logSeriesList) {
 
-			timeSeriesCollection.addSeries(timeSeries);
+            LogTimeSeries logTimeSeries = (LogTimeSeries) logSeries;
 
-			xyLineAndShapeRenderer.setSeriesShape(timeSeriesIndex, seriesShape);
-			xyLineAndShapeRenderer.setSeriesPaint(timeSeriesIndex, color);
+            TimeSeries timeSeries = logTimeSeries.getTimeSeries();
+            color = logTimeSeries.getColor();
 
-			timeSeriesIndex++;
+            timeSeriesCollection.addSeries(timeSeries);
 
-			boxAndWhiskerItem = logTimeSeries.getBoxAndWhiskerItem();
+            xyLineAndShapeRenderer.setSeriesShape(timeSeriesIndex, seriesShape);
+            xyLineAndShapeRenderer.setSeriesPaint(timeSeriesIndex, color);
 
-			if (boxAndWhiskerItem != null) {
-				boxAndWhiskerItemColor = logTimeSeries.getColor();
-			}
-		}
+            timeSeriesIndex++;
 
-		NumberAxis xyPlotNumberAxis = new NumberAxis(logSeriesCollectionName);
-		xyPlotNumberAxis.setAutoRangeIncludesZero(false);
-		xyPlotNumberAxis.setNumberFormatOverride(numberFormat);
-		xyPlotNumberAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+            if (categoryPlot != null) {
 
-		xyPlot.setRangeAxis(0, xyPlotNumberAxis, notify);
-		xyPlot.setRenderer(0, xyLineAndShapeRenderer, notify);
-		// this will fire change event
-		xyPlot.clearRangeMarkers();
+                boxAndWhiskerItem = logTimeSeries.getBoxAndWhiskerItem();
 
-		// add threshold markers if present
-		for (LogSeries logSeries : logSeriesList) {
+                if (boxAndWhiskerItem != null) {
+                    boxAndWhiskerItemColor = logTimeSeries.getColor();
+                }
+            }
+        }
 
-			LogTimeSeries logTimeSeries = (LogTimeSeries) logSeries;
+        NumberAxis xyPlotNumberAxis = new NumberAxis(logSeriesCollectionName);
+        xyPlotNumberAxis.setAutoRangeIncludesZero(false);
+        xyPlotNumberAxis.setNumberFormatOverride(numberFormat);
+        xyPlotNumberAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
 
-			Marker marker = logTimeSeries.getThresholdMarker();
+        xyPlot.setRangeAxis(0, xyPlotNumberAxis, notify);
+        xyPlot.setRenderer(0, xyLineAndShapeRenderer, notify);
+        // this will fire change event
+        xyPlot.clearRangeMarkers();
 
-			if (marker != null) {
-				xyPlot.addRangeMarker(0, marker, Layer.FOREGROUND, notify);
-			}
-		}
+        // add threshold markers if present
+        for (LogSeries logSeries : logSeriesList) {
 
-		// looks like this should be a last call to be set
-		xyPlot.setDataset(timeSeriesCollection);
+            LogTimeSeries logTimeSeries = (LogTimeSeries) logSeries;
 
-		// UPDATE CATEGORY PLOT
-		// Box and Whisker Plot
-		NumberAxis categoryPlotNumberAxis = new NumberAxis();
-		categoryPlotNumberAxis.setAutoRangeIncludesZero(false);
+            Marker marker = logTimeSeries.getThresholdMarker();
 
-		categoryPlotNumberAxis.setNumberFormatOverride(numberFormat);
+            if (marker != null) {
+                xyPlot.addRangeMarker(0, marker, Layer.FOREGROUND, notify);
+            }
+        }
 
-		categoryPlotNumberAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+        // looks like this should be a last call to be set
+        xyPlot.setDataset(timeSeriesCollection);
 
-		BoxAndWhiskerRenderer boxAndWhiskerRenderer = new BoxAndWhiskerRenderer();
-		boxAndWhiskerRenderer.setBaseToolTipGenerator(new BoxAndWhiskerToolTipGenerator());
-		boxAndWhiskerRenderer.setMaximumBarWidth(0.3);
-		boxAndWhiskerRenderer.setBasePaint(boxAndWhiskerItemColor);
-		boxAndWhiskerRenderer.setBaseOutlinePaint(boxAndWhiskerItemColor);
-		boxAndWhiskerRenderer.setAutoPopulateSeriesPaint(false);
-		boxAndWhiskerRenderer.setFillBox(false);
-		boxAndWhiskerRenderer.setUseOutlinePaintForWhiskers(true);
+        // UPDATE CATEGORY PLOT
+        if (categoryPlot != null) {
 
-		DefaultBoxAndWhiskerCategoryDataset dbawcd = new DefaultBoxAndWhiskerCategoryDataset();
-		dbawcd.add(boxAndWhiskerItem, "", "");
+            // Box and Whisker Plot
+            NumberAxis categoryPlotNumberAxis = new NumberAxis();
+            categoryPlotNumberAxis.setAutoRangeIncludesZero(false);
 
-		categoryPlot.setRenderer(boxAndWhiskerRenderer, notify);
-		categoryPlot.setRangeAxis(0, categoryPlotNumberAxis, notify);
+            categoryPlotNumberAxis.setNumberFormatOverride(numberFormat);
 
-		categoryPlot.setDataset(dbawcd);
-	}
+            categoryPlotNumberAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
 
-	public CategoryPlot updateCategoryPlot(CategoryPlot categoryPlot, NumberFormat numberFormat,
-			BoxAndWhiskerItem boxAndWhiskerItem, Color color, boolean notify) {
+            BoxAndWhiskerRenderer boxAndWhiskerRenderer = new BoxAndWhiskerRenderer();
+            boxAndWhiskerRenderer.setDefaultToolTipGenerator(new BoxAndWhiskerToolTipGenerator());
+            boxAndWhiskerRenderer.setMaximumBarWidth(0.3);
+            boxAndWhiskerRenderer.setDefaultPaint(boxAndWhiskerItemColor);
+            boxAndWhiskerRenderer.setDefaultOutlinePaint(boxAndWhiskerItemColor);
+            boxAndWhiskerRenderer.setAutoPopulateSeriesPaint(false);
+            boxAndWhiskerRenderer.setFillBox(false);
+            boxAndWhiskerRenderer.setUseOutlinePaintForWhiskers(true);
 
-		// Box and Whisker Plot
-		NumberAxis valueAxis = new NumberAxis();
-		valueAxis.setAutoRangeIncludesZero(false);
+            DefaultBoxAndWhiskerCategoryDataset dbawcd = new DefaultBoxAndWhiskerCategoryDataset();
+            dbawcd.add(boxAndWhiskerItem, "", "");
 
-		valueAxis.setNumberFormatOverride(numberFormat);
+            categoryPlot.setRenderer(boxAndWhiskerRenderer, notify);
+            categoryPlot.setRangeAxis(0, categoryPlotNumberAxis, notify);
 
-		valueAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+            categoryPlot.setDataset(dbawcd);
+        }
+    }
 
-		BoxAndWhiskerRenderer boxAndWhiskerRenderer = new BoxAndWhiskerRenderer();
-		boxAndWhiskerRenderer.setBaseToolTipGenerator(new BoxAndWhiskerToolTipGenerator());
-		boxAndWhiskerRenderer.setMaximumBarWidth(0.3);
-		boxAndWhiskerRenderer.setBasePaint(color);
-		boxAndWhiskerRenderer.setBaseOutlinePaint(color);
-		boxAndWhiskerRenderer.setAutoPopulateSeriesPaint(false);
-		boxAndWhiskerRenderer.setFillBox(false);
-		boxAndWhiskerRenderer.setUseOutlinePaintForWhiskers(true);
+    public static void updatePlots(XYPlot xyPlot, CategoryPlot categoryPlot, LogTimeSeries logTimeSeries,
+            DateFormat modelDateFormat, Locale locale, boolean notify, boolean autoRange, double minRangeValue,
+            double maxRangeValue) {
 
-		DefaultBoxAndWhiskerCategoryDataset dbawcd = new DefaultBoxAndWhiskerCategoryDataset();
-		dbawcd.add(boxAndWhiskerItem, "", "");
+        String logTimeSeriesName = logTimeSeries.getName();
 
-		categoryPlot.setRenderer(boxAndWhiskerRenderer, notify);
-		categoryPlot.setRangeAxis(0, valueAxis, notify);
+        // UPDATE XYPLOT
+        double size = 4.0;
+        double delta = size / 2.0;
 
-		categoryPlot.setDataset(dbawcd);
+        Shape seriesShape = new Ellipse2D.Double(-delta, -delta, size, size);
 
-		return categoryPlot;
-	}
+        XYToolTipGenerator toolTipGenerator = StandardXYToolTipGenerator.getTimeSeriesInstance();
 
-	// public static String getPreferencesValue(String prefName) {
-	//
-	// if (userPreferences == null) {
-	// userPreferences = Preferences
-	// .userNodeForPackage(LogViewer.class);
-	// }
-	//
-	// String prefValue = userPreferences.get(prefName, "");
-	//
-	// return prefValue;
-	// }
-	//
-	// public static void setPreferenceValue(String prefName, String prefValue)
-	// {
-	//
-	// if (userPreferences == null) {
-	// userPreferences = Preferences
-	// .userNodeForPackage(LogViewer.class);
-	// }
-	//
-	// userPreferences.put(prefName, prefValue);
-	// }
+        // in case of bar chart wit time series
+        // XYItemRenderer xyLineAndShapeRenderer = new XYBarRenderer();
+        XYItemRenderer xyLineAndShapeRenderer = new XYLineAndShapeRenderer(true, true);
 
-	public static XYPlot getLogXYPlot(LogEntryModel logEntryModel) {
+        xyLineAndShapeRenderer.setDefaultToolTipGenerator(toolTipGenerator);
 
-		long lowerDomainRange = logEntryModel.getLowerDomainRange();
-		long upperDomainRange = logEntryModel.getUpperDomainRange();
+        TimeZone modelTimeZone = modelDateFormat.getTimeZone();
+        NumberFormat numberFormat = NumberFormat.getInstance(locale);
 
-		Locale locale = logEntryModel.getLocale();
-		DateFormat modelDateFormat = logEntryModel.getModelDateFormat();
-		TimeZone timeZone = modelDateFormat.getTimeZone();
+        TimeSeriesCollection timeSeriesCollection = new TimeSeriesCollection(modelTimeZone);
 
-		TimeSeries ts = new TimeSeries("Log Time Series");
-		RegularTimePeriod rtp = null;
-		TimeSeriesDataItem tsdi = null;
+        Color color = Color.BLACK;
 
-		// add lower range
-		rtp = new Millisecond(new Date(lowerDomainRange), timeZone, locale);
-		tsdi = new TimeSeriesDataItem(rtp, 0);
-		ts.add(tsdi);
+        // currently only one data set present in the series list,
+        BoxAndWhiskerItem boxAndWhiskerItem = null;
+        Color boxAndWhiskerItemColor = Color.BLACK;
 
-		// add upper range
-		rtp = new Millisecond(new Date(upperDomainRange), timeZone, locale);
-		tsdi = new TimeSeriesDataItem(rtp, 0);
-		ts.add(tsdi);
+        TimeSeries timeSeries = logTimeSeries.getTimeSeries();
+        color = logTimeSeries.getColor();
 
-		TimeSeriesCollection tsc = new TimeSeriesCollection(timeZone);
-		tsc.addSeries(ts);
+        timeSeriesCollection.addSeries(timeSeries);
 
-		XYPlot logXYPlot = new XYPlot();
-		logXYPlot.setDomainCrosshairVisible(false);
-		logXYPlot.setDomainCrosshairLockedOnData(false);
-		logXYPlot.setRangeCrosshairVisible(false);
-		logXYPlot.setRangeCrosshairLockedOnData(false);
+        xyLineAndShapeRenderer.setSeriesShape(0, seriesShape);
+        xyLineAndShapeRenderer.setSeriesPaint(0, color);
 
-		logXYPlot.setDataset(tsc);
+        if (categoryPlot != null) {
 
-		return logXYPlot;
-	}
+            boxAndWhiskerItem = logTimeSeries.getBoxAndWhiskerItem();
+
+            if (boxAndWhiskerItem != null) {
+                boxAndWhiskerItemColor = logTimeSeries.getColor();
+            }
+        }
+
+        NumberAxis xyPlotNumberAxis = new NumberAxis(logTimeSeriesName);
+        xyPlotNumberAxis.setAutoRangeIncludesZero(false);
+        xyPlotNumberAxis.setNumberFormatOverride(numberFormat);
+        xyPlotNumberAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+
+        if (!autoRange) {
+
+            xyPlotNumberAxis.setAutoRange(false);
+
+            // adding 5% margin
+            double range = maxRangeValue - minRangeValue;
+
+            // handle 'A positive range length is required' error
+            if (range == 0) {
+                range = 1;
+            }
+
+            maxRangeValue = maxRangeValue + (0.05 * range);
+            minRangeValue = minRangeValue - (0.05 * range);
+
+            xyPlotNumberAxis.setRange(minRangeValue, maxRangeValue);
+        }
+
+        xyPlot.setRangeAxis(0, xyPlotNumberAxis, notify);
+        xyPlot.setRenderer(0, xyLineAndShapeRenderer, notify);
+        // this will fire change event
+        xyPlot.clearRangeMarkers();
+
+        // add threshold markers if present
+
+        Marker marker = logTimeSeries.getThresholdMarker();
+
+        if (marker != null) {
+            xyPlot.addRangeMarker(0, marker, Layer.FOREGROUND, notify);
+        }
+
+        // looks like this should be a last call to be set
+        xyPlot.setDataset(timeSeriesCollection);
+
+        // UPDATE CATEGORY PLOT
+        if (categoryPlot != null) {
+
+            // Box and Whisker Plot
+            NumberAxis categoryPlotNumberAxis = new NumberAxis();
+            categoryPlotNumberAxis.setAutoRangeIncludesZero(false);
+
+            categoryPlotNumberAxis.setNumberFormatOverride(numberFormat);
+
+            categoryPlotNumberAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+
+            BoxAndWhiskerRenderer boxAndWhiskerRenderer = new BoxAndWhiskerRenderer();
+            boxAndWhiskerRenderer.setDefaultToolTipGenerator(new BoxAndWhiskerToolTipGenerator());
+            boxAndWhiskerRenderer.setMaximumBarWidth(0.3);
+            boxAndWhiskerRenderer.setDefaultPaint(boxAndWhiskerItemColor);
+            boxAndWhiskerRenderer.setDefaultOutlinePaint(boxAndWhiskerItemColor);
+            boxAndWhiskerRenderer.setAutoPopulateSeriesPaint(false);
+            boxAndWhiskerRenderer.setFillBox(false);
+            boxAndWhiskerRenderer.setUseOutlinePaintForWhiskers(true);
+
+            DefaultBoxAndWhiskerCategoryDataset dbawcd = new DefaultBoxAndWhiskerCategoryDataset();
+            dbawcd.add(boxAndWhiskerItem, "", "");
+
+            categoryPlot.setRenderer(boxAndWhiskerRenderer, notify);
+            categoryPlot.setRangeAxis(0, categoryPlotNumberAxis, notify);
+
+            categoryPlot.setDataset(dbawcd);
+        }
+    }
+
+    public CategoryPlot updateCategoryPlot(CategoryPlot categoryPlot, NumberFormat numberFormat,
+            BoxAndWhiskerItem boxAndWhiskerItem, Color color, boolean notify) {
+
+        // Box and Whisker Plot
+        NumberAxis valueAxis = new NumberAxis();
+        valueAxis.setAutoRangeIncludesZero(false);
+
+        valueAxis.setNumberFormatOverride(numberFormat);
+
+        valueAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+
+        BoxAndWhiskerRenderer boxAndWhiskerRenderer = new BoxAndWhiskerRenderer();
+        boxAndWhiskerRenderer.setDefaultToolTipGenerator(new BoxAndWhiskerToolTipGenerator());
+        boxAndWhiskerRenderer.setMaximumBarWidth(0.3);
+        boxAndWhiskerRenderer.setDefaultPaint(color);
+        boxAndWhiskerRenderer.setDefaultOutlinePaint(color);
+        boxAndWhiskerRenderer.setAutoPopulateSeriesPaint(false);
+        boxAndWhiskerRenderer.setFillBox(false);
+        boxAndWhiskerRenderer.setUseOutlinePaintForWhiskers(true);
+
+        DefaultBoxAndWhiskerCategoryDataset dbawcd = new DefaultBoxAndWhiskerCategoryDataset();
+        dbawcd.add(boxAndWhiskerItem, "", "");
+
+        categoryPlot.setRenderer(boxAndWhiskerRenderer, notify);
+        categoryPlot.setRangeAxis(0, valueAxis, notify);
+
+        categoryPlot.setDataset(dbawcd);
+
+        return categoryPlot;
+    }
+
+    public static XYPlot getLogXYPlot(long lowerDomainRange, long upperDomainRange, DateFormat modelDateFormat,
+            Locale locale) {
+
+        Date lowerDomainDate = new Date(lowerDomainRange);
+        Date upperDomainDate = new Date(upperDomainRange);
+
+        LOG.debug("getLogXYPlot lowerDomainDate: " + lowerDomainDate + " upperDomainDate: " + upperDomainDate);
+
+        TimeZone timeZone = modelDateFormat.getTimeZone();
+
+        TimeSeries ts = new TimeSeries("Log Time Series");
+        RegularTimePeriod rtp = null;
+        TimeSeriesDataItem tsdi = null;
+
+        // add lower range
+        rtp = new Millisecond(lowerDomainDate, timeZone, locale);
+        tsdi = new TimeSeriesDataItem(rtp, 0);
+        ts.add(tsdi);
+
+        // add upper range
+        rtp = new Millisecond(upperDomainDate, timeZone, locale);
+        tsdi = new TimeSeriesDataItem(rtp, 0);
+        ts.add(tsdi);
+
+        TimeSeriesCollection tsc = new TimeSeriesCollection(timeZone);
+        tsc.addSeries(ts);
+
+        XYPlot logXYPlot = new XYPlot();
+        logXYPlot.setDomainCrosshairVisible(false);
+        logXYPlot.setDomainCrosshairLockedOnData(false);
+        logXYPlot.setRangeCrosshairVisible(false);
+        logXYPlot.setRangeCrosshairLockedOnData(false);
+
+        logXYPlot.setDataset(tsc);
+
+        return logXYPlot;
+    }
+
+    public static String getHotfixIDHyperlinkText(String hotfixId) {
+
+        String hotfixIDHyperlinkText = hotfixId;
+
+        CatalogManagerWrapper catalogManagerWrapper = CatalogManagerWrapper.getInstance();
+
+        if (catalogManagerWrapper.isInitialised()) {
+            hotfixIDHyperlinkText = GeneralUtilities.getWorkIdHyperlinkText(hotfixId);
+        }
+
+        return hotfixIDHyperlinkText;
+    }
+
+    public static String getHotfixDescHyperlinkText(String hotfixDesc) {
+
+        String hotfixDescHyperlinkText = hotfixDesc;
+
+        CatalogManagerWrapper catalogManagerWrapper = CatalogManagerWrapper.getInstance();
+
+        if (catalogManagerWrapper.isInitialised()) {
+            hotfixDescHyperlinkText = GeneralUtilities.getWorkDescHyperlinkText(hotfixDesc);
+        }
+
+        return hotfixDescHyperlinkText;
+    }
+
+    public static void recursiveEvaluateBackwardHotfixEntrySet(HotfixEntry hotfixEntry,
+            TreeSet<HotfixEntry> totalBackwardHotfixEntrySet) {
+
+        Set<HotfixEntry> backwardHfixEntrySet = hotfixEntry.getBackwardHotfixEntrySet();
+
+        if (backwardHfixEntrySet != null) {
+
+            for (HotfixEntry hfixEntry : backwardHfixEntrySet) {
+
+                boolean added = totalBackwardHotfixEntrySet.add(hfixEntry);
+
+                if (added) {
+                    recursiveEvaluateBackwardHotfixEntrySet(hfixEntry, totalBackwardHotfixEntrySet);
+                }
+            }
+        }
+    }
 }

@@ -4,29 +4,33 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.LayoutManager;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
-import java.util.Collections;
+import java.nio.charset.Charset;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -44,13 +48,14 @@ import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
-import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 import javax.swing.border.BevelBorder;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
+import javax.swing.table.TableColumnModel;
 
 import com.pega.gcs.fringecommon.guiutilities.BaseFrame;
+import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
 import com.pega.gcs.fringecommon.guiutilities.GoToLineDialog;
 import com.pega.gcs.fringecommon.guiutilities.MemoryStatusBarJPanel;
 import com.pega.gcs.fringecommon.guiutilities.Message;
@@ -69,8 +74,7 @@ import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
 import com.pega.gcs.logviewer.logfile.LogFileType;
 import com.pega.gcs.logviewer.logfile.LogFileType.LogType;
-import com.pega.gcs.logviewer.logfile.LogPattern;
-import com.pega.gcs.logviewer.model.LogEntry;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
 import com.pega.gcs.logviewer.report.AlertSystemReportDialog;
@@ -80,1154 +84,1174 @@ import com.pega.gcs.logviewer.report.alertpal.AlertPALReportDialog;
 
 public class LogDataMainPanel extends JPanel {
 
-	private static final long serialVersionUID = -836183144753785975L;
+    private static final long serialVersionUID = -836183144753785975L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(LogDataMainPanel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(LogDataMainPanel.class);
 
-	private static final String SHOW_CHART = "Show Chart";
+    private static final String SHOW_CHART = "Show Chart";
 
-	private static final String HIDE_CHART = "Hide Chart";
+    private static final String HIDE_CHART = "Hide Chart";
 
-	private RecentFile recentFile;
+    private LogViewerSetting logViewerSetting;
 
-	private LogViewerSetting logViewerSetting;
+    private LogTableModel logTableModel;
 
-	private LogTableModel logTableModel;
+    private LogTable logTable;
 
-	private LogTable logTable;
+    private LogTableMouseListener logTableMouseListener;
 
-	private LogTableMouseListener logTableMouseListener;
+    private LogFileLoadTask logFileLoadTask;
 
-	private LogFileLoadTask logFileLoadTask;
+    private SearchPanel<LogEntryKey> searchPanel;
 
-	private SearchPanel<Integer> searchPanel;
+    private JButton chartButton;
 
-	private JButton chartJButton;
+    private JButton gotoLineButton;
 
-	private JButton gotoLineJButton;
+    private JButton overviewButton;
 
-	private JButton overviewJButton;
+    private JButton reloadButton;
 
-	private JButton reloadJButton;
+    private JButton palOverviewButton;
 
-	private JButton palOverviewJButton;
+    private JButton logExportButton;
 
-	private JButton logXMLExportJButton;
+    private JTextField charsetLabel;
 
-	private JLabel charsetJLabel;
+    private JTextField timezoneLabel;
 
-	private JLabel timezoneJLabel;
+    private JTextField localeLabel;
 
-	private JLabel localeJLabel;
+    private JTextField fileSizeLabel;
 
-	private JLabel fileSizeJLabel;
+    private JTextField statusBar;
 
-	private JTextField statusBar;
+    private JProgressBar progressBar;
 
-	private JProgressBar progressBar;
+    private JLabel progressText;
 
-	private JLabel progressText;
+    private JButton stopTailLogFileButton;
 
-	private JButton stopTailLogFileJButton;
+    private NavigationTableController<LogEntryKey> navigationTableController;
 
-	private NavigationTableController<Integer> navigationTableController;
+    private int dividerLocation;
 
-	private int dividerLocation;
+    private JSplitPane chartAndTableSplitPane;
 
-	private JSplitPane chartAndTableSplitPane;
+    private ChartAndLegendPanel chartAndLegendPanel;
 
-	private ChartAndLegendPanel chartAndLegendPanel;
+    private SystemReportDialog systemReportDialog;
 
-	private SystemReportDialog systemReportDialog;
+    private AlertPALReportDialog alertPALReportDialog;
 
-	private AlertPALReportDialog alertPALReportDialog;
+    private Rectangle oldBounds;
 
-	@SuppressWarnings("unchecked")
-	public LogDataMainPanel(File selectedFile, RecentFileContainer recentFileContainer,
-			LogViewerSetting logViewerSetting) {
+    public LogDataMainPanel(File selectedFile, RecentFileContainer recentFileContainer,
+            LogViewerSetting logViewerSetting) {
 
-		super();
+        super();
 
-		this.logViewerSetting = logViewerSetting;
-		this.logFileLoadTask = null;
+        this.logViewerSetting = logViewerSetting;
+        this.logFileLoadTask = null;
 
-		String charset = logViewerSetting.getCharset();
-		Locale locale = logViewerSetting.getLocale();
+        String charset = logViewerSetting.getCharset();
+        Locale locale = logViewerSetting.getLocale();
 
-		Map<String, Object> defaultAttribsIfNew = new HashMap<>();
-		defaultAttribsIfNew.put(RecentFile.KEY_LOCALE, locale);
+        Map<String, Object> defaultAttribsIfNew = new HashMap<>();
+        defaultAttribsIfNew.put(RecentFile.KEY_LOCALE, locale);
 
-		this.recentFile = recentFileContainer.getRecentFile(selectedFile, charset, defaultAttribsIfNew);
+        RecentFile recentFile = recentFileContainer.getRecentFile(selectedFile, charset, defaultAttribsIfNew);
 
-		SearchData<Integer> searchData = new SearchData<>(null);
+        SearchData<LogEntryKey> searchData = new SearchData<>(null);
 
-		this.logTableModel = new LogTableModel(recentFile, searchData);
+        this.logTableModel = new LogTableModel(recentFile, searchData);
 
-		BookmarkContainer<Integer> bookmarkContainer;
-		bookmarkContainer = (BookmarkContainer<Integer>) recentFile.getAttribute(RecentFile.KEY_BOOKMARK);
+        // not moving bookmark loading to end of file load, In tail mode completeLoad doesnt get called.
 
-		if (bookmarkContainer == null) {
+        BookmarkContainer<LogEntryKey> bookmarkContainer;
+        bookmarkContainer = (BookmarkContainer<LogEntryKey>) recentFile.getAttribute(RecentFile.KEY_BOOKMARK);
 
-			bookmarkContainer = new BookmarkContainer<Integer>();
+        if (bookmarkContainer == null) {
 
-			recentFile.setAttribute(RecentFile.KEY_BOOKMARK, bookmarkContainer);
-		}
+            bookmarkContainer = new BookmarkContainer<LogEntryKey>();
 
-		BookmarkModel<Integer> bookmarkModel = new BookmarkModel<Integer>(bookmarkContainer, logTableModel);
+            recentFile.setAttribute(RecentFile.KEY_BOOKMARK, bookmarkContainer);
+        }
 
-		logTableModel.setBookmarkModel(bookmarkModel);
+        BookmarkModel<LogEntryKey> bookmarkModel = new BookmarkModel<LogEntryKey>(bookmarkContainer, logTableModel);
 
-		navigationTableController = new NavigationTableController<Integer>(logTableModel);
+        logTableModel.setBookmarkModel(bookmarkModel);
 
-		logTableModel.addPropertyChangeListener(new PropertyChangeListener() {
+        navigationTableController = new NavigationTableController<LogEntryKey>(logTableModel);
 
-			@Override
-			public void propertyChange(PropertyChangeEvent evt) {
-
-				String propertyName = evt.getPropertyName();
-
-				if ("message".equals(propertyName)) {
-
-					JTextField statusBar = getStatusBar();
-					Message message = (Message) evt.getNewValue();
-					setMessage(statusBar, message);
-				} else if ("logEntryModel".equals(propertyName)) {
-					// 'logEntryModel' fired by LogTableModel as the type
-					// of log file is known after parsing the file
-					LogTable logTable = getLogTable();
-					logTable.updateLogTableColumnModel();
-				}
-
-			}
-		});
+        logTableModel.addPropertyChangeListener(new PropertyChangeListener() {
+
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+
+                String propertyName = evt.getPropertyName();
+
+                if ("message".equals(propertyName)) {
+
+                    JTextField statusBar = getStatusBar();
+                    Message message = (Message) evt.getNewValue();
+                    GUIUtilities.setMessage(statusBar, message);
+
+                } else if ("logEntryModel".equals(propertyName)) {
+                    // 'logEntryModel' fired by LogTableModel as the type
+                    // of log file is known after parsing the file
+                    LogTable logTable = getLogTable();
+                    logTable.setColumnModel(logTableModel.getTableColumnModel());
+                }
+
+            }
+        });
+
+        logTableMouseListener = new LogTableMouseListener(this);
+
+        logTableModel.addTableModelListener(new TableModelListener() {
+
+            @Override
+            public void tableChanged(TableModelEvent tableModelEvent) {
+                updateDisplayPanel();
+            }
+        });
 
-		logTableMouseListener = new LogTableMouseListener(this);
-
-		logTableModel.addTableModelListener(new TableModelListener() {
+        oldBounds = new Rectangle(1915, 941);
+
+        addComponentListener(new ComponentAdapter() {
 
-			@Override
-			public void tableChanged(TableModelEvent aE) {
-				updateDisplayJPanel();
-			}
-		});
+            @Override
+            public void componentResized(ComponentEvent componentEvent) {
 
-		setLayout(new GridBagLayout());
+                Rectangle newBounds = componentEvent.getComponent().getBounds();
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+                if (!oldBounds.equals(newBounds)) {
+                    try {
+                        performComponentResized(oldBounds, newBounds);
+                    } finally {
+                        oldBounds = newBounds;
+                    }
+                }
+            }
+        });
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = 1;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+        setLayout(new GridBagLayout());
 
-		GridBagConstraints gbc3 = new GridBagConstraints();
-		gbc3.gridx = 0;
-		gbc3.gridy = 2;
-		gbc3.weightx = 1.0D;
-		gbc3.weighty = 0.0D;
-		gbc3.fill = GridBagConstraints.HORIZONTAL;
-		gbc3.anchor = GridBagConstraints.NORTHWEST;
-		gbc3.insets = new Insets(0, 0, 0, 0);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-		JPanel utilityPanel = getUtilityPanel();
-		JSplitPane chartAndTableSplitPane = getChartAndTableSplitPane();
-		JPanel bottomJPanel = getBottomJPanel();
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		add(utilityPanel, gbc1);
-		add(chartAndTableSplitPane, gbc2);
-		add(bottomJPanel, gbc3);
+        GridBagConstraints gbc3 = new GridBagConstraints();
+        gbc3.gridx = 0;
+        gbc3.gridy = 2;
+        gbc3.weightx = 1.0D;
+        gbc3.weighty = 0.0D;
+        gbc3.fill = GridBagConstraints.HORIZONTAL;
+        gbc3.anchor = GridBagConstraints.NORTHWEST;
+        gbc3.insets = new Insets(0, 0, 0, 0);
 
-		dividerLocation = chartAndTableSplitPane.getDividerLocation();
+        JPanel utilityCompositePanel = getUtilityCompositePanel();
+        JSplitPane chartAndTableSplitPane = getChartAndTableSplitPane();
+        JPanel bottomJPanel = getBottomJPanel();
 
-		loadFile(this, logTableModel, logViewerSetting, false);
+        add(utilityCompositePanel, gbc1);
+        add(chartAndTableSplitPane, gbc2);
+        add(bottomJPanel, gbc3);
 
-	}
+        dividerLocation = chartAndTableSplitPane.getDividerLocation();
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see javax.swing.JComponent#removeNotify()
-	 */
-	@Override
-	public void removeNotify() {
-		super.removeNotify();
+        loadFile(this, logTableModel, logViewerSetting, false);
 
-		if ((logFileLoadTask != null) && ((!logFileLoadTask.isCancelled()) || (!logFileLoadTask.isDone()))) {
-			LOG.info("Tab removed. Cancelling LogFileLoadTask");
-			logFileLoadTask.cancel(true);
-		}
+    }
 
-		clearJDialogList();
-	}
+    /*
+     * (non-Javadoc)
+     * 
+     * @see javax.swing.JComponent#removeNotify()
+     */
+    @Override
+    public void removeNotify() {
+        super.removeNotify();
 
-	protected LogViewerSetting getLogViewerSetting() {
-		return logViewerSetting;
-	}
+        if ((logFileLoadTask != null) && ((!logFileLoadTask.isCancelled()) || (!logFileLoadTask.isDone()))) {
+            LOG.info("Tab removed. Cancelling LogFileLoadTask");
+            logFileLoadTask.cancel(true);
+        }
 
-	protected NavigationTableController<Integer> getNavigationTableController() {
-		return navigationTableController;
-	}
+        clearJDialogList();
+    }
 
-	protected int getDividerLocation() {
-		return dividerLocation;
-	}
+    private LogViewerSetting getLogViewerSetting() {
+        return logViewerSetting;
+    }
 
-	protected void setDividerLocation(int aDividerLocation) {
-		dividerLocation = aDividerLocation;
-	}
+    private NavigationTableController<LogEntryKey> getNavigationTableController() {
+        return navigationTableController;
+    }
 
-	protected SystemReportDialog getSystemReportDialog() {
+    private int getDividerLocation() {
+        return dividerLocation;
+    }
 
-		if (systemReportDialog == null) {
+    private void setDividerLocation(int dividerLocation) {
+        this.dividerLocation = dividerLocation;
+    }
 
-			LogTable logTable = getLogTable();
-			LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+    private SystemReportDialog getSystemReportDialog() {
 
-			LogFileType logFileType = logTableModel.getLogFileType();
-			LogType logType = logFileType.getLogType();
+        if (systemReportDialog == null) {
 
-			NavigationTableController<Integer> navigationTableController = getNavigationTableController();
+            LogTable logTable = getLogTable();
+            LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-			if (logType == LogType.PEGA_ALERT) {
-				systemReportDialog = new AlertSystemReportDialog(logTableModel, navigationTableController, logTable,
-						BaseFrame.getAppIcon(), LogDataMainPanel.this);
-			} else {
+            LogFileType logFileType = logTableModel.getLogFileType();
+            LogType logType = logFileType.getLogType();
 
-				systemReportDialog = new Log4jSystemReportDialog(logTableModel, navigationTableController,
-						BaseFrame.getAppIcon(), LogDataMainPanel.this);
-			}
+            NavigationTableController<LogEntryKey> navigationTableController = getNavigationTableController();
 
-			systemReportDialog.addWindowListener(new WindowAdapter() {
+            if (logType == LogType.PEGA_ALERT) {
+                systemReportDialog = new AlertSystemReportDialog(logTableModel, navigationTableController, logTable,
+                        BaseFrame.getAppIcon(), LogDataMainPanel.this);
+            } else {
 
-				@Override
-				public void windowClosed(WindowEvent e) {
-					setSystemReportDialog(null);
-				}
+                systemReportDialog = new Log4jSystemReportDialog(logTableModel, navigationTableController,
+                        BaseFrame.getAppIcon(), LogDataMainPanel.this);
+            }
 
-			});
+            systemReportDialog.addWindowListener(new WindowAdapter() {
 
-			systemReportDialog.setVisible(true);
-		}
+                @Override
+                public void windowClosed(WindowEvent windowEvent) {
+                    setSystemReportDialog(null);
+                }
 
-		return systemReportDialog;
-	}
+            });
 
-	protected void setSystemReportDialog(SystemReportDialog aSystemReportDialog) {
-		systemReportDialog = aSystemReportDialog;
-	}
+            systemReportDialog.setVisible(true);
+        }
 
-	protected AlertPALReportDialog getAlertPALReportDialog() {
-		return alertPALReportDialog;
-	}
+        return systemReportDialog;
+    }
 
-	protected void setAlertPALReportDialog(AlertPALReportDialog aAlertPALReportDialog) {
-		alertPALReportDialog = aAlertPALReportDialog;
-	}
+    private void setSystemReportDialog(SystemReportDialog systemReportDialog) {
+        this.systemReportDialog = systemReportDialog;
+    }
 
-	protected LogTable getLogTable() {
+    private AlertPALReportDialog getAlertPALReportDialog() {
+        return alertPALReportDialog;
+    }
 
-		if (logTable == null) {
-			logTable = new LogTable(logTableModel);
-			logTable.setFillsViewportHeight(true);
+    private void setAlertPALReportDialog(AlertPALReportDialog alertPALReportDialog) {
+        this.alertPALReportDialog = alertPALReportDialog;
+    }
 
-			navigationTableController.addCustomJTable(logTable);
-			logTable.addMouseListener(logTableMouseListener);
-		}
+    private LogTable getLogTable() {
 
-		return logTable;
-	}
+        if (logTable == null) {
+            logTable = new LogTable(logTableModel);
+            logTable.setFillsViewportHeight(true);
 
-	private SearchPanel<Integer> getSearchPanel() {
+            navigationTableController.addCustomJTable(logTable);
+            logTable.addMouseListener(logTableMouseListener);
+        }
 
-		if (searchPanel == null) {
+        return logTable;
+    }
 
-			searchPanel = new SearchPanel<Integer>(navigationTableController, logTableModel.getSearchModel());
-		}
+    private SearchPanel<LogEntryKey> getSearchPanel() {
 
-		return searchPanel;
-	}
+        if (searchPanel == null) {
 
-	protected JTextField getStatusBar() {
+            searchPanel = new SearchPanel<LogEntryKey>(navigationTableController, logTableModel.getSearchModel());
+        }
 
-		if (statusBar == null) {
-			statusBar = new JTextField();
-			statusBar.setEditable(false);
-			statusBar.setBackground(null);
-			statusBar.setBorder(null);
-		}
+        return searchPanel;
+    }
 
-		return statusBar;
-	}
+    private JTextField getStatusBar() {
 
-	protected void setMessage(JTextField statusBar, Message message) {
+        if (statusBar == null) {
+            statusBar = new JTextField();
+            statusBar.setEditable(false);
+            statusBar.setBackground(null);
+            statusBar.setBorder(null);
+            statusBar.setCursor(new Cursor(Cursor.TEXT_CURSOR));
+        }
 
-		if (message != null) {
+        return statusBar;
+    }
 
-			Color color = Color.BLUE;
+    private JSplitPane getChartAndTableSplitPane() {
 
-			if (message.getMessageType().equals(Message.MessageType.ERROR)) {
-				color = Color.RED;
-			}
+        if (chartAndTableSplitPane == null) {
 
-			String text = message.getText();
+            ChartAndLegendPanel chartAndLegendPanel = getChartAndLegendPanel();
+            JPanel logTablePanel = getLogTablePanel();
 
-			statusBar.setForeground(color);
-			statusBar.setText(text);
-		}
-	}
+            chartAndTableSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, chartAndLegendPanel, logTablePanel);
 
-	protected JSplitPane getChartAndTableSplitPane() {
+            chartAndTableSplitPane.setContinuousLayout(true);
+        }
 
-		if (chartAndTableSplitPane == null) {
+        return chartAndTableSplitPane;
+    }
 
-			ChartAndLegendPanel chartAndLegendPanel = getChartAndLegendPanel();
-			JPanel logTablePanel = getLogTablePanel();
+    private JPanel getBottomJPanel() {
 
-			chartAndTableSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, chartAndLegendPanel, logTablePanel);
+        JPanel bottomJPanel = new JPanel();
 
-			chartAndTableSplitPane.setContinuousLayout(true);
-		}
+        LayoutManager layout = new BoxLayout(bottomJPanel, BoxLayout.LINE_AXIS);
+        bottomJPanel.setLayout(layout);
 
-		return chartAndTableSplitPane;
-	}
+        JLabel statusLabel = new JLabel("Status:");
 
-	private JPanel getBottomJPanel() {
+        JTextField statusBar = getStatusBar();
+        JProgressBar progressBar = getProgressBar();
+        JButton stopTailLogFileJButton = getStopTailLogFileButton();
+        JLabel progressText = getProgressText();
 
-		JPanel bottomJPanel = new JPanel();
+        MemoryStatusBarJPanel memoryStatusBarJPanel = new MemoryStatusBarJPanel();
 
-		LayoutManager layout = new BoxLayout(bottomJPanel, BoxLayout.LINE_AXIS);
-		bottomJPanel.setLayout(layout);
+        bottomJPanel.add(Box.createRigidArea(new Dimension(5, 20)));
+        bottomJPanel.add(statusLabel);
+        bottomJPanel.add(Box.createRigidArea(new Dimension(5, 20)));
+        bottomJPanel.add(statusBar);
+        bottomJPanel.add(Box.createRigidArea(new Dimension(5, 20)));
+        bottomJPanel.add(progressBar);
+        bottomJPanel.add(Box.createRigidArea(new Dimension(10, 20)));
+        bottomJPanel.add(stopTailLogFileJButton);
+        bottomJPanel.add(Box.createRigidArea(new Dimension(10, 20)));
+        bottomJPanel.add(progressText);
+        bottomJPanel.add(Box.createRigidArea(new Dimension(5, 20)));
+        bottomJPanel.add(memoryStatusBarJPanel);
 
-		JLabel statusLabel = new JLabel("Status:");
+        bottomJPanel.setBorder(new BevelBorder(BevelBorder.LOWERED));
 
-		JTextField statusBar = getStatusBar();
-		JProgressBar progressBar = getProgressBar();
-		JButton stopTailLogFileJButton = getStopTailLogFileJButton();
-		JLabel progressText = getProgressText();
+        return bottomJPanel;
+    }
 
-		MemoryStatusBarJPanel memoryStatusBarJPanel = new MemoryStatusBarJPanel();
+    private ChartAndLegendPanel getChartAndLegendPanel() {
 
-		bottomJPanel.add(Box.createRigidArea(new Dimension(5, 20)));
-		bottomJPanel.add(statusLabel);
-		bottomJPanel.add(Box.createRigidArea(new Dimension(5, 20)));
-		bottomJPanel.add(statusBar);
-		bottomJPanel.add(Box.createRigidArea(new Dimension(5, 20)));
-		bottomJPanel.add(progressBar);
-		bottomJPanel.add(Box.createRigidArea(new Dimension(10, 20)));
-		bottomJPanel.add(stopTailLogFileJButton);
-		bottomJPanel.add(Box.createRigidArea(new Dimension(10, 20)));
-		bottomJPanel.add(progressText);
-		bottomJPanel.add(Box.createRigidArea(new Dimension(5, 20)));
-		bottomJPanel.add(memoryStatusBarJPanel);
+        if (chartAndLegendPanel == null) {
 
-		bottomJPanel.setBorder(new BevelBorder(BevelBorder.LOWERED));
+            SearchPanel<LogEntryKey> searchPanel = getSearchPanel();
 
-		return bottomJPanel;
-	}
+            LogTable logTable = getLogTable();
 
-	protected ChartAndLegendPanel getChartAndLegendPanel() {
+            chartAndLegendPanel = new ChartAndLegendPanel(logTable, searchPanel, navigationTableController);
 
-		if (chartAndLegendPanel == null) {
+            chartAndLegendPanel.setVisible(false);
 
-			SearchPanel<Integer> searchPanel = getSearchPanel();
+            logTableModel.addTableModelListener(chartAndLegendPanel);
+        }
 
-			LogTable logTable = getLogTable();
+        return chartAndLegendPanel;
+    }
 
-			chartAndLegendPanel = new ChartAndLegendPanel(logTableModel.getModelName(), logTable, searchPanel);
+    private JPanel getLogTablePanel() {
 
-			chartAndLegendPanel.setVisible(false);
+        JPanel logTablePanel = new JPanel();
+        logTablePanel.setLayout(new BorderLayout());
 
-			logTableModel.addTableModelListener(chartAndLegendPanel);
-		}
+        LogTable logTable = getLogTable();
 
-		return chartAndLegendPanel;
-	}
+        JScrollPane logTableScrollpane = new JScrollPane(logTable, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        JPanel markerBarPanel = getMarkerBarPanel();
 
-	private JPanel getLogTablePanel() {
+        logTablePanel.add(logTableScrollpane, BorderLayout.CENTER);
+        logTablePanel.add(markerBarPanel, BorderLayout.EAST);
 
-		JPanel logTablePanel = new JPanel();
-		logTablePanel.setLayout(new BorderLayout());
+        return logTablePanel;
+    }
 
-		LogTable logTable = getLogTable();
+    private JPanel getMarkerBarPanel() {
 
-		JScrollPane logTableScrollpane = new JScrollPane(logTable, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
-				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-		JPanel markerBarPanel = getMarkerBarPanel();
+        JPanel markerBarPanel = new JPanel();
+        markerBarPanel.setLayout(new BorderLayout());
 
-		logTablePanel.add(logTableScrollpane, BorderLayout.CENTER);
-		logTablePanel.add(markerBarPanel, BorderLayout.EAST);
+        Dimension topDimension = new Dimension(16, 30);
 
-		return logTablePanel;
-	}
+        JLabel topSpacer = new JLabel();
+        topSpacer.setPreferredSize(topDimension);
 
-	private JPanel getMarkerBarPanel() {
+        Dimension bottomDimension = new Dimension(16, 18);
 
-		JPanel markerBarPanel = new JPanel();
-		markerBarPanel.setLayout(new BorderLayout());
+        JLabel bottomSpacer = new JLabel();
+        bottomSpacer.setPreferredSize(bottomDimension);
 
-		Dimension topDimension = new Dimension(16, 30);
+        MarkerBar<LogEntryKey> markerBar = getMarkerBar();
 
-		JLabel topSpacer = new JLabel();
-		topSpacer.setPreferredSize(topDimension);
+        markerBarPanel.add(topSpacer, BorderLayout.NORTH);
+        markerBarPanel.add(markerBar, BorderLayout.CENTER);
+        markerBarPanel.add(bottomSpacer, BorderLayout.SOUTH);
 
-		Dimension bottomDimension = new Dimension(16, 18);
+        return markerBarPanel;
+    }
 
-		JLabel bottomSpacer = new JLabel();
-		bottomSpacer.setPreferredSize(bottomDimension);
+    private MarkerBar<LogEntryKey> getMarkerBar() {
 
-		MarkerBar<Integer> markerBar = getMarkerBar();
+        SearchMarkerModel<LogEntryKey> searchMarkerModel = new SearchMarkerModel<>(logTableModel);
 
-		markerBarPanel.add(topSpacer, BorderLayout.NORTH);
-		markerBarPanel.add(markerBar, BorderLayout.CENTER);
-		markerBarPanel.add(bottomSpacer, BorderLayout.SOUTH);
+        MarkerBar<LogEntryKey> markerBar = new MarkerBar<>(navigationTableController, searchMarkerModel);
 
-		return markerBarPanel;
-	}
+        BookmarkModel<LogEntryKey> bookmarkModel;
+        bookmarkModel = logTableModel.getBookmarkModel();
 
-	private MarkerBar<Integer> getMarkerBar() {
+        markerBar.addMarkerModel(bookmarkModel);
 
-		SearchMarkerModel<Integer> searchMarkerModel = new SearchMarkerModel<Integer>(logTableModel);
+        return markerBar;
 
-		MarkerBar<Integer> markerBar = new MarkerBar<Integer>(navigationTableController, searchMarkerModel);
+    }
 
-		BookmarkModel<Integer> bookmarkModel;
-		bookmarkModel = logTableModel.getBookmarkModel();
+    private JPanel getUtilityCompositePanel() {
 
-		markerBar.addMarkerModel(bookmarkModel);
+        JPanel utilityCompositePanel = new JPanel();
+        LayoutManager layout = new BoxLayout(utilityCompositePanel, BoxLayout.X_AXIS);
+        utilityCompositePanel.setLayout(layout);
 
-		return markerBar;
+        JPanel searchPanel = getSearchPanel();
+        JPanel utilityPanel = getUtilityPanel();
+        JPanel infoPanel = getInfoPanel();
 
-	}
+        utilityCompositePanel.add(searchPanel);
+        utilityCompositePanel.add(utilityPanel);
+        utilityCompositePanel.add(infoPanel);
 
-	private JPanel getUtilityPanel() {
+        return utilityCompositePanel;
+    }
 
-		JPanel utilityPanel = new JPanel();
-		LayoutManager layout = new BoxLayout(utilityPanel, BoxLayout.X_AXIS);
-		utilityPanel.setLayout(layout);
+    private JPanel getUtilityPanel() {
+        JPanel utilityPanel = new JPanel();
 
-		JPanel searchPanel = getSearchPanel();
-		JPanel chartJButtonPanel = getChartJButtonPanel();
-		JPanel displayJPanel = getDisplayJPanel();
+        LayoutManager layout = new BoxLayout(utilityPanel, BoxLayout.X_AXIS);
+        utilityPanel.setLayout(layout);
 
-		utilityPanel.add(searchPanel);
-		utilityPanel.add(chartJButtonPanel);
-		utilityPanel.add(displayJPanel);
+        JButton chartButton = getChartButton();
+        JButton gotoLineButton = getGotoLineButton();
+        JButton overviewButton = getOverviewButton();
+        JButton reloadButton = getReloadButton();
+        JButton palOverviewButton = getPalOverviewButton();
+        JButton logXMLExportButton = getLogExportButton();
 
-		return utilityPanel;
-	}
+        Dimension spacer = new Dimension(10, 40);
 
-	private JPanel getChartJButtonPanel() {
-		JPanel chartJButtonPanel = new JPanel();
+        utilityPanel.add(Box.createHorizontalGlue());
+        utilityPanel.add(Box.createRigidArea(spacer));
+        utilityPanel.add(chartButton);
+        utilityPanel.add(Box.createRigidArea(spacer));
+        utilityPanel.add(gotoLineButton);
+        utilityPanel.add(Box.createRigidArea(spacer));
+        utilityPanel.add(overviewButton);
+        utilityPanel.add(Box.createRigidArea(spacer));
+        utilityPanel.add(reloadButton);
+        utilityPanel.add(Box.createRigidArea(spacer));
+        utilityPanel.add(palOverviewButton);
+        utilityPanel.add(Box.createRigidArea(spacer));
+        utilityPanel.add(logXMLExportButton);
+        utilityPanel.add(Box.createRigidArea(spacer));
+        utilityPanel.add(Box.createHorizontalGlue());
 
-		LayoutManager layout = new BoxLayout(chartJButtonPanel, BoxLayout.X_AXIS);
-		chartJButtonPanel.setLayout(layout);
+        utilityPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		JButton chartJButton = getChartJButton();
-		JButton gotoLineJButton = getGotoLineJButton();
-		JButton overviewJButton = getOverviewJButton();
-		JButton reloadJButton = getReloadJButton();
-		JButton palOverviewJButton = getPalOverviewJButton();
-		JButton logXMLExportJButton = getLogXMLExportJButton();
+        return utilityPanel;
+    }
 
-		Dimension spacer = new Dimension(15, 30);
-		Dimension endSpacer = new Dimension(10, 30);
+    private JPanel getInfoPanel() {
 
-		chartJButtonPanel.add(Box.createRigidArea(endSpacer));
-		chartJButtonPanel.add(chartJButton);
-		chartJButtonPanel.add(Box.createRigidArea(spacer));
-		chartJButtonPanel.add(gotoLineJButton);
-		chartJButtonPanel.add(Box.createRigidArea(spacer));
-		chartJButtonPanel.add(overviewJButton);
-		chartJButtonPanel.add(Box.createRigidArea(spacer));
-		chartJButtonPanel.add(reloadJButton);
-		chartJButtonPanel.add(Box.createRigidArea(spacer));
-		chartJButtonPanel.add(palOverviewJButton);
-		chartJButtonPanel.add(Box.createRigidArea(spacer));
-		chartJButtonPanel.add(logXMLExportJButton);
-		chartJButtonPanel.add(Box.createRigidArea(spacer));
+        JPanel infoPanel = new JPanel();
 
-		chartJButtonPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        LayoutManager layout = new BoxLayout(infoPanel, BoxLayout.X_AXIS);
+        infoPanel.setLayout(layout);
 
-		return chartJButtonPanel;
-	}
+        JPanel charsetPanel = getCharsetPanel();
+        JPanel localePanel = getLocalePanel();
+        JPanel timezonePanel = getTimezonePanel();
+        JPanel fileSizePanel = getFileSizePanel();
 
-	private JPanel getDisplayJPanel() {
+        infoPanel.add(charsetPanel);
+        infoPanel.add(localePanel);
+        infoPanel.add(timezonePanel);
+        infoPanel.add(fileSizePanel);
 
-		JPanel displayJPanel = new JPanel();
+        return infoPanel;
+    }
 
-		LayoutManager layout = new BoxLayout(displayJPanel, BoxLayout.X_AXIS);
-		displayJPanel.setLayout(layout);
+    private JButton getChartButton() {
 
-		Dimension preferredSize = new Dimension(150, 30);
-		displayJPanel.setPreferredSize(preferredSize);
+        if (chartButton == null) {
+            chartButton = new JButton(SHOW_CHART);
 
-		JPanel charsetJPanel = getCharsetJPanel();
-		JPanel localeJPanel = getLocaleJPanel();
-		JPanel timezoneJPanel = getTimezoneJPanel();
-		JPanel fileSizeJPanel = getFileSizeJPanel();
+            Dimension size = new Dimension(100, 26);
+            chartButton.setPreferredSize(size);
 
-		displayJPanel.add(charsetJPanel);
-		displayJPanel.add(localeJPanel);
-		displayJPanel.add(timezoneJPanel);
-		displayJPanel.add(fileSizeJPanel);
+            chartButton.addActionListener(new ActionListener() {
 
-		return displayJPanel;
-	}
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
 
-	protected JButton getChartJButton() {
+                    JSplitPane chartAndTableSplitPane = getChartAndTableSplitPane();
+                    ChartAndLegendPanel chartAndLegendPanel = getChartAndLegendPanel();
+                    JButton chartJButton = getChartButton();
 
-		if (chartJButton == null) {
-			chartJButton = new JButton(SHOW_CHART);
+                    if (actionEvent.getActionCommand().equals(SHOW_CHART)) {
+                        chartJButton.setText(HIDE_CHART);
+                        chartAndLegendPanel.setVisible(true);
 
-			Dimension size = new Dimension(90, 20);
-			chartJButton.setPreferredSize(size);
-			chartJButton.setMaximumSize(size);
-			chartJButton.setHorizontalTextPosition(SwingConstants.LEADING);
+                        chartAndTableSplitPane.setDividerLocation(getDividerLocation());
 
-			chartJButton.addActionListener(new ActionListener() {
+                    } else {
+                        chartJButton.setText(SHOW_CHART);
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
+                        setDividerLocation(chartAndTableSplitPane.getDividerLocation());
+                        chartAndLegendPanel.setVisible(false);
 
-					JSplitPane chartAndTableSplitPane = getChartAndTableSplitPane();
-					ChartAndLegendPanel chartAndLegendPanel = getChartAndLegendPanel();
-					JButton chartJButton = getChartJButton();
+                    }
 
-					if (e.getActionCommand().equals(SHOW_CHART)) {
-						chartJButton.setText(HIDE_CHART);
-						chartAndLegendPanel.setVisible(true);
+                }
+            });
+        }
 
-						chartAndTableSplitPane.setDividerLocation(getDividerLocation());
+        return chartButton;
+    }
 
-					} else {
-						chartJButton.setText(SHOW_CHART);
+    private JButton getGotoLineButton() {
 
-						setDividerLocation(chartAndTableSplitPane.getDividerLocation());
-						chartAndLegendPanel.setVisible(false);
+        if (gotoLineButton == null) {
 
-					}
+            gotoLineButton = new JButton("Go to line");
 
-				}
-			});
-		}
+            Dimension size = new Dimension(90, 26);
+            gotoLineButton.setPreferredSize(size);
 
-		return chartJButton;
-	}
+            gotoLineButton.addActionListener(new ActionListener() {
 
-	private JButton getGotoLineJButton() {
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
 
-		if (gotoLineJButton == null) {
-			gotoLineJButton = new JButton("Go to line");
+                    LogTable logTable = getLogTable();
+                    LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-			Dimension size = new Dimension(90, 20);
-			gotoLineJButton.setPreferredSize(size);
-			gotoLineJButton.setMaximumSize(size);
-			gotoLineJButton.setHorizontalTextPosition(SwingConstants.LEADING);
+                    LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-			gotoLineJButton.addActionListener(new ActionListener() {
+                    List<LogEntryKey> logEntryKeyList = logEntryModel.getLogEntryKeyList();
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
+                    // Map<LogEntryKey, LogEntry> logEntryMap = logEntryModel.getLogEntryMap();
+                    //
+                    // List<Integer> logEntryIndexList = new ArrayList<>(logEntryMap.keySet());
+                    //
+                    // Collections.sort(logEntryIndexList);
 
-					LogTable logTable = getLogTable();
-					LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+                    int startIndex = logEntryKeyList.get(0).getLineNo();
+                    int endIndex = logEntryKeyList.get(logEntryKeyList.size() - 1).getLineNo();
 
-					LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
+                    GoToLineDialog lgtld = new GoToLineDialog(startIndex, endIndex, BaseFrame.getAppIcon(),
+                            LogDataMainPanel.this);
+                    lgtld.setVisible(true);
 
-					Map<Integer, LogEntry> logEntryMap = logEntryModel.getLogEntryMap();
+                    Integer selectedIndex = lgtld.getSelectedInteger();
 
-					List<Integer> logEntryIndexList = new LinkedList<Integer>(logEntryMap.keySet());
+                    if (selectedIndex != null) {
 
-					Collections.sort(logEntryIndexList);
+                        LogEntryKey logEntryKey = logEntryModel.getClosestLogEntryKeyForLineNo(selectedIndex);
 
-					int startIndex = logEntryIndexList.get(0);
-					int endIndex = logEntryIndexList.get(logEntryIndexList.size() - 1);
+                        getNavigationTableController().scrollToKey(logEntryKey);
+                    }
+                }
+            });
+        }
 
-					GoToLineDialog lgtld = new GoToLineDialog(startIndex, endIndex, BaseFrame.getAppIcon(),
-							LogDataMainPanel.this);
-					lgtld.setVisible(true);
+        return gotoLineButton;
+    }
 
-					Integer selectedIndex = lgtld.getSelectedInteger();
+    private JButton getOverviewButton() {
 
-					if (selectedIndex != null) {
+        if (overviewButton == null) {
+            overviewButton = new JButton("Overview");
 
-						getNavigationTableController().scrollToKey(selectedIndex);
-					}
-				}
-			});
-		}
+            Dimension size = new Dimension(90, 26);
+            overviewButton.setPreferredSize(size);
 
-		return gotoLineJButton;
-	}
+            overviewButton.setEnabled(true);
 
-	private JButton getOverviewJButton() {
+            overviewButton.addActionListener(new ActionListener() {
 
-		if (overviewJButton == null) {
-			overviewJButton = new JButton("Overview");
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
 
-			Dimension size = new Dimension(90, 20);
-			overviewJButton.setPreferredSize(size);
-			overviewJButton.setMaximumSize(size);
-			overviewJButton.setHorizontalTextPosition(SwingConstants.LEADING);
+                    SystemReportDialog systemReportDialog = getSystemReportDialog();
 
-			overviewJButton.setEnabled(true);
+                    systemReportDialog.toFront();
 
-			overviewJButton.addActionListener(new ActionListener() {
+                }
+            });
+        }
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
+        return overviewButton;
 
-					SystemReportDialog systemReportDialog = getSystemReportDialog();
+    }
 
-					systemReportDialog.toFront();
+    private JButton getReloadButton() {
 
-				}
-			});
-		}
+        if (reloadButton == null) {
+            reloadButton = new JButton("Reload file");
 
-		return overviewJButton;
+            Dimension size = new Dimension(100, 26);
+            reloadButton.setPreferredSize(size);
 
-	}
+            reloadButton.addActionListener(new ActionListener() {
 
-	private JButton getReloadJButton() {
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
 
-		if (reloadJButton == null) {
-			reloadJButton = new JButton("Reload file");
+                    LogTable logTable = getLogTable();
+                    LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-			Dimension size = new Dimension(90, 20);
-			reloadJButton.setPreferredSize(size);
-			reloadJButton.setMaximumSize(size);
-			// reloadJButton.setHorizontalTextPosition(SwingConstants.LEADING);
-			reloadJButton.addActionListener(new ActionListener() {
+                    String origCharsetName = logTableModel.getCharset().name();
+                    Locale origLocale = logTableModel.getLocale();
+                    TimeZone origTimezone = logTableModel.getLogTimeZone();
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
+                    ChartTablePanelSettingDialog chartTablePanelSettingDialog;
 
-					LogTable logTable = getLogTable();
-					LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+                    chartTablePanelSettingDialog = new ChartTablePanelSettingDialog(origCharsetName, origLocale,
+                            origTimezone, BaseFrame.getAppIcon(), LogDataMainPanel.this);
 
-					String origCharset = logTableModel.getCharset();
-					Locale origLocale = logTableModel.getLocale();
-					TimeZone origTimezone = logTableModel.getLogTimeZone();
+                    boolean settingUpdated = chartTablePanelSettingDialog.isSettingUpdated();
 
-					ChartTablePanelSettingDialog chartTablePanelSettingDialog;
+                    if (settingUpdated) {
 
-					chartTablePanelSettingDialog = new ChartTablePanelSettingDialog(origCharset, origLocale,
-							origTimezone, BaseFrame.getAppIcon(), LogDataMainPanel.this);
+                        String selectedCharsetName = chartTablePanelSettingDialog.getSelectedCharsetName();
+                        Locale locale = chartTablePanelSettingDialog.getSelectedLocale();
+                        TimeZone timezone = chartTablePanelSettingDialog.getSelectedTimeZone();
 
-					chartTablePanelSettingDialog.setVisible(true);
+                        logTableModel.updateRecentFile(selectedCharsetName, locale, timezone);
 
-					boolean settingUpdated = chartTablePanelSettingDialog.isSettingUpdated();
+                        if (origCharsetName.equals(selectedCharsetName)) {
 
-					if (settingUpdated) {
+                            LogTableModel ltm = (LogTableModel) logTable.getModel();
 
-						String charset = chartTablePanelSettingDialog.getSelectedCharset();
-						Locale locale = chartTablePanelSettingDialog.getSelectedLocale();
-						TimeZone timezone = chartTablePanelSettingDialog.getSelectedTimeZone();
+                            if (!origTimezone.equals(timezone)) {
+                                LogEntryModel lem = ltm.getLogEntryModel();
+                                lem.setDisplayDateFormatTimeZone(timezone);
+                            }
 
-						logTableModel.updateRecentFile(charset, locale, timezone);
+                            ltm.fireTableDataChanged();
 
-						if (origCharset.equals(charset)) {
+                            populateDisplayPanel();
 
-							LogTableModel ltm = (LogTableModel) logTable.getModel();
+                        } else {
+                            // clear and reset the model.
+                            logTableModel.resetModel();
 
-							LogEntryModel lem = ltm.getLogEntryModel();
+                            // charset changed, read/parse the file again
+                            loadFile(LogDataMainPanel.this, logTableModel, getLogViewerSetting(), false);
+                        }
+                    }
 
-							if (origLocale != locale) {
-								lem.setLocale(locale);
-							}
+                }
+            });
+        }
 
-							if (origTimezone != timezone) {
-								lem.setDisplayDateFormatTimeZone(timezone);
-							}
+        return reloadButton;
+    }
 
-							ltm.fireTableDataChanged();
+    private JButton getPalOverviewButton() {
 
-							populateDisplayJPanel();
+        if (palOverviewButton == null) {
 
-						} else {
-							// clear and reset the model.
-							logTableModel.resetModel();
+            palOverviewButton = new JButton("PAL Report");
 
-							// charset changed, read/parse the file again
-							loadFile(LogDataMainPanel.this, logTableModel, getLogViewerSetting(), false);
-						}
-					}
+            Dimension size = new Dimension(100, 26);
+            palOverviewButton.setPreferredSize(size);
+            palOverviewButton.setEnabled(false);
 
-				}
-			});
-		}
+            palOverviewButton.addActionListener(new ActionListener() {
 
-		return reloadJButton;
-	}
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
 
-	private JButton getPalOverviewJButton() {
+                    AlertPALReportDialog alertPALReportDialog = getAlertPALReportDialog();
 
-		if (palOverviewJButton == null) {
+                    if (alertPALReportDialog == null) {
+                        // additional check to make sure this dialog get called
+                        // only for alerts
+                        LogTable logTable = getLogTable();
+                        LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-			palOverviewJButton = new JButton("PAL Report");
+                        LogFileType logFileType = logTableModel.getLogFileType();
+                        LogType logType = logFileType.getLogType();
 
-			Dimension size = new Dimension(90, 20);
-			palOverviewJButton.setPreferredSize(size);
-			palOverviewJButton.setMaximumSize(size);
-			palOverviewJButton.setHorizontalTextPosition(SwingConstants.LEADING);
+                        if (logType == LogType.PEGA_ALERT) {
 
-			palOverviewJButton.setEnabled(false);
+                            alertPALReportDialog = new AlertPALReportDialog(logTableModel,
+                                    getNavigationTableController(), BaseFrame.getAppIcon(), LogDataMainPanel.this);
 
-			palOverviewJButton.addActionListener(new ActionListener() {
+                            alertPALReportDialog.setVisible(true);
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
+                            alertPALReportDialog.addWindowListener(new WindowAdapter() {
 
-					AlertPALReportDialog alertPALReportDialog = getAlertPALReportDialog();
+                                @Override
+                                public void windowClosed(WindowEvent windowEvent) {
+                                    AlertPALReportDialog alertPALReportDialog = getAlertPALReportDialog();
+                                    alertPALReportDialog.destroyPanel();
+                                    setAlertPALReportDialog(null);
+                                }
 
-					if (alertPALReportDialog == null) {
-						// additional check to make sure this dialog get called
-						// only for alerts
-						LogTable logTable = getLogTable();
-						LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+                            });
 
-						LogFileType logFileType = logTableModel.getLogFileType();
-						LogType logType = logFileType.getLogType();
+                            setAlertPALReportDialog(alertPALReportDialog);
+                        }
 
-						if (logType == LogType.PEGA_ALERT) {
+                    } else {
+                        alertPALReportDialog.toFront();
+                    }
 
-							alertPALReportDialog = new AlertPALReportDialog(logTableModel,
-									getNavigationTableController(), BaseFrame.getAppIcon(), LogDataMainPanel.this);
+                }
+            });
+        }
 
-							alertPALReportDialog.setVisible(true);
+        return palOverviewButton;
+    }
 
-							alertPALReportDialog.addWindowListener(new WindowAdapter() {
+    private JButton getLogExportButton() {
 
-								@Override
-								public void windowClosed(WindowEvent e) {
-									AlertPALReportDialog alertPALReportDialog = getAlertPALReportDialog();
-									alertPALReportDialog.destroyJPanel();
-									setAlertPALReportDialog(null);
-								}
+        if (logExportButton == null) {
+            logExportButton = new JButton("Export Messages");
 
-							});
+            Dimension size = new Dimension(120, 26);
+            logExportButton.setPreferredSize(size);
 
-							setAlertPALReportDialog(alertPALReportDialog);
-						}
+            logExportButton.setActionCommand("ExportMessage");
 
-					} else {
-						alertPALReportDialog.toFront();
-					}
+            logExportButton.addActionListener(new ActionListener() {
 
-				}
-			});
-		}
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
 
-		return palOverviewJButton;
-	}
+                    LogTable logTable = getLogTable();
+                    LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-	private JButton getLogXMLExportJButton() {
+                    String actionCommand = actionEvent.getActionCommand();
 
-		if (logXMLExportJButton == null) {
-			logXMLExportJButton = new JButton("Export XML");
+                    if ("ExportMessage".equals(actionCommand)) {
 
-			Dimension size = new Dimension(90, 20);
-			logXMLExportJButton.setPreferredSize(size);
-			logXMLExportJButton.setMaximumSize(size);
-			logXMLExportJButton.setHorizontalTextPosition(SwingConstants.LEADING);
+                        LogMessagesExportDialog lmed = new LogMessagesExportDialog(logTableModel,
+                                BaseFrame.getAppIcon(), LogDataMainPanel.this);
+                        lmed.setVisible(true);
 
-			logXMLExportJButton.addActionListener(new ActionListener() {
+                    } else {
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
+                        LogXMLExportDialog lxmled = new LogXMLExportDialog(logTableModel, BaseFrame.getAppIcon(),
+                                LogDataMainPanel.this);
+                        lxmled.setVisible(true);
 
-					LogTable logTable = getLogTable();
-					LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+                    }
+                }
+            });
+        }
 
-					LogXMLExportDialog lxmled = new LogXMLExportDialog(logTableModel, BaseFrame.getAppIcon(),
-							LogDataMainPanel.this);
-					lxmled.setVisible(true);
-				}
-			});
-		}
+        return logExportButton;
+    }
 
-		return logXMLExportJButton;
-	}
+    private JTextField getCharsetLabel() {
 
-	private JLabel getCharsetJLabel() {
+        if (charsetLabel == null) {
+            charsetLabel = GUIUtilities.getNonEditableTextField();
+        }
 
-		if (charsetJLabel == null) {
-			charsetJLabel = new JLabel();
-		}
+        return charsetLabel;
+    }
 
-		return charsetJLabel;
-	}
+    private JTextField getTimezoneLabel() {
 
-	private JLabel getTimezoneJLabel() {
+        if (timezoneLabel == null) {
+            timezoneLabel = GUIUtilities.getNonEditableTextField();
+        }
 
-		if (timezoneJLabel == null) {
-			timezoneJLabel = new JLabel();
-		}
+        return timezoneLabel;
+    }
 
-		return timezoneJLabel;
-	}
+    private JTextField getLocaleLabel() {
 
-	private JLabel getLocaleJLabel() {
+        if (localeLabel == null) {
+            localeLabel = GUIUtilities.getNonEditableTextField();
+        }
 
-		if (localeJLabel == null) {
-			localeJLabel = new JLabel();
-		}
+        return localeLabel;
+    }
 
-		return localeJLabel;
-	}
+    private JTextField getFileSizeLabel() {
 
-	private JLabel getFileSizeJLabel() {
+        if (fileSizeLabel == null) {
+            fileSizeLabel = GUIUtilities.getNonEditableTextField();
+        }
 
-		if (fileSizeJLabel == null) {
-			fileSizeJLabel = new JLabel();
-		}
+        return fileSizeLabel;
+    }
 
-		return fileSizeJLabel;
-	}
+    private JPanel getCharsetPanel() {
 
-	private JPanel getCharsetJPanel() {
+        JTextField charsetLabel = getCharsetLabel();
+        JPanel charsetPanel = getMetadataPanel(charsetLabel);
 
-		JPanel charsetJPanel = new JPanel();
+        return charsetPanel;
+    }
 
-		LayoutManager layout = new BoxLayout(charsetJPanel, BoxLayout.X_AXIS);
-		charsetJPanel.setLayout(layout);
+    private JPanel getTimezonePanel() {
 
-		JLabel charsetJLabel = getCharsetJLabel();
+        JTextField timezoneLabel = getTimezoneLabel();
+        JPanel timezonePanel = getMetadataPanel(timezoneLabel);
 
-		Dimension dim = new Dimension(1, 30);
+        return timezonePanel;
+    }
 
-		charsetJPanel.add(Box.createHorizontalGlue());
-		charsetJPanel.add(Box.createRigidArea(dim));
-		charsetJPanel.add(charsetJLabel);
-		charsetJPanel.add(Box.createHorizontalGlue());
+    private JPanel getLocalePanel() {
 
-		charsetJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        JTextField localeLabel = getLocaleLabel();
+        JPanel localePanel = getMetadataPanel(localeLabel);
 
-		return charsetJPanel;
-	}
+        return localePanel;
+    }
 
-	private JPanel getTimezoneJPanel() {
+    private JPanel getFileSizePanel() {
 
-		JPanel timezoneJPanel = new JPanel();
+        JTextField fileSizeLabel = getFileSizeLabel();
+        JPanel fileSizePanel = getMetadataPanel(fileSizeLabel);
 
-		LayoutManager layout = new BoxLayout(timezoneJPanel, BoxLayout.X_AXIS);
-		timezoneJPanel.setLayout(layout);
+        return fileSizePanel;
+    }
 
-		JLabel timezoneJLabel = getTimezoneJLabel();
+    private JPanel getMetadataPanel(Component metadataLabel) {
 
-		Dimension dim = new Dimension(1, 30);
+        JPanel metadataPanel = new JPanel();
 
-		timezoneJPanel.add(Box.createHorizontalGlue());
-		timezoneJPanel.add(Box.createRigidArea(dim));
-		timezoneJPanel.add(timezoneJLabel);
-		timezoneJPanel.add(Box.createHorizontalGlue());
+        LayoutManager layout = new BoxLayout(metadataPanel, BoxLayout.X_AXIS);
+        metadataPanel.setLayout(layout);
 
-		timezoneJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        Dimension dim = new Dimension(10, 40);
 
-		return timezoneJPanel;
-	}
+        metadataPanel.add(Box.createHorizontalGlue());
+        metadataPanel.add(Box.createRigidArea(dim));
+        metadataPanel.add(metadataLabel);
+        metadataPanel.add(Box.createRigidArea(dim));
+        metadataPanel.add(Box.createHorizontalGlue());
 
-	private JPanel getLocaleJPanel() {
-		JPanel localeJPanel = new JPanel();
+        metadataPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		LayoutManager layout = new BoxLayout(localeJPanel, BoxLayout.X_AXIS);
-		localeJPanel.setLayout(layout);
+        return metadataPanel;
+    }
 
-		JLabel localeJLabel = getLocaleJLabel();
+    protected JProgressBar getProgressBar() {
 
-		Dimension dim = new Dimension(1, 30);
+        if (progressBar == null) {
+            progressBar = new JProgressBar();
 
-		localeJPanel.add(Box.createHorizontalGlue());
-		localeJPanel.add(Box.createRigidArea(dim));
-		localeJPanel.add(localeJLabel);
-		localeJPanel.add(Box.createHorizontalGlue());
+            progressBar.setStringPainted(true);
+        }
 
-		localeJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        return progressBar;
+    }
 
-		return localeJPanel;
-	}
+    protected JLabel getProgressText() {
 
-	private JPanel getFileSizeJPanel() {
-		JPanel fileSizeJPanel = new JPanel();
+        if (progressText == null) {
+            progressText = new JLabel();
 
-		LayoutManager layout = new BoxLayout(fileSizeJPanel, BoxLayout.X_AXIS);
-		fileSizeJPanel.setLayout(layout);
+            Dimension size = new Dimension(200, 20);
+            progressText.setPreferredSize(size);
+            progressText.setMaximumSize(size);
+        }
 
-		JLabel fileSizeJLabel = getFileSizeJLabel();
+        return progressText;
+    }
 
-		Dimension dim = new Dimension(1, 30);
+    protected JButton getStopTailLogFileButton() {
 
-		fileSizeJPanel.add(Box.createHorizontalGlue());
-		fileSizeJPanel.add(Box.createRigidArea(dim));
-		fileSizeJPanel.add(fileSizeJLabel);
-		fileSizeJPanel.add(Box.createHorizontalGlue());
+        if (stopTailLogFileButton == null) {
+            stopTailLogFileButton = new JButton("Stop tailing");
 
-		fileSizeJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+            LogViewerSetting logViewerSetting = getLogViewerSetting();
 
-		return fileSizeJPanel;
-	}
+            if (logViewerSetting.isTailLogFile()) {
+                stopTailLogFileButton.setEnabled(true);
+            } else {
+                stopTailLogFileButton.setEnabled(false);
+            }
 
-	protected JProgressBar getProgressBar() {
+            stopTailLogFileButton.addActionListener(new ActionListener() {
 
-		if (progressBar == null) {
-			progressBar = new JProgressBar();
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
 
-			progressBar.setStringPainted(true);
-		}
+                    if ((logFileLoadTask != null)
+                            && ((!logFileLoadTask.isCancelled()) || (!logFileLoadTask.isDone()))) {
 
-		return progressBar;
-	}
+                        stopTailLogFileButton.setEnabled(false);
 
-	protected JLabel getProgressText() {
+                        logFileLoadTask.stopTailing();
 
-		if (progressText == null) {
-			progressText = new JLabel();
+                        LOG.info("Stop tailing LogFileLoadTask.");
+                    }
+                }
+            });
+        }
 
-			Dimension size = new Dimension(200, 20);
-			progressText.setPreferredSize(size);
-			progressText.setMaximumSize(size);
-		}
+        return stopTailLogFileButton;
+    }
 
-		return progressText;
-	}
+    protected void updateDisplayPanel() {
 
-	protected JButton getStopTailLogFileJButton() {
+        LOG.info("updateDisplayPanel");
 
-		if (stopTailLogFileJButton == null) {
-			stopTailLogFileJButton = new JButton("Stop tailing");
+        populateDisplayPanel();
 
-			LogViewerSetting logViewerSetting = getLogViewerSetting();
+        LogTable logTable = getLogTable();
+        LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-			if (logViewerSetting.isTailLogFile()) {
-				stopTailLogFileJButton.setEnabled(true);
-			} else {
-				stopTailLogFileJButton.setEnabled(false);
-			}
+        LogFileType logFileType = logTableModel.getLogFileType();
 
-			stopTailLogFileJButton.addActionListener(new ActionListener() {
+        JButton palOverviewJButton = getPalOverviewButton();
+        JButton logExportButton = getLogExportButton();
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
+        palOverviewJButton.setEnabled(false);
+        logExportButton.setEnabled(false);
 
-					if ((logFileLoadTask != null)
-							&& ((!logFileLoadTask.isCancelled()) || (!logFileLoadTask.isDone()))) {
+        if (logFileType != null) {
 
-						stopTailLogFileJButton.setEnabled(false);
+            LogType logType = logFileType.getLogType();
 
-						logFileLoadTask.stopTailing();
+            if (logType == LogType.PEGA_ALERT) {
 
-						LOG.info("Stop tailing LogFileLoadTask.");
-					}
-				}
-			});
-		}
+                palOverviewJButton.setEnabled(true);
 
-		return stopTailLogFileJButton;
-	}
+                logExportButton.setText("Export XML");
+                logExportButton.setToolTipText("Export events as xml");
+                logExportButton.setActionCommand("ExportXml");
+                logExportButton.setEnabled(true);
 
-	protected void updateDisplayJPanel() {
+            } else {
 
-		LOG.info("updateDisplayJPanel");
-		populateDisplayJPanel();
+                logExportButton.setText("Export Messages");
+                logExportButton.setToolTipText("Export Message Column");
+                logExportButton.setActionCommand("ExportMessage");
+                logExportButton.setEnabled(true);
+            }
+        }
+    }
 
-		LogTable logTable = getLogTable();
-		LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+    protected void populateDisplayPanel() {
 
-		LogFileType logFileType = logTableModel.getLogFileType();
+        LOG.info("populateDisplayPanel");
 
-		if (logFileType != null) {
-			LogType logType = logFileType.getLogType();
+        JTextField charsetLabel = getCharsetLabel();
+        JTextField timezoneLabel = getTimezoneLabel();
+        JTextField localeLabel = getLocaleLabel();
+        JTextField fileSizeLabel = getFileSizeLabel();
 
-			if (logType == LogType.PEGA_ALERT) {
-				JButton palOverviewJButton;
-				palOverviewJButton = getPalOverviewJButton();
-				palOverviewJButton.setEnabled(true);
-			}
-		}
-	}
+        LogTable logTable = getLogTable();
+        LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-	protected void populateDisplayJPanel() {
+        Charset charset = logTableModel.getCharset();
+        Locale locale = logTableModel.getLocale();
+        TimeZone timeZone = logTableModel.getLogTimeZone();
+        Long fileSize = logTableModel.getFileSize();
 
-		LOG.info("populateDisplayJPanel");
-		JLabel charsetJLabel = getCharsetJLabel();
-		JLabel timezoneJLabel = getTimezoneJLabel();
-		JLabel localeJLabel = getLocaleJLabel();
-		JLabel fileSizeJLabel = getFileSizeJLabel();
+        String timezoneStr = null;
 
-		LogTable logTable = getLogTable();
-		LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+        if (timeZone != null) {
+            timezoneStr = timeZone.getDisplayName(timeZone.useDaylightTime(), TimeZone.SHORT);
+        }
 
-		String charset = logTableModel.getCharset();
-		Locale locale = logTableModel.getLocale();
-		TimeZone timeZone = logTableModel.getLogTimeZone();
-		Long fileSize = logTableModel.getFileSize();
+        String fileSizeStr = null;
 
-		String timezoneStr = null;
+        if (fileSize != null) {
+            fileSizeStr = GeneralUtilities.humanReadableSize(fileSize.longValue(), false);
+        }
 
-		if (timeZone != null) {
-			timezoneStr = timeZone.getDisplayName(timeZone.useDaylightTime(), TimeZone.SHORT);
-		}
+        charsetLabel.setText(charset.name());
+        localeLabel.setText(locale.toString());
+        timezoneLabel.setText(timezoneStr);
+        fileSizeLabel.setText(fileSizeStr);
 
-		String fileSizeStr = null;
+    }
 
-		if (fileSize != null) {
-			fileSizeStr = GeneralUtilities.humanReadableSize(fileSize.longValue(), false);
-		}
+    protected void loadFile(final JComponent parent, final LogTableModel logTableModel,
+            LogViewerSetting logViewerSetting, final boolean waitMode) {
 
-		charsetJLabel.setText(charset);
-		localeJLabel.setText(locale.toString());
-		timezoneJLabel.setText(timezoneStr);
-		fileSizeJLabel.setText(fileSizeStr);
+        if ((logFileLoadTask != null) && ((!logFileLoadTask.isCancelled()) || (!logFileLoadTask.isDone()))) {
+            logFileLoadTask.cancel(true);
+            LOG.info("cancelling previous LogFileLoadTask.");
+        }
 
-	}
+        RecentFile recentFile = logTableModel.getRecentFile();
 
-	protected void loadFile(final JComponent parent, final LogTableModel logTableModel,
-			LogViewerSetting logViewerSetting, final boolean waitMode) {
+        if (recentFile != null) {
 
-		if ((logFileLoadTask != null) && ((!logFileLoadTask.isCancelled()) || (!logFileLoadTask.isDone()))) {
-			logFileLoadTask.cancel(true);
-			LOG.info("cancelling previous LogFileLoadTask.");
-		}
+            // final String logFilePath = (String)
+            // recentFile.getAttribute(RecentFile.KEY_FILE);
 
-		RecentFile recentFile = logTableModel.getRecentFile();
+            UIManager.put("ModalProgressMonitor.progressText", "Loading log file");
 
-		if (recentFile != null) {
+            // the initial note to be kept longer so that bigger dialog gets created and progress texts fits in.
+            final ModalProgressMonitor mProgressMonitor = new ModalProgressMonitor(parent, "",
+                    "Starting to load log file ...                                                   ", 0, 100);
+            mProgressMonitor.setMillisToDecideToPopup(0);
+            mProgressMonitor.setMillisToPopup(0);
 
-			// final String logFilePath = (String)
-			// recentFile.getAttribute(RecentFile.KEY_FILE);
+            JProgressBar progressBar = getProgressBar();
+            JLabel progressText = getProgressText();
 
-			UIManager.put("ModalProgressMonitor.progressText", "Loading log file");
+            logFileLoadTask = new LogFileLoadTask(parent, logTableModel, logViewerSetting, mProgressMonitor,
+                    progressBar, progressText) {
 
-			final ModalProgressMonitor mProgressMonitor = new ModalProgressMonitor(parent, "",
-					"Loaded 0 log events (0%)", 0, 100);
-			mProgressMonitor.setMillisToDecideToPopup(0);
-			mProgressMonitor.setMillisToPopup(0);
+                /*
+                 * (non-Javadoc)
+                 * 
+                 * @see javax.swing.SwingWorker#done()
+                 */
+                @Override
+                protected void done() {
 
-			boolean tailLogFile = logViewerSetting.isTailLogFile();
-			Set<LogPattern> pegaRuleslog4jPatternSet = logViewerSetting.getPegaRuleslog4jPatternSet();
+                    if (!waitMode) {
+                        completeLoad(this, mProgressMonitor, parent, logTableModel);
+                    }
+                }
+            };
 
-			JProgressBar progressBar = getProgressBar();
-			JLabel progressText = getProgressText();
-			JLabel errorText = null;
+            logFileLoadTask.execute();
 
-			logFileLoadTask = new LogFileLoadTask(parent, logTableModel, pegaRuleslog4jPatternSet, tailLogFile,
-					mProgressMonitor, progressBar, progressText, errorText) {
+            if (waitMode) {
+                completeLoad(logFileLoadTask, mProgressMonitor, parent, logTableModel);
+            }
+        } else {
+            logTableModel.setMessage(new Message(MessageType.ERROR, "No file selected for model"));
+        }
+    }
 
-				/*
-				 * (non-Javadoc)
-				 * 
-				 * @see javax.swing.SwingWorker#done()
-				 */
-				@Override
-				protected void done() {
+    // because of continuous read, complete load may never occur unless there is
+    // some error. hence all the post load actions needs to be triggered using
+    // table model from within LogFileLoadTask
+    protected void completeLoad(LogFileLoadTask tflt, ModalProgressMonitor modalProgressMonitor, JComponent parent,
+            LogTableModel logTableModel) {
 
-					if (!waitMode) {
-						completeLoad(this, mProgressMonitor, parent, logTableModel);
-					}
-				}
-			};
+        String filePath = logTableModel.getFilePath();
 
-			logFileLoadTask.execute();
+        try {
 
-			if (waitMode) {
-				completeLoad(logFileLoadTask, mProgressMonitor, parent, logTableModel);
-			}
-		} else {
-			logTableModel.setMessage(new Message(MessageType.ERROR, "No file selected for model"));
-		}
-	}
+            tflt.get();
 
-	// because of continuous read, complete load may never occur unless there is
-	// some error. hence all the post load actions needs to be triggered using
-	// table model from within LogFileLoadTask
-	protected void completeLoad(LogFileLoadTask tflt, ModalProgressMonitor mProgressMonitor, JComponent parent,
-			LogTableModel logTableModel) {
+            System.gc();
 
-		String filePath = logTableModel.getFilePath();
+            ChartAndLegendPanel chartAndLegendPanel = getChartAndLegendPanel();
+            chartAndLegendPanel.setChartMouseListener(logTableModel.getLogEntryModel());
 
-		try {
+            int processedCount = tflt.getProcessedCount();
 
-			tflt.get();
+            // not moving bookmark loading to end of file load, In tail mode completeLoad doesnt get called.
 
-			System.gc();
+            // RecentFile recentFile = logTableModel.getRecentFile();
+            //
+            // BookmarkContainer<Integer> bookmarkContainer;
+            // bookmarkContainer = (BookmarkContainer<Integer>) recentFile.getAttribute(RecentFile.KEY_BOOKMARK);
+            //
+            // if (bookmarkContainer == null) {
+            //
+            // bookmarkContainer = new BookmarkContainer<Integer>();
+            //
+            // recentFile.setAttribute(RecentFile.KEY_BOOKMARK, bookmarkContainer);
+            // }
+            //
+            // BookmarkModel<Integer> bookmarkModel = new BookmarkModel<Integer>(bookmarkContainer, logTableModel);
+            //
+            // logTableModel.setBookmarkModel(bookmarkModel);
 
-			int processedCount = tflt.getProcessedCount();
+            logTableModel.fireTableDataChanged();
 
-			logTableModel.fireTableDataChanged();
+            LOG.info("LogFileLoadTask - Done: " + filePath + " processedCount:" + processedCount);
 
-			LOG.info("LogFileLoadTask - Done: " + filePath + " processedCount:" + processedCount);
+        } catch (CancellationException ce) {
 
-		} catch (CancellationException ce) {
+            LOG.error("LogFileLoadTask - Cancelled " + filePath);
 
-			LOG.error("LogFileLoadTask - Cancelled " + filePath);
+            MessageType messageType = MessageType.ERROR;
+            Message modelmessage = new Message(messageType, filePath + " - file loading cancelled.");
+            logTableModel.setMessage(modelmessage);
 
-			MessageType messageType = MessageType.ERROR;
-			Message modelmessage = new Message(messageType, filePath + " - file loading cancelled.");
-			logTableModel.setMessage(modelmessage);
+        } catch (ExecutionException ee) {
 
-		} catch (ExecutionException ee) {
+            LOG.error("Execution Error in LogFileLoadTask", ee);
 
-			LOG.error("Execution Error in LogFileLoadTask", ee);
+            String message = null;
 
-			String message = null;
+            if (ee.getCause() instanceof OutOfMemoryError) {
 
-			if (ee.getCause() instanceof OutOfMemoryError) {
+                message = "Out Of Memory Error has occured while loading " + filePath
+                        + ".\nPlease increase the JVM's max heap size (-Xmx) and try again.";
 
-				message = "Out Of Memory Error has occured while loading " + filePath
-						+ ".\nPlease increase the JVM's max heap size (-Xmx) and try again.";
+                JOptionPane.showMessageDialog(parent, message, "Out Of Memory Error", JOptionPane.ERROR_MESSAGE);
+            } else {
+                message = ee.getCause().getMessage() + " has occured while loading " + filePath + ".";
 
-				JOptionPane.showMessageDialog(parent, message, "Out Of Memory Error", JOptionPane.ERROR_MESSAGE);
-			} else {
-				message = ee.getCause().getMessage() + " has occured while loading " + filePath + ".";
+                JOptionPane.showMessageDialog(parent, message, "Error", JOptionPane.ERROR_MESSAGE);
+            }
 
-				JOptionPane.showMessageDialog(parent, message, "Error", JOptionPane.ERROR_MESSAGE);
-			}
+            MessageType messageType = MessageType.ERROR;
+            Message modelmessage = new Message(messageType, message);
+            logTableModel.setMessage(modelmessage);
 
-			MessageType messageType = MessageType.ERROR;
-			Message modelmessage = new Message(messageType, message);
-			logTableModel.setMessage(modelmessage);
+        } catch (Exception e) {
+            LOG.error("Error loading file: " + filePath, e);
+            MessageType messageType = MessageType.ERROR;
 
-		} catch (Exception e) {
-			LOG.error("Error loading file: " + filePath, e);
-			MessageType messageType = MessageType.ERROR;
+            StringBuilder messageB = new StringBuilder();
+            messageB.append("Error loading file: ");
+            messageB.append(filePath);
 
-			StringBuffer messageB = new StringBuffer();
-			messageB.append("Error loading file: ");
-			messageB.append(filePath);
+            Message message = new Message(messageType, messageB.toString());
+            logTableModel.setMessage(message);
 
-			Message message = new Message(messageType, messageB.toString());
-			logTableModel.setMessage(message);
+        } finally {
 
-		} finally {
+            modalProgressMonitor.close();
 
-			mProgressMonitor.close();
+            System.gc();
+        }
+    }
 
-			System.gc();
-		}
-	}
+    private void clearJDialogList() {
 
-	private void clearJDialogList() {
+        // in case of error in file load.
+        if (logTableMouseListener != null) {
+            logTableMouseListener.clearJDialogList();
+        }
 
-		// in case of error in file load.
-		if (logTableMouseListener != null) {
-			logTableMouseListener.clearJDialogList();
-		}
+        if (systemReportDialog != null) {
+            systemReportDialog.dispose();
+            systemReportDialog = null;
+        }
+    }
 
-		if (systemReportDialog != null) {
-			systemReportDialog.dispose();
-			systemReportDialog = null;
-		}
-	}
+    private void performComponentResized(Rectangle oldBounds, Rectangle newBounds) {
+
+        LogTable logTable = getLogTable();
+
+        TableColumnModel tableColumnModel = logTable.getColumnModel();
+
+        GUIUtilities.applyTableColumnResize(tableColumnModel, oldBounds, newBounds);
+    }
 }

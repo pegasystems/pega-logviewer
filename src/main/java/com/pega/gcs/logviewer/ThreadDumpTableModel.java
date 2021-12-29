@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.Component;
@@ -35,302 +36,333 @@ import com.pega.gcs.logviewer.model.ThreadDumpThreadInfoV7;
 
 public class ThreadDumpTableModel extends FilterTableModel<String> {
 
-	private static final long serialVersionUID = 5568889081583557545L;
+    private static final long serialVersionUID = 5568889081583557545L;
 
-	private List<String> threadNameList;
+    private List<String> threadNameList;
 
-	private Map<String, ThreadDumpThreadInfo> threadDumpThreadInfoMap;
+    private HashMap<String, Integer> keyIndexMap;
 
-	private List<ThreadDumpColumn> threadDumpColumnList;
+    private Map<String, ThreadDumpThreadInfo> threadDumpThreadInfoMap;
 
-	private boolean v7ThreadDump;
+    private List<ThreadDumpColumn> threadDumpColumnList;
 
-	public ThreadDumpTableModel(List<ThreadDumpThreadInfo> threadDumpThreadInfoList) {
+    private boolean v7ThreadDump;
 
-		super(null);
+    public ThreadDumpTableModel(List<ThreadDumpThreadInfo> threadDumpThreadInfoList) {
 
-		v7ThreadDump = false;
+        super(null);
 
-		if (threadDumpThreadInfoList != null) {
+        v7ThreadDump = false;
 
-			ThreadDumpThreadInfo threadDumpThreadInfo = threadDumpThreadInfoList.get(0);
+        if (threadDumpThreadInfoList != null) {
 
-			if (threadDumpThreadInfo instanceof ThreadDumpThreadInfoV7) {
-				threadDumpColumnList = ThreadDumpColumn.getV7ThreadDumpColumnList();
-				v7ThreadDump = true;
-			} else {
-				threadDumpColumnList = ThreadDumpColumn.getV6ThreadDumpColumnList();
-			}
+            ThreadDumpThreadInfo threadDumpThreadInfo = threadDumpThreadInfoList.get(0);
 
-		} else {
-			threadDumpColumnList = new ArrayList<>();
-		}
+            if (threadDumpThreadInfo instanceof ThreadDumpThreadInfoV7) {
+                threadDumpColumnList = ThreadDumpColumn.getV7ThreadDumpColumnList();
+                v7ThreadDump = true;
+            } else {
+                threadDumpColumnList = ThreadDumpColumn.getV6ThreadDumpColumnList();
+            }
 
-		resetModel();
+        } else {
+            threadDumpColumnList = new ArrayList<>();
+        }
 
-		threadNameList = getFtmEntryKeyList();
-		threadDumpThreadInfoMap = new HashMap<>();
+        resetModel();
 
-		if (threadDumpThreadInfoList != null) {
+        threadNameList = getFtmEntryKeyList();
+        threadDumpThreadInfoMap = new HashMap<>();
 
-			for (ThreadDumpThreadInfo tdThreadInfo : threadDumpThreadInfoList) {
+        if (threadDumpThreadInfoList != null) {
 
-				String threadName = tdThreadInfo.getThreadName();
+            for (ThreadDumpThreadInfo tdThreadInfo : threadDumpThreadInfoList) {
 
-				threadNameList.add(threadName);
-				threadDumpThreadInfoMap.put(threadName, tdThreadInfo);
+                String threadName = tdThreadInfo.getThreadName();
 
-				updateColumnFilterMap(tdThreadInfo);
+                threadNameList.add(threadName);
 
-			}
+                threadDumpThreadInfoMap.put(threadName, tdThreadInfo);
 
-			Collections.sort(threadNameList);
-		}
+                updateColumnFilterMap(tdThreadInfo);
 
-	}
+            }
 
-	private void updateColumnFilterMap(ThreadDumpThreadInfo threadDumpThreadInfo) {
+            Collections.sort(threadNameList);
+        }
 
-		if (threadDumpThreadInfo != null) {
+        updateKeyIndexMap();
+    }
 
-			String threadName = threadDumpThreadInfo.getThreadName();
+    private void updateColumnFilterMap(ThreadDumpThreadInfo threadDumpThreadInfo) {
 
-			Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<String>>> columnFilterMap = getColumnFilterMap();
+        if (threadDumpThreadInfo != null) {
 
-			Iterator<FilterColumn> fcIterator = columnFilterMap.keySet().iterator();
+            String threadName = threadDumpThreadInfo.getThreadName();
 
-			while (fcIterator.hasNext()) {
+            Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<String>>> columnFilterMap = getColumnFilterMap();
 
-				FilterColumn filterColumn = fcIterator.next();
+            Iterator<FilterColumn> fcIterator = columnFilterMap.keySet().iterator();
 
-				List<CheckBoxMenuItemPopupEntry<String>> columnFilterEntryList;
-				columnFilterEntryList = columnFilterMap.get(filterColumn);
+            while (fcIterator.hasNext()) {
 
-				if (columnFilterEntryList == null) {
-					columnFilterEntryList = new ArrayList<CheckBoxMenuItemPopupEntry<String>>();
-					columnFilterMap.put(filterColumn, columnFilterEntryList);
-				}
+                FilterColumn filterColumn = fcIterator.next();
 
-				int columnIndex = filterColumn.getIndex();
-				String columnName = threadDumpColumnList.get(columnIndex).getColumnId();
+                List<CheckBoxMenuItemPopupEntry<String>> columnFilterEntryList;
+                columnFilterEntryList = columnFilterMap.get(filterColumn);
 
-				Object value = threadDumpThreadInfo.getValue(columnName);
+                if (columnFilterEntryList == null) {
+                    columnFilterEntryList = new ArrayList<CheckBoxMenuItemPopupEntry<String>>();
+                    columnFilterMap.put(filterColumn, columnFilterEntryList);
+                }
 
-				String columnValueStr = (value != null) ? value.toString() : null;
+                int columnIndex = filterColumn.getIndex();
+                String columnName = threadDumpColumnList.get(columnIndex).getColumnId();
 
-				if (columnValueStr == null) {
-					columnValueStr = FilterTableModel.NULL_STR;
-				} else if ("".equals(columnValueStr)) {
-					columnValueStr = FilterTableModel.EMPTY_STR;
-				}
+                Object value = threadDumpThreadInfo.getValue(columnName);
 
-				CheckBoxMenuItemPopupEntry<String> columnFilterEntry;
+                String columnValueStr = (value != null) ? value.toString() : null;
 
-				CheckBoxMenuItemPopupEntry<String> searchKey;
-				searchKey = new CheckBoxMenuItemPopupEntry<String>(columnValueStr);
+                if (columnValueStr == null) {
+                    columnValueStr = FilterTableModel.NULL_STR;
+                } else if ("".equals(columnValueStr)) {
+                    columnValueStr = FilterTableModel.EMPTY_STR;
+                }
 
-				int index = columnFilterEntryList.indexOf(searchKey);
+                CheckBoxMenuItemPopupEntry<String> columnFilterEntry;
 
-				if (index == -1) {
-					columnFilterEntry = new CheckBoxMenuItemPopupEntry<String>(columnValueStr);
-					columnFilterEntryList.add(columnFilterEntry);
-				} else {
-					columnFilterEntry = columnFilterEntryList.get(index);
-				}
+                CheckBoxMenuItemPopupEntry<String> searchKey;
+                searchKey = new CheckBoxMenuItemPopupEntry<String>(columnValueStr);
 
-				columnFilterEntry.addRowIndex(threadName);
+                int index = columnFilterEntryList.indexOf(searchKey);
 
-			}
-		}
-	}
+                if (index == -1) {
+                    columnFilterEntry = new CheckBoxMenuItemPopupEntry<String>(columnValueStr);
+                    columnFilterEntryList.add(columnFilterEntry);
+                } else {
+                    columnFilterEntry = columnFilterEntryList.get(index);
+                }
 
-	@Override
-	public int getColumnCount() {
-		return threadDumpColumnList.size();
-	}
+                columnFilterEntry.addRowIndex(threadName);
 
-	@Override
-	public Object getValueAt(int rowIndex, int columnIndex) {
+            }
+        }
+    }
 
-		String columnName = threadDumpColumnList.get(columnIndex).getColumnId();
+    @Override
+    public int getColumnCount() {
+        return threadDumpColumnList.size();
+    }
 
-		ThreadDumpThreadInfo threadDumpThreadInfo = getThreadDumpThreadInfo(rowIndex);
+    @Override
+    public Object getValueAt(int rowIndex, int columnIndex) {
 
-		Object value = threadDumpThreadInfo.getValue(columnName);
+        String columnName = threadDumpColumnList.get(columnIndex).getColumnId();
 
-		return value;
-	}
+        ThreadDumpThreadInfo threadDumpThreadInfo = getThreadDumpThreadInfo(rowIndex);
 
-	@Override
-	protected int getModelColumnIndex(int column) {
-		return column;
-	}
+        Object value = threadDumpThreadInfo.getValue(columnName);
 
-	@Override
-	protected boolean search(String key, Object searchStrObj) {
-		return false;
-	}
+        return value;
+    }
 
-	@Override
-	protected FilterTableModelNavigation<String> getNavigationRowIndex(List<String> resultList,
-			int currSelectedRowIndex, boolean forward, boolean first, boolean last, boolean wrap) {
-		return null;
-	}
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getColumnValue(java. lang.Object, int)
+     */
+    @Override
+    public String getColumnValue(Object valueAtObject, int columnIndex) {
 
-	@Override
-	public List<String> getFtmEntryKeyList() {
+        String columnValue = null;
 
-		if (threadNameList == null) {
-			threadNameList = new ArrayList<>();
-		}
+        if (valueAtObject != null) {
+            columnValue = valueAtObject.toString();
+        }
 
-		return threadNameList;
-	}
+        return columnValue;
+    }
 
-	@Override
-	public void resetModel() {
+    @Override
+    protected int getModelColumnIndex(int column) {
+        return column;
+    }
 
-		Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<String>>> columnFilterMap;
-		columnFilterMap = getColumnFilterMap();
-		columnFilterMap.clear();
+    @Override
+    protected boolean search(String key, Object searchStrObj) {
+        return false;
+    }
 
-		int columnIndex = 0;
+    @Override
+    protected FilterTableModelNavigation<String> getNavigationRowIndex(List<String> resultList,
+            int currSelectedRowIndex, boolean forward, boolean first, boolean last, boolean wrap) {
+        return null;
+    }
 
-		for (ThreadDumpColumn threadDumpColumn : threadDumpColumnList) {
+    @Override
+    public List<String> getFtmEntryKeyList() {
 
-			FilterColumn filterColumn = new FilterColumn(columnIndex);
-			filterColumn.setColumnFilterEnabled(threadDumpColumn.isFilterable());
-			columnFilterMap.put(filterColumn, null);
+        if (threadNameList == null) {
+            threadNameList = new ArrayList<>();
+        }
 
-			columnIndex++;
-		}
-	}
+        return threadNameList;
+    }
 
-	@Override
-	public int getIndexOfKey(String key) {
-		return 0;
-	}
+    @Override
+    protected HashMap<String, Integer> getKeyIndexMap() {
 
-	@Override
-	public Object getEventForKey(String key) {
-		return null;
-	}
+        if (keyIndexMap == null) {
+            keyIndexMap = new HashMap<>();
+        }
 
-	@Override
-	public AbstractTreeTableNode getTreeNodeForKey(String key) {
-		return null;
-	}
+        return keyIndexMap;
+    }
 
-	@Override
-	public void clearSearchResults(boolean clearResults) {
+    @Override
+    public void resetModel() {
 
-	}
+        Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<String>>> columnFilterMap;
+        columnFilterMap = getColumnFilterMap();
+        columnFilterMap.clear();
 
-	@Override
-	public SearchModel<String> getSearchModel() {
-		return null;
-	}
+        for (int columnIndex = 0; columnIndex < threadDumpColumnList.size(); columnIndex++) {
 
-	public ThreadDumpThreadInfo getThreadDumpThreadInfo(int rowIndex) {
-		List<String> threadNameList = getFtmEntryKeyList();
+            ThreadDumpColumn threadDumpColumn = threadDumpColumnList.get(columnIndex);
 
-		String threadName = threadNameList.get(rowIndex);
+            // preventing unnecessary buildup of filter map
+            if (threadDumpColumn.isFilterable()) {
+                FilterColumn filterColumn = new FilterColumn(columnIndex);
+                filterColumn.setColumnFilterEnabled(true);
+                columnFilterMap.put(filterColumn, null);
+            }
+        }
+    }
 
-		ThreadDumpThreadInfo threadDumpThreadInfo = threadDumpThreadInfoMap.get(threadName);
+    @Override
+    public Object getEventForKey(String key) {
+        return null;
+    }
 
-		return threadDumpThreadInfo;
-	}
+    @Override
+    public AbstractTreeTableNode getTreeNodeForKey(String key) {
+        return null;
+    }
 
-	@Override
-	protected TableColumnModel getTableColumnModel() {
+    @Override
+    public void clearSearchResults(boolean clearResults) {
 
-		TableColumnModel tableColumnModel = new DefaultTableColumnModel();
+    }
 
-		TableColumn tableColumn = null;
-		int columnIndex = 0;
+    @Override
+    public SearchModel<String> getSearchModel() {
+        return null;
+    }
 
-		for (ThreadDumpColumn threadDumpColumn : threadDumpColumnList) {
+    public ThreadDumpThreadInfo getThreadDumpThreadInfo(int rowIndex) {
+        List<String> threadNameList = getFtmEntryKeyList();
 
-			TableCellRenderer tcr = null;
+        String threadName = threadNameList.get(rowIndex);
 
-			DefaultTableCellRenderer dtcr = getDefaultTableCellRenderer();
-			dtcr.setHorizontalAlignment(threadDumpColumn.getHorizontalAlignment());
-			tcr = dtcr;
+        ThreadDumpThreadInfo threadDumpThreadInfo = threadDumpThreadInfoMap.get(threadName);
 
-			int prefColumnWidth = threadDumpColumn.getPrefColumnWidth();
+        return threadDumpThreadInfo;
+    }
 
-			tableColumn = new TableColumn(columnIndex++);
-			tableColumn.setHeaderValue(threadDumpColumn.getDisplayName());
-			tableColumn.setCellRenderer(tcr);
-			tableColumn.setPreferredWidth(prefColumnWidth);
-			tableColumn.setWidth(prefColumnWidth);
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getTableColumnModel( )
+     */
+    @Override
+    public TableColumnModel getTableColumnModel() {
 
-			tableColumnModel.addColumn(tableColumn);
-		}
+        TableColumnModel tableColumnModel = new DefaultTableColumnModel();
 
-		return tableColumnModel;
-	}
+        TableColumn tableColumn = null;
+        int columnIndex = 0;
 
-	private DefaultTableCellRenderer getDefaultTableCellRenderer() {
+        for (ThreadDumpColumn threadDumpColumn : threadDumpColumnList) {
 
-		DefaultTableCellRenderer dtcr = new DefaultTableCellRenderer() {
+            TableCellRenderer tcr = null;
 
-			private static final long serialVersionUID = 1504347306097747771L;
+            DefaultTableCellRenderer dtcr = getDefaultTableCellRenderer();
+            dtcr.setHorizontalAlignment(threadDumpColumn.getHorizontalAlignment());
+            tcr = dtcr;
 
-			/*
-			 * (non-Javadoc)
-			 * 
-			 * @see javax.swing.table.DefaultTableCellRenderer#
-			 * getTableCellRendererComponent(javax.swing.JTable,
-			 * java.lang.Object, boolean, boolean, int, int)
-			 */
-			@Override
-			public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-					boolean hasFocus, int row, int column) {
+            int prefColumnWidth = threadDumpColumn.getPrefColumnWidth();
 
-				super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            tableColumn = new TableColumn(columnIndex++);
+            tableColumn.setHeaderValue(threadDumpColumn.getDisplayName());
+            tableColumn.setCellRenderer(tcr);
+            tableColumn.setPreferredWidth(prefColumnWidth);
+            tableColumn.setWidth(prefColumnWidth);
 
-				setBorder(new EmptyBorder(1, 4, 1, 4));
+            tableColumnModel.addColumn(tableColumn);
+        }
 
-				if (!isSelected) {
-					setBackground(MyColor.LIGHTEST_LIGHT_GRAY);
-				}
-				return this;
-			}
+        return tableColumnModel;
+    }
 
-		};
+    private DefaultTableCellRenderer getDefaultTableCellRenderer() {
 
-		return dtcr;
-	}
+        DefaultTableCellRenderer dtcr = new DefaultTableCellRenderer() {
 
-	public boolean isV7ThreadDump() {
-		return v7ThreadDump;
-	}
+            private static final long serialVersionUID = 1504347306097747771L;
 
-	public void applyFilter(String filterText, boolean caseSensitiveFilter, boolean excludeBenignFilter) {
+            /*
+             * (non-Javadoc)
+             * 
+             * @see javax.swing.table.DefaultTableCellRenderer# getTableCellRendererComponent(javax.swing.JTable, java.lang.Object, boolean,
+             * boolean, int, int)
+             */
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                    boolean hasFocus, int row, int column) {
 
-		List<String> threadDumpThreadInfoList = getFtmEntryKeyList();
-		threadDumpThreadInfoList.clear();
+                super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-		for (Map.Entry<String, ThreadDumpThreadInfo> threadDumpThreadInfoEntrySet : threadDumpThreadInfoMap
-				.entrySet()) {
+                setBorder(new EmptyBorder(1, 4, 1, 4));
 
-			String threadName = threadDumpThreadInfoEntrySet.getKey();
-			ThreadDumpThreadInfo threadDumpThreadInfo = threadDumpThreadInfoEntrySet.getValue();
+                if (!isSelected) {
+                    setBackground(MyColor.LIGHTEST_LIGHT_GRAY);
+                }
+                return this;
+            }
 
-			boolean search = threadDumpThreadInfo.search(filterText, caseSensitiveFilter);
+        };
 
-			int stackDepth = threadDumpThreadInfo.getStackDepth();
-			boolean benignThread = (excludeBenignFilter) ? (stackDepth > 5) : true;
+        return dtcr;
+    }
 
-			if (search && benignThread) {
-				threadDumpThreadInfoList.add(threadName);
-			}
-		}
+    public boolean isV7ThreadDump() {
+        return v7ThreadDump;
+    }
 
-		Collections.sort(threadDumpThreadInfoList);
+    public void applyFilter(String filterText, boolean caseSensitiveFilter, boolean excludeBenignFilter) {
 
-		fireTableDataChanged();
-	}
+        List<String> threadDumpThreadInfoList = getFtmEntryKeyList();
+        threadDumpThreadInfoList.clear();
+
+        for (Map.Entry<String, ThreadDumpThreadInfo> threadDumpThreadInfoEntrySet : threadDumpThreadInfoMap
+                .entrySet()) {
+
+            String threadName = threadDumpThreadInfoEntrySet.getKey();
+            ThreadDumpThreadInfo threadDumpThreadInfo = threadDumpThreadInfoEntrySet.getValue();
+
+            boolean search = threadDumpThreadInfo.search(filterText, caseSensitiveFilter);
+
+            int stackDepth = threadDumpThreadInfo.getStackDepth();
+            boolean benignThread = (excludeBenignFilter) ? (stackDepth > 5) : true;
+
+            if (search && benignThread) {
+                threadDumpThreadInfoList.add(threadName);
+            }
+        }
+
+        Collections.sort(threadDumpThreadInfoList);
+
+        fireTableDataChanged();
+    }
 
 }

@@ -4,12 +4,14 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.model;
 
 import java.awt.Color;
 import java.io.Serializable;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Objects;
 
 import javax.swing.JPanel;
 
@@ -19,156 +21,157 @@ import com.pega.gcs.fringecommon.utilities.KnuthMorrisPrattAlgorithm;
 import com.pega.gcs.fringecommon.utilities.kyro.KryoSerializer;
 import com.pega.gcs.logviewer.LogTableModel;
 
-public abstract class LogEntry implements Identifiable<Integer>, Serializable {
+public abstract class LogEntry implements Identifiable<LogEntryKey>, Serializable {
 
-	private static final long serialVersionUID = -6323090071656803913L;
+    private static final long serialVersionUID = -6323090071656803913L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(LogEntry.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(LogEntry.class);
 
-	private int logEntryIndex;
+    private LogEntryKey logEntryKey;
 
-	private Date logEntryDate;
+    private byte[] compressedLogEntryData;
 
-	private byte[] compressedLogEntryData;
+    public abstract Color getForegroundColor();
 
-	public abstract Color getForegroundColor();
+    public abstract Color getBackgroundColor();
 
-	public abstract Color getBackgroundColor();
+    public abstract JPanel getDetailsJPanel(LogTableModel logTableModel);
 
-	public abstract JPanel getDetailsJPanel(LogTableModel logTableModel);
+    private boolean searchFound;
 
-	private boolean searchFound;
+    public LogEntry(LogEntryKey logEntryKey, ArrayList<String> logEntryValueList, String logEntryText) {
 
-	public LogEntry(int logEntryIndex, Date logEntryDate, ArrayList<String> logEntryValueList, String logEntryText) {
+        super();
 
-		super();
+        this.logEntryKey = logEntryKey;
 
-		this.logEntryIndex = logEntryIndex;
-		this.logEntryDate = logEntryDate;
+        LogEntryData logEntryData = new LogEntryData(logEntryText, logEntryValueList);
 
-		LogEntryData logEntryData = new LogEntryData(logEntryText, logEntryValueList);
+        setLogEntryData(logEntryData);
+    }
 
-		setLogEntryData(logEntryData);
-	}
+    @Override
+    public LogEntryKey getKey() {
+        return logEntryKey;
+    }
 
-	@Override
-	public Integer getKey() {
-		return logEntryIndex;
-	}
+    public LogEntryData getLogEntryData() {
 
-	public Date getLogEntryDate() {
-		return logEntryDate;
-	}
+        LogEntryData logEntryData = null;
 
-	protected void setLogEntryDate(Date newDate) {
-		logEntryDate = newDate;
-	}
+        try {
+            logEntryData = KryoSerializer.decompress(compressedLogEntryData, LogEntryData.class);
+        } catch (Exception e) {
+            LOG.error("Error decompressing log entry data", e);
+        }
 
-	public LogEntryData getLogEntryData() {
+        return logEntryData;
+    }
 
-		LogEntryData logEntryData = null;
+    protected void setLogEntryData(LogEntryData logEntryData) {
+        try {
+            compressedLogEntryData = KryoSerializer.compress(logEntryData);
+        } catch (Exception e) {
+            LOG.error("Error compressing log entry data", e);
+        }
+    }
 
-		try {
-			logEntryData = KryoSerializer.decompress(compressedLogEntryData, LogEntryData.class);
-		} catch (Exception e) {
-			LOG.error("Error decompressing log entry data", e);
-		}
+    public ArrayList<String> getLogEntryValueList() {
 
-		return logEntryData;
-	}
+        ArrayList<String> logEntryValueList = null;
 
-	protected void setLogEntryData(LogEntryData logEntryData) {
-		try {
-			compressedLogEntryData = KryoSerializer.compress(logEntryData);
-		} catch (Exception e) {
-			LOG.error("Error compressing log entry data", e);
-		}
-	}
+        LogEntryData logEntryData = getLogEntryData();
 
-	/**
-	 * @return the logEntryValueList
-	 */
-	public ArrayList<String> getLogEntryValueList() {
+        if (logEntryData != null) {
+            logEntryValueList = logEntryData.getLogEntryValueList();
+        }
 
-		ArrayList<String> logEntryValueList = null;
+        return logEntryValueList;
+    }
 
-		LogEntryData logEntryData = getLogEntryData();
+    public String getLogEntryText() {
 
-		if (logEntryData != null) {
-			logEntryValueList = logEntryData.getLogEntryValueList();
-		}
+        String logEntryText = null;
 
-		return logEntryValueList;
-	}
+        LogEntryData logEntryData = getLogEntryData();
 
-	public String getLogEntryText() {
+        if (logEntryData != null) {
+            logEntryText = logEntryData.getLogEntryText();
+        }
 
-		String logEntryText = null;
+        return logEntryText;
 
-		LogEntryData logEntryData = getLogEntryData();
+    }
 
-		if (logEntryData != null) {
-			logEntryText = logEntryData.getLogEntryText();
-		}
+    public boolean search(String searchStr, Charset charset) {
 
-		return logEntryText;
+        searchFound = false;
 
-	}
+        String logEntryText = getLogEntryText();
 
-	public boolean search(String searchStr) {
+        // logEntryText will null in case of empty or corrupt TE's
+        if ((logEntryText != null) && (searchStr != null)) {
 
-		searchFound = false;
+            logEntryText = logEntryText.toLowerCase();
+            String logSearchStr = searchStr.toLowerCase();
 
-		String traceEventStr = getLogEntryText();
+            byte[] pattern = logSearchStr.getBytes(charset);
+            byte[] data = logEntryText.getBytes(charset);
 
-		// traceEventStr will null in case of empty or corrupt TE's
-		if ((traceEventStr != null) && (searchStr != null)) {
+            int index = KnuthMorrisPrattAlgorithm.indexOf(data, pattern);
 
-			traceEventStr = traceEventStr.toLowerCase();
-			String traceSearchStr = searchStr.toLowerCase();
+            if (index != -1) {
+                searchFound = true;
+            }
+        }
 
-			byte[] pattern = traceSearchStr.getBytes();
-			byte[] data = traceEventStr.getBytes();
+        return searchFound;
 
-			int index = KnuthMorrisPrattAlgorithm.indexOf(data, pattern);
+    }
 
-			if (index != -1) {
-				searchFound = true;
-			}
-		}
+    public boolean isSearchFound() {
+        return searchFound;
+    }
 
-		return searchFound;
+    public void setSearchFound(boolean searchFound) {
+        this.searchFound = searchFound;
+    }
 
-	}
+    @Override
+    public int hashCode() {
+        return Objects.hash(logEntryKey);
+    }
 
-	public boolean isSearchFound() {
-		return searchFound;
-	}
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (!(obj instanceof LogEntry)) {
+            return false;
+        }
+        LogEntry other = (LogEntry) obj;
+        return Objects.equals(logEntryKey, other.logEntryKey);
+    }
 
-	public void setSearchFound(boolean searchFound) {
-		this.searchFound = searchFound;
-	}
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + logEntryIndex;
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		LogEntry other = (LogEntry) obj;
-		if (logEntryIndex != other.logEntryIndex)
-			return false;
-		return true;
-	}
-
+    // // Recalculating time when timezone becomes known
+    // public void updateLogEntryTime(DateFormat modelDateFormat, int timestampColumnIndex) {
+    //
+    // LogEntryData logEntryData = getLogEntryData();
+    //
+    // ArrayList<String> logEntryValueList = logEntryData.getLogEntryValueList();
+    //
+    // String logEntryDateStr = logEntryValueList.get(timestampColumnIndex);
+    //
+    // try {
+    //
+    // Date logEntryDate = modelDateFormat.parse(logEntryDateStr);
+    //
+    // setLogEntryTime(logEntryDate.getTime());
+    //
+    // } catch (ParseException pe) {
+    // LOG.info("Date parse error: " + logEntryDateStr);
+    // }
+    //
+    // }
 }

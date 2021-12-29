@@ -18,9 +18,15 @@ BODY {
 	scrollbar-track-color: white;
 }
 
+DIV {
+	font-family: Verdana, Arial, sans-serif;
+	font-size: 12pt;
+	font-weight: normal;
+}
+
 TABLE {
 	font-family: Verdana, Arial, sans-serif;
-	font-size: 10pt;
+	font-size: 12pt;
 	color: black;
 	padding: 0px;
 	margin: 0px;
@@ -29,7 +35,7 @@ TABLE {
 
 TD {
 	font-family: Verdana, Arial, sans-serif;
-	font-size: 10pt;
+	font-size: 12pt;
 	font-weight: normal;
 }
 
@@ -38,28 +44,28 @@ TD {
 /************************************************************/
 H1 {
 	font-family: Verdana, Arial, sans-serif;
-	font-size: 14pt;
+	font-size: 16pt;
 	color: black;
 	font-weight: bold;
 }
 
 H2 {
 	font-family: Verdana, Arial, sans-serif;
-	font-size: 12pt;
+	font-size: 14pt;
 	color: black;
 	font-weight: bold;
 }
 
 H3 {
 	font-family: Verdana, Arial, sans-serif;
-	font-size: 10pt;
+	font-size: 12pt;
 	color: black;
 	font-weight: bold;
 }
 
 A {
 	font-family: Verdana, Arial, sans-serif;
-	font-size: 10pt;
+	font-size: 12pt;
 	font-weight: normal;
 }
 
@@ -68,7 +74,7 @@ A {
 /************************************************************/
 .tableHeaderCenter {
 	font-family: Verdana, Arial, sans-serif;
-	font-size: 10pt;
+	font-size: 12pt;
 	font-weight: bold;
 	text-align: center;
 	padding: 1px 3px 1px 3px;

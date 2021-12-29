@@ -4,16 +4,25 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alert;
 
+import java.awt.Color;
 import java.awt.Component;
+import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.JTable;
 import javax.swing.border.EmptyBorder;
@@ -30,376 +39,503 @@ import com.pega.gcs.fringecommon.guiutilities.FilterTableModelNavigation;
 import com.pega.gcs.fringecommon.guiutilities.MyColor;
 import com.pega.gcs.fringecommon.guiutilities.search.SearchModel;
 import com.pega.gcs.fringecommon.guiutilities.treetable.AbstractTreeTableNode;
+import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.model.AlertLogEntry;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
+import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 
 public abstract class AlertMessageReportModel extends FilterTableModel<AlertMessageReportEntry> {
 
-	private static final long serialVersionUID = -8895320811393447615L;
+    private static final long serialVersionUID = -8895320811393447615L;
 
-	private String alertMessageID;
+    private static final Log4j2Helper LOG = new Log4j2Helper(AlertMessageReportModel.class);
 
-	private long thresholdKPI;
+    private AlertMessage alertMessage;
 
-	private String kpiUnit;
+    private long thresholdKPI;
 
-	private AlertLogEntryModel alertLogEntryModel;
+    private AlertLogEntryModel alertLogEntryModel;
 
-	// for each alert, collate them based on the reason and list the alert keys.
-	private List<AlertMessageReportEntry> alertMessageReportEntryList;
+    private Locale locale;
 
-	private Map<String, AlertMessageReportEntry> alertMessageReportEntryMap;
+    private double minRangeValue;
 
-	private AlertBoxAndWhiskerReportColumn keyAlertMessageReportColumn;
+    private double maxRangeValue;
 
-	protected abstract List<AlertBoxAndWhiskerReportColumn> getAlertMessageReportColumnList();
+    // for each alert, collate them based on the reason and list the alert keys.
+    private List<AlertMessageReportEntry> alertMessageReportEntryList;
 
-	protected abstract String getAlertMessageReportEntryKey(AlertLogEntry alertLogEntry,
-			ArrayList<String> logEntryValueList);
+    private HashMap<AlertMessageReportEntry, Integer> keyIndexMap;
 
-	public AlertMessageReportModel(String alertMessageID, long thresholdKPI, String kpiUnit,
-			AlertLogEntryModel alertLogEntryModel) {
-		super(null);
+    private Map<String, AlertMessageReportEntry> alertMessageReportEntryMap;
 
-		this.alertMessageID = alertMessageID;
-		this.thresholdKPI = thresholdKPI;
-		this.kpiUnit = kpiUnit;
-		this.alertLogEntryModel = alertLogEntryModel;
-		// resetModel also sets up keyAlertMessageReportColumn
-		resetModel();
-	}
+    private AlertBoxAndWhiskerReportColumn keyAlertMessageReportColumn;
 
-	@Override
-	public int getColumnCount() {
-		return getAlertMessageReportColumnList().size();
-	}
+    private Pattern inClausePattern;
 
-	@Override
-	public Object getValueAt(int rowIndex, int columnIndex) {
+    protected abstract List<AlertBoxAndWhiskerReportColumn> getAlertMessageReportColumnList();
 
-		AlertMessageReportEntry alertMessageReportEntry = getAlertMessageReportEntry(rowIndex);
+    protected abstract String getAlertMessageReportEntryKey(ArrayList<String> logEntryValueList);
 
-		Object object = getColumnValue(alertMessageReportEntry, columnIndex);
+    public abstract String getAlertMessageReportEntryKey(String dataText);
 
-		return object;
-	}
+    public AlertMessageReportModel(AlertMessage alertMessage, long thresholdKPI, AlertLogEntryModel alertLogEntryModel,
+            Locale locale) {
 
-	@Override
-	protected int getModelColumnIndex(int column) {
-		return column;
-	}
+        super(null);
 
-	@Override
-	protected boolean search(AlertMessageReportEntry key, Object searchStrObj) {
-		return false;
-	}
+        this.alertMessage = alertMessage;
+        this.thresholdKPI = thresholdKPI;
+        this.alertLogEntryModel = alertLogEntryModel;
+        this.locale = locale;
+        this.minRangeValue = -1;
+        this.maxRangeValue = -1;
 
-	@Override
-	protected FilterTableModelNavigation<AlertMessageReportEntry> getNavigationRowIndex(
-			List<AlertMessageReportEntry> resultList, int currSelectedRowIndex, boolean forward, boolean first,
-			boolean last, boolean wrap) {
-		return null;
-	}
+        String inClauseStr = "(\\sIN\\s\\((.*?)\\))+";
+        inClausePattern = Pattern.compile(inClauseStr, Pattern.CASE_INSENSITIVE);
 
-	@Override
-	public List<AlertMessageReportEntry> getFtmEntryKeyList() {
+        // resetModel also sets up keyAlertMessageReportColumn
+        resetModel();
+    }
 
-		if (alertMessageReportEntryList == null) {
-			alertMessageReportEntryList = new ArrayList<AlertMessageReportEntry>();
-		}
+    @Override
+    public int getColumnCount() {
+        return getAlertMessageReportColumnList().size();
+    }
 
-		return alertMessageReportEntryList;
-	}
+    @Override
+    public Object getValueAt(int rowIndex, int columnIndex) {
 
-	@Override
-	public void resetModel() {
+        AlertMessageReportEntry alertMessageReportEntry = getAlertMessageReportEntry(rowIndex);
 
-		Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<AlertMessageReportEntry>>> columnFilterMap;
-		columnFilterMap = getColumnFilterMap();
-		columnFilterMap.clear();
+        return alertMessageReportEntry;
+    }
 
-		int columnIndex = 0;
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getColumnValue(java. lang.Object, int)
+     */
+    @Override
+    public String getColumnValue(Object valueAtObject, int columnIndex) {
 
-		for (AlertBoxAndWhiskerReportColumn alertBoxAndWhiskerReportColumn : getAlertMessageReportColumnList()) {
+        AlertMessageReportEntry alertMessageReportEntry = (AlertMessageReportEntry) valueAtObject;
 
-			FilterColumn filterColumn = new FilterColumn(columnIndex);
-			filterColumn.setColumnFilterEnabled(alertBoxAndWhiskerReportColumn.isFilterable());
-			columnFilterMap.put(filterColumn, null);
+        String columnValue = null;
 
-			columnIndex++;
+        if (alertMessageReportEntry != null) {
 
-			if (AlertBoxAndWhiskerReportColumn.KEY.equals(alertBoxAndWhiskerReportColumn.getColumnId())) {
-				keyAlertMessageReportColumn = alertBoxAndWhiskerReportColumn;
-			}
-		}
+            List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList = getAlertMessageReportColumnList();
+            AlertBoxAndWhiskerReportColumn alertBoxAndWhiskerReportColumn = alertMessageReportColumnList
+                    .get(columnIndex);
 
-	}
+            NumberFormat numberFormat = NumberFormat.getInstance(); // TODO
 
-	@Override
-	public int getIndexOfKey(AlertMessageReportEntry key) {
-		return 0;
-	}
+            Object columnObject = alertMessageReportEntry.getColumnValue(alertBoxAndWhiskerReportColumn, numberFormat);
 
-	@Override
-	public Object getEventForKey(AlertMessageReportEntry key) {
-		return null;
-	}
+            if (columnObject != null) {
+                columnValue = columnObject.toString();
+            }
+        }
 
-	@Override
-	public AbstractTreeTableNode getTreeNodeForKey(AlertMessageReportEntry key) {
-		return null;
-	}
+        return columnValue;
+    }
 
-	@Override
-	public void clearSearchResults(boolean clearResults) {
-	}
+    @Override
+    protected int getModelColumnIndex(int column) {
+        return column;
+    }
 
-	@Override
-	public SearchModel<AlertMessageReportEntry> getSearchModel() {
-		return null;
-	}
+    @Override
+    protected boolean search(AlertMessageReportEntry key, Object searchStrObj) {
+        return false;
+    }
+
+    @Override
+    protected FilterTableModelNavigation<AlertMessageReportEntry> getNavigationRowIndex(
+            List<AlertMessageReportEntry> resultList, int currSelectedRowIndex, boolean forward, boolean first,
+            boolean last, boolean wrap) {
+        return null;
+    }
+
+    @Override
+    public List<AlertMessageReportEntry> getFtmEntryKeyList() {
+
+        if (alertMessageReportEntryList == null) {
+            alertMessageReportEntryList = new ArrayList<AlertMessageReportEntry>();
+        }
 
-	@Override
-	public String toString() {
-		return getAlertMessageID() + "[Key Column: " + getKeyAlertMessageReportColumn().getDisplayName() + "]";
-	}
+        return alertMessageReportEntryList;
+    }
 
-	public String getAlertMessageID() {
-		return alertMessageID;
-	}
+    @Override
+    protected HashMap<AlertMessageReportEntry, Integer> getKeyIndexMap() {
 
-	protected AlertLogEntryModel getAlertLogEntryModel() {
-		return alertLogEntryModel;
-	}
+        if (keyIndexMap == null) {
+            keyIndexMap = new HashMap<>();
+        }
 
-	public AlertBoxAndWhiskerReportColumn getKeyAlertMessageReportColumn() {
-		return keyAlertMessageReportColumn;
-	}
+        return keyIndexMap;
+    }
 
-	private Map<String, AlertMessageReportEntry> getAlertMessageReportEntryMap() {
+    @Override
+    public void resetModel() {
 
-		if (alertMessageReportEntryMap == null) {
-			alertMessageReportEntryMap = new HashMap<String, AlertMessageReportEntry>();
-		}
+        Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<AlertMessageReportEntry>>> columnFilterMap;
+        columnFilterMap = getColumnFilterMap();
+        columnFilterMap.clear();
 
-		return alertMessageReportEntryMap;
-	}
+        List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList = getAlertMessageReportColumnList();
 
-	/**
-	 * @param alertLogEntry
-	 * @param logEntryValueList
-	 *            - uncompressed data
-	 */
-	public void processAlertLogEntry(AlertLogEntry alertLogEntry, ArrayList<String> logEntryValueList) {
+        for (int columnIndex = 0; columnIndex < alertMessageReportColumnList.size(); columnIndex++) {
 
-		String alertMessageReportEntryKey = getAlertMessageReportEntryKey(alertLogEntry, logEntryValueList);
+            AlertBoxAndWhiskerReportColumn alertBoxAndWhiskerReportColumn = alertMessageReportColumnList
+                    .get(columnIndex);
 
-		AlertMessageReportEntry alertMessageReportEntry = getAlertMessageReportEntry(alertMessageReportEntryKey);
+            // preventing unnecessary buildup of filter map
+            if (alertBoxAndWhiskerReportColumn.isFilterable()) {
+                FilterColumn filterColumn = new FilterColumn(columnIndex);
+                // deferring the setColumnFilterEnabled to updateColumnFilterMap if >1 data is available
+                // filterColumn.setColumnFilterEnabled(true);
+                columnFilterMap.put(filterColumn, null);
+            }
 
-		if (alertMessageReportEntry == null) {
-			alertMessageReportEntry = new AlertMessageReportEntry(thresholdKPI, kpiUnit, alertMessageReportEntryKey);
+            if (AlertBoxAndWhiskerReportColumn.KEY.equals(alertBoxAndWhiskerReportColumn.getColumnId())) {
+                keyAlertMessageReportColumn = alertBoxAndWhiskerReportColumn;
+            }
+        }
+    }
 
-			addAlertMessageReportEntry(alertMessageReportEntry);
-		}
+    @Override
+    public Object getEventForKey(AlertMessageReportEntry key) {
+        return null;
+    }
 
-		Integer alertLogEntryKey = alertLogEntry.getKey();
-		double alertLogEntryValue = alertLogEntry.getObservedKPI();
+    @Override
+    public AbstractTreeTableNode getTreeNodeForKey(AlertMessageReportEntry key) {
+        return null;
+    }
 
-		alertMessageReportEntry.addAlertLogEntryKey(alertLogEntryKey, alertLogEntryValue);
-	}
+    @Override
+    public void clearSearchResults(boolean clearResults) {
+    }
 
-	private String getColumnValue(AlertMessageReportEntry alertMessageReportEntry, int columnIndex) {
+    @Override
+    public SearchModel<AlertMessageReportEntry> getSearchModel() {
+        return null;
+    }
 
-		String columnValue = null;
+    @Override
+    public String toString() {
+        return getAlertMessageID() + "[Key Column: " + getKeyAlertMessageReportColumn().getDisplayName() + "]";
+    }
 
-		if (alertMessageReportEntry != null) {
+    public String getAlertMessageID() {
+        String alertMessageID = alertMessage.getMessageID();
+        return alertMessageID;
+    }
 
-			List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList = getAlertMessageReportColumnList();
-			AlertBoxAndWhiskerReportColumn alertBoxAndWhiskerReportColumn = alertMessageReportColumnList
-					.get(columnIndex);
+    protected AlertLogEntryModel getAlertLogEntryModel() {
+        return alertLogEntryModel;
+    }
 
-			NumberFormat numberFormat = alertLogEntryModel.getNumberFormat();
+    public AlertBoxAndWhiskerReportColumn getKeyAlertMessageReportColumn() {
+        return keyAlertMessageReportColumn;
+    }
 
-			Object columnObject = alertMessageReportEntry.getColumnValue(alertBoxAndWhiskerReportColumn, numberFormat);
+    private Map<String, AlertMessageReportEntry> getAlertMessageReportEntryMap() {
 
-			if (columnObject != null) {
-				columnValue = columnObject.toString();
-			}
-		}
+        if (alertMessageReportEntryMap == null) {
+            alertMessageReportEntryMap = new TreeMap<String, AlertMessageReportEntry>(String.CASE_INSENSITIVE_ORDER);
+        }
 
-		return columnValue;
-	}
+        return alertMessageReportEntryMap;
+    }
 
-	public AlertMessageReportEntry getAlertMessageReportEntry(int rowIndex) {
-		List<AlertMessageReportEntry> alertMessageReportEntryList = getFtmEntryKeyList();
-		AlertMessageReportEntry alertMessageReportEntry = alertMessageReportEntryList.get(rowIndex);
+    public double getMinRangeValue() {
+        return minRangeValue;
+    }
 
-		return alertMessageReportEntry;
-	}
+    public double getMaxRangeValue() {
+        return maxRangeValue;
+    }
 
-	protected AlertMessageReportEntry getAlertMessageReportEntry(String alertMessageReportDataKey) {
+    public void processAlertLogEntry(AlertLogEntry alertLogEntry, ArrayList<String> logEntryValueList) {
 
-		Map<String, AlertMessageReportEntry> alertMessageReportEntryMap = getAlertMessageReportEntryMap();
+        double observedKPI = alertLogEntry.getObservedKPI();
 
-		return alertMessageReportEntryMap.get(alertMessageReportDataKey);
+        minRangeValue = ((minRangeValue == -1) || (minRangeValue > observedKPI)) ? observedKPI : minRangeValue;
 
-	}
+        maxRangeValue = (maxRangeValue < observedKPI) ? observedKPI : maxRangeValue;
 
-	protected void addAlertMessageReportEntry(AlertMessageReportEntry alertMessageReportEntry) {
+        String alertMessageReportEntryKey = null;
 
-		List<AlertMessageReportEntry> alertMessageReportEntryList = getFtmEntryKeyList();
+        try {
 
-		alertMessageReportEntryList.add(alertMessageReportEntry);
+            alertMessageReportEntryKey = getAlertMessageReportEntryKey(logEntryValueList);
 
-		Map<String, AlertMessageReportEntry> alertMessageReportEntryMap = getAlertMessageReportEntryMap();
+        } catch (Exception e) {
+            LOG.error("Error getting AlertMessageReportEntryKey: " + alertLogEntry.getKey(), e);
 
-		String alertMessageReportDataKey = alertMessageReportEntry.getAlertMessageReportEntryKey();
+        }
 
-		alertMessageReportEntryMap.put(alertMessageReportDataKey, alertMessageReportEntry);
+        if (alertMessageReportEntryKey == null) {
+            alertMessageReportEntryKey = "<UNKNOWN>";
+        }
 
-		updateColumnFilterMap(alertMessageReportEntry);
+        AlertMessageReportEntry alertMessageReportEntry = getAlertMessageReportEntry(alertMessageReportEntryKey);
 
-		Collections.sort(alertMessageReportEntryList);
-	}
+        if (alertMessageReportEntry == null) {
 
-	// clearing the columnFilterMap will skip the below loop
-	private void updateColumnFilterMap(AlertMessageReportEntry alertMessageReportEntry) {
+            String chartColor = alertMessage.getChartColor();
+            Color color = null;
 
-		if (alertMessageReportEntry != null) {
+            if (chartColor == null) {
+                color = Color.BLACK;
+            } else {
+                color = MyColor.getColor(chartColor);
+            }
 
-			Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<AlertMessageReportEntry>>> columnFilterMap = getColumnFilterMap();
+            String kpiUnit = alertMessage.getDssValueUnit();
 
-			Iterator<FilterColumn> fcIterator = columnFilterMap.keySet().iterator();
+            alertMessageReportEntry = new AlertMessageReportEntry(thresholdKPI, kpiUnit, alertMessageReportEntryKey,
+                    color);
 
-			while (fcIterator.hasNext()) {
+            addAlertMessageReportEntry(alertMessageReportEntry);
+        }
 
-				FilterColumn filterColumn = fcIterator.next();
+        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
 
-				List<CheckBoxMenuItemPopupEntry<AlertMessageReportEntry>> columnFilterEntryList;
-				columnFilterEntryList = columnFilterMap.get(filterColumn);
+        DateFormat modelDateFormat = alertLogEntryModel.getModelDateFormat();
+        TimeZone timezone = modelDateFormat.getTimeZone();
 
-				if (columnFilterEntryList == null) {
-					columnFilterEntryList = new ArrayList<CheckBoxMenuItemPopupEntry<AlertMessageReportEntry>>();
-					columnFilterMap.put(filterColumn, columnFilterEntryList);
-				}
+        alertMessageReportEntry.addAlertLogEntry(alertLogEntry, timezone, locale);
 
-				int columnIndex = filterColumn.getIndex();
+        // Performance issue: moving out to postProcess to process on every parseFinal calls.
+        // sort to rearrange based on 5point summary
+        // List<AlertMessageReportEntry> alertMessageReportEntryList = getFtmEntryKeyList();
+        // Collections.sort(alertMessageReportEntryList);
+        //
+        // updateKeyIndexMap();
+    }
 
-				String columnValueStr = getColumnValue(alertMessageReportEntry, columnIndex);
+    public void postProcess() {
+        // sort to rearrange based on 5point summary
+        List<AlertMessageReportEntry> alertMessageReportEntryList = getFtmEntryKeyList();
+        Collections.sort(alertMessageReportEntryList);
 
-				if (columnValueStr == null) {
-					columnValueStr = FilterTableModel.NULL_STR;
-				} else if ("".equals(columnValueStr)) {
-					columnValueStr = FilterTableModel.EMPTY_STR;
-				}
+        updateKeyIndexMap();
+    }
 
-				CheckBoxMenuItemPopupEntry<AlertMessageReportEntry> columnFilterEntry;
+    private AlertMessageReportEntry getAlertMessageReportEntry(int rowIndex) {
+        List<AlertMessageReportEntry> alertMessageReportEntryList = getFtmEntryKeyList();
+        AlertMessageReportEntry alertMessageReportEntry = alertMessageReportEntryList.get(rowIndex);
 
-				CheckBoxMenuItemPopupEntry<AlertMessageReportEntry> searchKey;
-				searchKey = new CheckBoxMenuItemPopupEntry<AlertMessageReportEntry>(columnValueStr);
+        return alertMessageReportEntry;
+    }
 
-				int index = columnFilterEntryList.indexOf(searchKey);
+    private AlertMessageReportEntry getAlertMessageReportEntry(String alertMessageReportDataKey) {
 
-				if (index == -1) {
-					columnFilterEntry = new CheckBoxMenuItemPopupEntry<AlertMessageReportEntry>(columnValueStr);
-					columnFilterEntryList.add(columnFilterEntry);
-				} else {
-					columnFilterEntry = columnFilterEntryList.get(index);
-				}
+        Map<String, AlertMessageReportEntry> alertMessageReportEntryMap = getAlertMessageReportEntryMap();
 
-				columnFilterEntry.addRowIndex(alertMessageReportEntry);
+        return alertMessageReportEntryMap.get(alertMessageReportDataKey);
 
-			}
-		}
-	}
+    }
 
-	@Override
-	protected TableColumnModel getTableColumnModel() {
+    private void addAlertMessageReportEntry(AlertMessageReportEntry alertMessageReportEntry) {
 
-		TableColumnModel tableColumnModel = new DefaultTableColumnModel();
+        List<AlertMessageReportEntry> alertMessageReportEntryList = getFtmEntryKeyList();
 
-		TableColumn tableColumn = null;
-		int columnIndex = 0;
+        alertMessageReportEntryList.add(alertMessageReportEntry);
 
-		for (AlertBoxAndWhiskerReportColumn alertBoxAndWhiskerReportColumn : getAlertMessageReportColumnList()) {
+        Map<String, AlertMessageReportEntry> alertMessageReportEntryMap = getAlertMessageReportEntryMap();
 
-			TableCellRenderer tcr = null;
+        String alertMessageReportDataKey = alertMessageReportEntry.getAlertMessageReportEntryKey();
 
-			DefaultTableCellRenderer dtcr = getDefaultTableCellRenderer();
-			dtcr.setHorizontalAlignment(alertBoxAndWhiskerReportColumn.getHorizontalAlignment());
-			tcr = dtcr;
+        alertMessageReportEntryMap.put(alertMessageReportDataKey, alertMessageReportEntry);
 
-			int prefColumnWidth = alertBoxAndWhiskerReportColumn.getPrefColumnWidth();
+        updateColumnFilterMap(alertMessageReportEntry);
 
-			tableColumn = new TableColumn(columnIndex++);
-			tableColumn.setHeaderValue(alertBoxAndWhiskerReportColumn.getDisplayName());
-			tableColumn.setCellRenderer(tcr);
-			tableColumn.setPreferredWidth(prefColumnWidth);
-			tableColumn.setWidth(prefColumnWidth);
+        // sorting is done after data is added to AlertMessageReportEntry item, in processAlertLogEntry().
+        // Collections.sort(alertMessageReportEntryList);
+    }
 
-			tableColumnModel.addColumn(tableColumn);
-		}
+    // clearing the columnFilterMap will skip the below loop
+    private void updateColumnFilterMap(AlertMessageReportEntry alertMessageReportEntry) {
 
-		return tableColumnModel;
-	}
+        if (alertMessageReportEntry != null) {
 
-	private DefaultTableCellRenderer getDefaultTableCellRenderer() {
+            Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<AlertMessageReportEntry>>> columnFilterMap = getColumnFilterMap();
 
-		DefaultTableCellRenderer dtcr = new DefaultTableCellRenderer() {
+            Iterator<FilterColumn> fcIterator = columnFilterMap.keySet().iterator();
 
-			private static final long serialVersionUID = 1504347306097747771L;
+            while (fcIterator.hasNext()) {
 
-			/*
-			 * (non-Javadoc)
-			 * 
-			 * @see javax.swing.table.DefaultTableCellRenderer#
-			 * getTableCellRendererComponent(javax.swing.JTable,
-			 * java.lang.Object, boolean, boolean, int, int)
-			 */
-			@Override
-			public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-					boolean hasFocus, int row, int column) {
+                FilterColumn filterColumn = fcIterator.next();
 
-				super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                List<CheckBoxMenuItemPopupEntry<AlertMessageReportEntry>> columnFilterEntryList;
+                columnFilterEntryList = columnFilterMap.get(filterColumn);
 
-				setBorder(new EmptyBorder(1, 8, 1, 10));
+                if (columnFilterEntryList == null) {
+                    columnFilterEntryList = new ArrayList<CheckBoxMenuItemPopupEntry<AlertMessageReportEntry>>();
+                    columnFilterMap.put(filterColumn, columnFilterEntryList);
+                }
 
-				if (!isSelected) {
-					setBackground(MyColor.LIGHTEST_LIGHT_GRAY);
-				}
-				return this;
-			}
+                int columnIndex = filterColumn.getIndex();
 
-		};
+                String columnValueStr = getColumnValue(alertMessageReportEntry, columnIndex);
 
-		return dtcr;
-	}
+                if (columnValueStr == null) {
+                    columnValueStr = FilterTableModel.NULL_STR;
+                } else if ("".equals(columnValueStr)) {
+                    columnValueStr = FilterTableModel.EMPTY_STR;
+                }
 
-	protected Map<String, String> getAlertLogEntryDataValueMap(String dataValueString) {
+                CheckBoxMenuItemPopupEntry<AlertMessageReportEntry> columnFilterEntry;
 
-		Map<String, String> alertLogEntryDataValueMap = new HashMap<>();
+                CheckBoxMenuItemPopupEntry<AlertMessageReportEntry> searchKey;
+                searchKey = new CheckBoxMenuItemPopupEntry<AlertMessageReportEntry>(columnValueStr);
 
-		if ((dataValueString != null) && (!"".equals(dataValueString)) && (!"NA".equals(dataValueString))) {
+                int index = columnFilterEntryList.indexOf(searchKey);
 
-			String[] dataArray = dataValueString.split(";");
+                if (index == -1) {
+                    columnFilterEntry = new CheckBoxMenuItemPopupEntry<AlertMessageReportEntry>(columnValueStr);
+                    columnFilterEntryList.add(columnFilterEntry);
+                } else {
+                    columnFilterEntry = columnFilterEntryList.get(index);
+                }
 
-			for (String data : dataArray) {
+                columnFilterEntry.addRowIndex(alertMessageReportEntry);
 
-				String[] valueArray = data.split("=", 2);
+                if (columnFilterEntryList.size() > 1) {
+                    filterColumn.setColumnFilterEnabled(true);
+                }
 
-				String name = valueArray[0].trim();
-				String value = null;
+            }
+        }
+    }
 
-				if (valueArray.length > 1) {
-					value = valueArray[1];
-				}
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getTableColumnModel( )
+     */
+    @Override
+    public TableColumnModel getTableColumnModel() {
 
-				alertLogEntryDataValueMap.put(name, value);
-			}
+        TableColumnModel tableColumnModel = new DefaultTableColumnModel();
 
-		}
+        TableColumn tableColumn = null;
+        int columnIndex = 0;
 
-		return alertLogEntryDataValueMap;
+        for (AlertBoxAndWhiskerReportColumn alertBoxAndWhiskerReportColumn : getAlertMessageReportColumnList()) {
 
-	}
+            TableCellRenderer tcr = null;
+
+            DefaultTableCellRenderer dtcr = getDefaultTableCellRenderer();
+            dtcr.setHorizontalAlignment(alertBoxAndWhiskerReportColumn.getHorizontalAlignment());
+            tcr = dtcr;
+
+            int prefColumnWidth = alertBoxAndWhiskerReportColumn.getPrefColumnWidth();
+
+            tableColumn = new TableColumn(columnIndex++);
+            tableColumn.setHeaderValue(alertBoxAndWhiskerReportColumn.getDisplayName());
+            tableColumn.setCellRenderer(tcr);
+            tableColumn.setPreferredWidth(prefColumnWidth);
+            tableColumn.setWidth(prefColumnWidth);
+
+            tableColumnModel.addColumn(tableColumn);
+        }
+
+        return tableColumnModel;
+    }
+
+    private DefaultTableCellRenderer getDefaultTableCellRenderer() {
+
+        DefaultTableCellRenderer dtcr = new DefaultTableCellRenderer() {
+
+            private static final long serialVersionUID = 1504347306097747771L;
+
+            /*
+             * (non-Javadoc)
+             * 
+             * @see javax.swing.table.DefaultTableCellRenderer# getTableCellRendererComponent(javax.swing.JTable, java.lang.Object, boolean,
+             * boolean, int, int)
+             */
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                    boolean hasFocus, int row, int column) {
+
+                AlertMessageReportEntry alertMessageReportEntry = (AlertMessageReportEntry) value;
+
+                if (alertMessageReportEntry != null) {
+                    AlertMessageReportModel alertMessageReportModel = (AlertMessageReportModel) table.getModel();
+
+                    String text = alertMessageReportModel.getColumnValue(alertMessageReportEntry, column);
+
+                    super.getTableCellRendererComponent(table, text, isSelected, hasFocus, row, column);
+
+                    if (!isSelected) {
+                        setBackground(MyColor.LIGHTEST_LIGHT_GRAY);
+                    }
+
+                    setBorder(new EmptyBorder(1, 8, 1, 10));
+
+                } else {
+                    setBackground(Color.WHITE);
+                    super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                }
+
+                return this;
+            }
+        };
+
+        return dtcr;
+    }
+
+    protected Map<String, String> getAlertLogEntryDataValueMap(String dataValueString) {
+
+        Map<String, String> alertLogEntryDataValueMap = new HashMap<>();
+
+        if ((dataValueString != null) && (!"".equals(dataValueString)) && (!"NA".equals(dataValueString))) {
+
+            String[] dataArray = dataValueString.split(";", 0);
+
+            for (String data : dataArray) {
+
+                String[] valueArray = data.split("=", 2);
+
+                String name = valueArray[0].trim();
+                String value = null;
+
+                if (valueArray.length > 1) {
+                    value = valueArray[1];
+                }
+
+                alertLogEntryDataValueMap.put(name, value);
+            }
+
+        }
+
+        return alertLogEntryDataValueMap;
+
+    }
+
+    protected String getInClauseGeneralisedKey(String alertMessageReportEntryKey) {
+
+        TreeSet<String> capturedGroupSet = new TreeSet<>();
+
+        Matcher inClauseMatcher = inClausePattern.matcher(alertMessageReportEntryKey);
+
+        while (inClauseMatcher.find()) {
+            String matchedSubGroup = Pattern.quote(inClauseMatcher.group(2));
+            capturedGroupSet.add(matchedSubGroup);
+        }
+
+        for (String capturedGroup : capturedGroupSet) {
+            alertMessageReportEntryKey = alertMessageReportEntryKey.replaceAll(capturedGroup, "...");
+        }
+
+        return alertMessageReportEntryKey;
+    }
 }

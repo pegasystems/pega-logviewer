@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.datatransfer.StringSelection;
@@ -16,69 +17,63 @@ import javax.swing.JTable;
 import javax.swing.TransferHandler;
 
 import com.pega.gcs.fringecommon.guiutilities.FilterTable;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 
-public class LogTable extends FilterTable<Integer> {
+public class LogTable extends FilterTable<LogEntryKey> {
 
-	private static final long serialVersionUID = -3752172566327398734L;
+    private static final long serialVersionUID = -3752172566327398734L;
 
-	public LogTable(LogTableModel logTableModel) {
+    public LogTable(LogTableModel logTableModel) {
 
-		super(logTableModel);
+        super(logTableModel);
 
-		setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-		setTransferHandler(new TransferHandler() {
+        setTransferHandler(new TransferHandler() {
 
-			private static final long serialVersionUID = 2454653839935814799L;
+            private static final long serialVersionUID = 2454653839935814799L;
 
-			@Override
-			protected Transferable createTransferable(JComponent c) {
+            @Override
+            protected Transferable createTransferable(JComponent component) {
 
-				int[] selectedRows = getSelectedRows();
+                int[] selectedRows = getSelectedRows();
 
-				StringBuffer dataSB = new StringBuffer();
+                StringBuilder dataSB = new StringBuilder();
 
-				if (selectedRows != null) {
+                if (selectedRows != null) {
 
-					LogTableModel logTableModel = (LogTableModel) getModel();
+                    LogTableModel logTableModel = (LogTableModel) getModel();
 
-					String selectedRowData = logTableModel.getSelectedRowsData(selectedRows);
-					dataSB.append(selectedRowData);
-				}
+                    String selectedRowData = logTableModel.getSelectedRowsData(selectedRows);
+                    dataSB.append(selectedRowData);
+                }
 
-				return new StringSelection(dataSB.toString());
-			}
+                return new StringSelection(dataSB.toString());
+            }
 
-			@Override
-			public int getSourceActions(JComponent c) {
-				return TransferHandler.COPY;
-			}
+            @Override
+            public int getSourceActions(JComponent component) {
+                return TransferHandler.COPY;
+            }
 
-		});
-	}
+        });
+    }
 
-	public void updateLogTableColumnModel() {
+    public void logTableScrollToKey(LogEntryKey logEntryKey) {
 
-		LogTableModel logTableModel = (LogTableModel) getModel();
+        LogTableModel ltm = (LogTableModel) getModel();
 
-		setColumnModel(logTableModel.getTableColumnModel());
-	}
+        List<LogEntryKey> ltmKeyList = ltm.getFtmEntryKeyList();
 
-	public void logTableScrollToIndex(Integer logEntryIndex) {
+        int rowNumber = Collections.binarySearch(ltmKeyList, logEntryKey);
 
-		LogTableModel ltm = (LogTableModel) getModel();
+        if (rowNumber < 0) {
+            rowNumber = (rowNumber * -1) - 1;
+        }
 
-		List<Integer> ltmIndexList = ltm.getFtmEntryKeyList();
-
-		int rowNumber = Collections.binarySearch(ltmIndexList, logEntryIndex);
-
-		if (rowNumber < 0) {
-			rowNumber = (rowNumber * -1) - 1;
-		}
-
-		// changeSelection(rowNumber, 0, false, false);
-		setRowSelectionInterval(rowNumber, rowNumber);
-		scrollRowToVisible(rowNumber);
-	}
+        // changeSelection(rowNumber, 0, false, false);
+        setRowSelectionInterval(rowNumber, rowNumber);
+        scrollRowToVisible(rowNumber);
+    }
 
 }

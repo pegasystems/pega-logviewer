@@ -1,0 +1,47 @@
+/*
+ * Allows for publishing artifacts either to Bintray or to Artifactory. Bintray is
+ * the default choice but this can be configured within <root-project>/gradle.properties.
+ */
+apply plugin: 'maven-publish'
+
+publishing {
+    publications {
+        mavenJava (MavenPublication) {
+            from components.java             
+            artifact sourcesJar
+            artifact docsJar
+
+            pom.withXml {
+                def root = asNode()
+                root.appendNode('name', 'Pega LogViewer')
+                root.appendNode('description', 'pega-logviewer.')
+                root.appendNode('url', 'https://github.com/pegasystems/fringeutils-common')
+
+                def scm = root.appendNode('scm')
+                scm.appendNode('url', 'https://github.com/pegasystems/pega-logviewer')
+                scm.appendNode('connection', 'scm:https://developer@github.com/pegasystems/pega-logviewer.git')
+                scm.appendNode('developerConnection', 'scm:git://github.com/pegasystems/pega-logviewer.git')
+
+                def license = root.appendNode('licenses').appendNode('license')
+                license.appendNode('name', 'The Apache Software License, Version 2.0')
+                license.appendNode('url', 'http://www.apache.org/licenses/LICENSE-2.0.txt')
+                license.appendNode('distribution', 'repo')
+
+                def developers = root.appendNode('developers')
+                def dev1 = developers.appendNode('developer')
+                dev1.appendNode('id', 'vargm')
+                dev1.appendNode('name', 'Manu Varghese')
+        }
+        }
+    }
+}
+
+/*
+ * Check environment for property and if that fails 
+ * ask gradle to find the property somewhere within
+ * the project hierarchy.
+ */
+String resolveProperty(String propKey) {
+    String propValue = System.getenv()[propKey]
+    return propValue ?: findProperty(propKey)
+}

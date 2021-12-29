@@ -4,13 +4,16 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alertpal;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.nio.charset.Charset;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeSet;
 
@@ -19,12 +22,12 @@ import javax.swing.JTable;
 import javax.swing.SwingConstants;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
-import javax.swing.table.AbstractTableModel;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableColumnModel;
 import javax.swing.table.TableColumn;
 import javax.swing.table.TableColumnModel;
 
+import com.pega.gcs.fringecommon.guiutilities.CustomJTableModel;
 import com.pega.gcs.fringecommon.guiutilities.MyColor;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.LogTableModel;
@@ -33,265 +36,271 @@ import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.PALStatisticName;
 
-public class AlertPALTableModel extends AbstractTableModel {
+public class AlertPALTableModel extends CustomJTableModel {
 
-	private static final long serialVersionUID = -5969212700097525759L;
+    private static final long serialVersionUID = -5969212700097525759L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(AlertPALTableModel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(AlertPALTableModel.class);
 
-	private static final int alertTableColumnCount = 7;
+    private static final int alertTableColumnCount = 7;
 
-	private LogTableModel logTableModel;
+    private LogTableModel logTableModel;
 
-	// stores table column index and name as map
-	private Map<Integer, String> tableModelColumnIndexMap;
+    // stores table column index and name as map
+    private Map<Integer, String> tableModelColumnIndexMap;
 
-	// stores column name and model value index
-	private Map<String, Integer> logEntryColumnNameMap;
+    // stores column name and model value index
+    private Map<String, Integer> logEntryColumnNameMap;
 
-	private TableColumnModel tableColumnModel;
+    private TableColumnModel tableColumnModel;
 
-	public AlertPALTableModel(LogTableModel logTableModel) {
-		super();
-		this.logTableModel = logTableModel;
+    public AlertPALTableModel(LogTableModel logTableModel) {
+        super();
+        this.logTableModel = logTableModel;
 
-		initialise();
-	}
+        initialise();
+    }
 
-	@Override
-	public int getRowCount() {
-		return logTableModel.getRowCount();
-	}
+    @Override
+    public int getRowCount() {
+        return logTableModel.getRowCount();
+    }
 
-	@Override
-	public int getColumnCount() {
-		return tableModelColumnIndexMap.keySet().size();
-	}
+    @Override
+    public int getColumnCount() {
+        return tableModelColumnIndexMap.keySet().size();
+    }
 
-	@Override
-	public String getColumnName(int column) {
-		return tableModelColumnIndexMap.get(column);
-	}
+    @Override
+    public String getColumnName(int column) {
+        return tableModelColumnIndexMap.get(column);
+    }
 
-	// return either String, Long or Double types
-	@Override
-	public Object getValueAt(int rowIndex, int columnIndex) {
+    // return either String, Long or Double types
+    @Override
+    public Object getValueAt(int rowIndex, int columnIndex) {
 
-		AlertLogEntry alertLogEntry = null;
+        AlertLogEntry alertLogEntry = null;
 
-		alertLogEntry = (AlertLogEntry) logTableModel.getValueAt(rowIndex, columnIndex);
+        alertLogEntry = (AlertLogEntry) logTableModel.getValueAt(rowIndex, columnIndex);
 
-		return alertLogEntry;
-	}
+        return alertLogEntry;
+    }
 
-	public String getColumnValueFromModel(AlertLogEntry alertLogEntry, int columnIndex) {
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getTableColumnModel( )
+     */
+    @Override
+    public TableColumnModel getTableColumnModel() {
+        return tableColumnModel;
+    }
 
-		String columnValue = null;
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getColumnValue(java. lang.Object, int)
+     */
+    @Override
+    public String getColumnValue(Object valueAtObject, int columnIndex) {
 
-		String columnName = tableModelColumnIndexMap.get(columnIndex);
+        AlertLogEntry alertLogEntry = (AlertLogEntry) valueAtObject;
 
-		int logEntryColumnIndex = logEntryColumnNameMap.get(columnName);
+        String columnValue = null;
 
-		AlertLogEntryModel alem = (AlertLogEntryModel) logTableModel.getLogEntryModel();
+        String columnName = tableModelColumnIndexMap.get(columnIndex);
 
-		if (columnIndex < alertTableColumnCount) {
+        int logEntryColumnIndex = logEntryColumnNameMap.get(columnName);
 
-			columnValue = alem.getFormattedLogEntryValue(alertLogEntry, logEntryColumnIndex);
-		} else {
+        AlertLogEntryModel alem = (AlertLogEntryModel) logTableModel.getLogEntryModel();
 
-			Number palDataValue = alertLogEntry.getPALDataValue(logEntryColumnIndex);
+        if (columnIndex < alertTableColumnCount) {
 
-			if (palDataValue != null) {
-				NumberFormat nf = alem.getNumberFormat();
+            columnValue = alem.getFormattedLogEntryValue(alertLogEntry, logEntryColumnIndex);
+        } else {
 
-				columnValue = nf.format(palDataValue);
+            Number palDataValue = alertLogEntry.getPALDataValue(logEntryColumnIndex);
 
-				// if (palDataValue instanceof Number) {
-				//
-				// NumberFormat nf = alem.getNumberFormat();
-				//
-				// columnValue = nf.format(palDataValue);
-				// } else {
-				// columnValue = palDataValue.toString();
-				// }
-			}
-		}
+            if (palDataValue != null) {
 
-		return columnValue;
-	}
+                Locale locale = logTableModel.getLocale();
 
-	public TableColumnModel getTableColumnModel() {
-		return tableColumnModel;
-	}
+                NumberFormat nf = NumberFormat.getInstance(locale);
 
-	private void initialise() {
+                columnValue = nf.format(palDataValue);
+            }
+        }
 
-		logTableModel.addTableModelListener(new TableModelListener() {
+        return columnValue;
+    }
 
-			@Override
-			public void tableChanged(TableModelEvent e) {
-				fireTableDataChanged();
-			}
-		});
+    private void initialise() {
 
-		tableModelColumnIndexMap = new HashMap<Integer, String>();
-		logEntryColumnNameMap = new HashMap<String, Integer>();
-		tableColumnModel = new DefaultTableColumnModel();
+        logTableModel.addTableModelListener(new TableModelListener() {
 
-		AlertLogEntryModel alem = (AlertLogEntryModel) logTableModel.getLogEntryModel();
+            @Override
+            public void tableChanged(TableModelEvent tableModelEvent) {
+                fireTableDataChanged();
+            }
+        });
 
-		ArrayList<String> logEntryColumnList = alem.getLogEntryColumnList();
+        tableModelColumnIndexMap = new HashMap<Integer, String>();
+        logEntryColumnNameMap = new HashMap<String, Integer>();
+        tableColumnModel = new DefaultTableColumnModel();
 
-		int modelColumnIndex = 0;
-		String columnName = null;
+        AlertLogEntryModel alem = (AlertLogEntryModel) logTableModel.getLogEntryModel();
 
-		// add only following into the PAL column list
-		// LINE
-		columnName = LogEntryColumn.LINE.getColumnId();
-		updateColumn(modelColumnIndex, columnName, logEntryColumnList);
-		modelColumnIndex++;
+        ArrayList<String> logEntryColumnList = alem.getLogEntryColumnList();
 
-		// TIMESTAMP
-		columnName = LogEntryColumn.TIMESTAMP.getColumnId();
-		updateColumn(modelColumnIndex, columnName, logEntryColumnList);
-		modelColumnIndex++;
+        int modelColumnIndex = 0;
+        String columnName = null;
 
-		// MESSAGEID
-		columnName = LogEntryColumn.MESSAGEID.getColumnId();
-		updateColumn(modelColumnIndex, columnName, logEntryColumnList);
-		modelColumnIndex++;
+        // add only following into the PAL column list
+        // LINE
+        columnName = LogEntryColumn.LINE.getColumnId();
+        updateColumn(modelColumnIndex, columnName, logEntryColumnList);
+        modelColumnIndex++;
 
-		// REQUESTORID
-		columnName = LogEntryColumn.REQUESTORID.getColumnId();
-		updateColumn(modelColumnIndex, columnName, logEntryColumnList);
-		modelColumnIndex++;
+        // TIMESTAMP
+        columnName = LogEntryColumn.TIMESTAMP.getColumnId();
+        updateColumn(modelColumnIndex, columnName, logEntryColumnList);
+        modelColumnIndex++;
 
-		// USERID
-		columnName = LogEntryColumn.USERID.getColumnId();
-		updateColumn(modelColumnIndex, columnName, logEntryColumnList);
-		modelColumnIndex++;
+        // MESSAGEID
+        columnName = LogEntryColumn.MESSAGEID.getColumnId();
+        updateColumn(modelColumnIndex, columnName, logEntryColumnList);
+        modelColumnIndex++;
 
-		// INTERACTIONNUMBER
-		columnName = LogEntryColumn.INTERACTIONNUMBER.getColumnId();
-		updateColumn(modelColumnIndex, columnName, logEntryColumnList);
-		modelColumnIndex++;
+        // REQUESTORID
+        columnName = LogEntryColumn.REQUESTORID.getColumnId();
+        updateColumn(modelColumnIndex, columnName, logEntryColumnList);
+        modelColumnIndex++;
 
-		// FIRSTACTIVITY
-		columnName = LogEntryColumn.FIRSTACTIVITY.getColumnId();
-		updateColumn(modelColumnIndex, columnName, logEntryColumnList);
-		modelColumnIndex++;
+        // USERID
+        columnName = LogEntryColumn.USERID.getColumnId();
+        updateColumn(modelColumnIndex, columnName, logEntryColumnList);
+        modelColumnIndex++;
 
-		TreeSet<PALStatisticName> palStatisticColumnSet = alem.getPalStatisticColumnSet();
+        // INTERACTIONNUMBER
+        columnName = LogEntryColumn.INTERACTIONNUMBER.getColumnId();
+        updateColumn(modelColumnIndex, columnName, logEntryColumnList);
+        modelColumnIndex++;
 
-		for (PALStatisticName palStatisticName : palStatisticColumnSet) {
-			columnName = palStatisticName.name();
-			updateColumn(modelColumnIndex, columnName, logEntryColumnList);
-			modelColumnIndex++;
+        // FIRSTACTIVITY
+        columnName = LogEntryColumn.FIRSTACTIVITY.getColumnId();
+        updateColumn(modelColumnIndex, columnName, logEntryColumnList);
+        modelColumnIndex++;
 
-		}
+        TreeSet<PALStatisticName> palStatisticColumnSet = alem.getPalStatisticColumnSet();
 
-	}
+        for (PALStatisticName palStatisticName : palStatisticColumnSet) {
+            columnName = palStatisticName.name();
+            updateColumn(modelColumnIndex, columnName, logEntryColumnList);
+            modelColumnIndex++;
 
-	private void updateColumn(int modelColumnIndex, String columnName, ArrayList<String> logEntryColumnList) {
+        }
 
-		int logEntryColumnIndex = 0;
-		TableColumn tableColumn = null;
+    }
 
-		int horizontalAlignment = SwingConstants.RIGHT;
-		int colWidth = 70;
+    private void updateColumn(int modelColumnIndex, String columnName, ArrayList<String> logEntryColumnList) {
 
-		tableModelColumnIndexMap.put(modelColumnIndex, columnName);
+        int logEntryColumnIndex = 0;
+        TableColumn tableColumn = null;
 
-		tableColumn = new TableColumn(modelColumnIndex);
-		tableColumn.setHeaderValue(columnName);
+        int horizontalAlignment = SwingConstants.RIGHT;
+        int colWidth = 70;
 
-		if (modelColumnIndex < alertTableColumnCount) {
+        tableModelColumnIndexMap.put(modelColumnIndex, columnName);
 
-			try {
+        tableColumn = new TableColumn(modelColumnIndex);
+        tableColumn.setHeaderValue(columnName);
 
-				LogEntryColumn logEntryColumn = LogEntryColumn.getTableColumnById(columnName);
+        if (modelColumnIndex < alertTableColumnCount) {
 
-				logEntryColumnIndex = logEntryColumnList.indexOf(columnName);
-				logEntryColumnNameMap.put(columnName, logEntryColumnIndex);
+            try {
 
-				horizontalAlignment = logEntryColumn.getHorizontalAlignment();
-				colWidth = logEntryColumn.getPrefColumnWidth();
-			} catch (IllegalArgumentException iae) {
-				LOG.error("Error getting LogEntryColumn: " + columnName, iae);
-			}
-		} else {
+                LogEntryColumn logEntryColumn = LogEntryColumn.getTableColumnById(columnName);
 
-			try {
+                logEntryColumnIndex = logEntryColumnList.indexOf(columnName);
+                logEntryColumnNameMap.put(columnName, logEntryColumnIndex);
 
-				PALStatisticName palStatisticName = PALStatisticName.valueOf(columnName);
+                horizontalAlignment = logEntryColumn.getHorizontalAlignment();
+                colWidth = logEntryColumn.getPrefColumnWidth();
+            } catch (IllegalArgumentException iae) {
+                LOG.error("Error getting LogEntryColumn: " + columnName, iae);
+            }
+        } else {
 
-				logEntryColumnIndex = palStatisticName.ordinal();
-				logEntryColumnNameMap.put(columnName, logEntryColumnIndex);
+            try {
 
-				horizontalAlignment = palStatisticName.getHorizontalAlignment();
-				colWidth = palStatisticName.getPrefColumnWidth();
-			} catch (IllegalArgumentException iae) {
-				LOG.error("Error getting PALStatisticName: " + columnName, iae);
-			}
-		}
+                PALStatisticName palStatisticName = PALStatisticName.valueOf(columnName);
 
-		DefaultTableCellRenderer dtcr = new DefaultTableCellRenderer() {
+                logEntryColumnIndex = palStatisticName.ordinal();
+                logEntryColumnNameMap.put(columnName, logEntryColumnIndex);
 
-			private static final long serialVersionUID = 4405105756857852010L;
+                horizontalAlignment = palStatisticName.getHorizontalAlignment();
+                colWidth = palStatisticName.getPrefColumnWidth();
+            } catch (IllegalArgumentException iae) {
+                LOG.error("Error getting PALStatisticName: " + columnName, iae);
+            }
+        }
 
-			@Override
-			public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-					boolean hasFocus, int row, int column) {
+        DefaultTableCellRenderer dtcr = new DefaultTableCellRenderer() {
 
-				AlertLogEntry ale = (AlertLogEntry) value;
+            private static final long serialVersionUID = 4405105756857852010L;
 
-				if (ale != null) {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                    boolean hasFocus, int row, int column) {
 
-					AlertPALTableModel aptm = (AlertPALTableModel) table.getModel();
+                AlertLogEntry ale = (AlertLogEntry) value;
 
-					String columnValue = aptm.getColumnValueFromModel(ale, column);
+                if (ale != null) {
 
-					super.getTableCellRendererComponent(table, columnValue, isSelected, hasFocus, row, column);
+                    String columnValue = getColumnValue(ale, column);
 
-					if (!table.isRowSelected(row)) {
+                    super.getTableCellRendererComponent(table, columnValue, isSelected, hasFocus, row, column);
 
-						Color color;
+                    if (!table.isRowSelected(row)) {
 
-						boolean searchFound = ale.isSearchFound();
+                        Color color;
 
-						if (searchFound) {
-							color = MyColor.LIGHT_YELLOW;
-						} else {
-							color = ale.getBackgroundColor();
-						}
+                        boolean searchFound = ale.isSearchFound();
 
-						setBackground(color);
-					}
+                        if (searchFound) {
+                            color = MyColor.LIGHT_YELLOW;
+                        } else {
+                            color = ale.getBackgroundColor();
+                        }
 
-					setBorder(BorderFactory.createEmptyBorder(0, 3, 0, 5));
+                        setBackground(color);
+                    }
 
-				} else {
-					setBackground(Color.WHITE);
+                    setBorder(BorderFactory.createEmptyBorder(0, 3, 0, 5));
 
-					super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-				}
+                } else {
+                    setBackground(Color.WHITE);
 
-				return this;
-			}
+                    super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                }
 
-		};
+                return this;
+            }
 
-		dtcr.setHorizontalAlignment(horizontalAlignment);
+        };
 
-		tableColumn.setCellRenderer(dtcr);
+        dtcr.setHorizontalAlignment(horizontalAlignment);
 
-		tableColumn.setPreferredWidth(colWidth);
-		tableColumn.setWidth(colWidth);
+        tableColumn.setCellRenderer(dtcr);
 
-		tableColumnModel.addColumn(tableColumn);
-	}
+        tableColumn.setPreferredWidth(colWidth);
+        tableColumn.setWidth(colWidth);
 
-	public String getCharset() {
-		return logTableModel.getCharset();
-	}
+        tableColumnModel.addColumn(tableColumn);
+    }
+
+    public Charset getCharset() {
+        return logTableModel.getCharset();
+    }
 }

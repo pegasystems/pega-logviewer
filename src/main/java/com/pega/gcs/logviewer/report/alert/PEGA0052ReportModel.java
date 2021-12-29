@@ -4,139 +4,134 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alert;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.SwingConstants;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.logviewer.model.AlertLogEntry;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
+import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 
 public class PEGA0052ReportModel extends AlertMessageReportModel {
 
-	private static final long serialVersionUID = -8889727175209305065L;
+    private static final long serialVersionUID = -8889727175209305065L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0052ReportModel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0052ReportModel.class);
 
-	private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
+    private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
 
-	private List<Pattern> patternList;
+    private List<Pattern> patternList;
 
-	public PEGA0052ReportModel(long thresholdKPI, String kpiUnit, AlertLogEntryModel alertLogEntryModel) {
+    public PEGA0052ReportModel(AlertMessage alertMessage, long thresholdKPI, AlertLogEntryModel alertLogEntryModel,
+            Locale locale) {
 
-		super("PEGA0052", thresholdKPI, kpiUnit, alertLogEntryModel);
+        super(alertMessage, thresholdKPI, alertLogEntryModel, locale);
 
-		patternList = new ArrayList<>();
+        patternList = new ArrayList<>();
 
-		String regex;
-		Pattern pattern;
+        String regex;
+        Pattern pattern;
 
-		// pre 7.2.2
-		regex = "for the page(.*?)to load asynchronously";
-		pattern = Pattern.compile(regex);
-		patternList.add(pattern);
+        // pre 7.2.2
+        regex = "for the page(.*?)to load asynchronously";
+        pattern = Pattern.compile(regex);
+        patternList.add(pattern);
 
-		// 7.2.2 - ADPInputData
-		regex = "for data page(.*?)having pzInsKey";
-		pattern = Pattern.compile(regex);
-		patternList.add(pattern);
+        // 7.2.2 - ADPInputData
+        regex = "for data page(.*?)having pzInsKey";
+        pattern = Pattern.compile(regex);
+        patternList.add(pattern);
 
-		// 7.2.2 - AsyncActivityServiceInputData
-		regex = "for activity(.*?)in class";
-		pattern = Pattern.compile(regex);
-		patternList.add(pattern);
+        // 7.2.2 - AsyncActivityServiceInputData
+        regex = "for activity(.*?)in class";
+        pattern = Pattern.compile(regex);
+        patternList.add(pattern);
 
-		// 7.2.2 - AsyncChannelInputData
-		regex = "for channel(.*?)in user thread";
-		pattern = Pattern.compile(regex);
-		patternList.add(pattern);
-	}
+        // 7.2.2 - AsyncChannelInputData
+        regex = "for channel(.*?)in user thread";
+        pattern = Pattern.compile(regex);
+        patternList.add(pattern);
+    }
 
-	@Override
-	protected List<AlertBoxAndWhiskerReportColumn> getAlertMessageReportColumnList() {
+    @Override
+    protected List<AlertBoxAndWhiskerReportColumn> getAlertMessageReportColumnList() {
 
-		if (alertMessageReportColumnList == null) {
-			alertMessageReportColumnList = new ArrayList<AlertBoxAndWhiskerReportColumn>();
+        if (alertMessageReportColumnList == null) {
+            alertMessageReportColumnList = new ArrayList<AlertBoxAndWhiskerReportColumn>();
 
-			String displayName;
-			int prefColWidth;
-			int hAlignment;
-			boolean filterable;
-			AlertBoxAndWhiskerReportColumn amReportColumn = null;
+            String displayName;
+            int prefColWidth;
+            int horizontalAlignment;
+            boolean filterable;
 
-			// first column data is the key
-			displayName = "Data Page";
-			prefColWidth = 500;
-			hAlignment = SwingConstants.LEFT;
-			filterable = true;
-			amReportColumn = new AlertBoxAndWhiskerReportColumn(AlertBoxAndWhiskerReportColumn.KEY, displayName, prefColWidth, hAlignment, filterable);
+            // first column data is the key
+            displayName = "Alert Subject (\"Data Page\")";
+            prefColWidth = 500;
+            horizontalAlignment = SwingConstants.LEFT;
+            filterable = true;
 
-			alertMessageReportColumnList.add(amReportColumn);
+            AlertBoxAndWhiskerReportColumn amReportColumn;
+            amReportColumn = new AlertBoxAndWhiskerReportColumn(AlertBoxAndWhiskerReportColumn.KEY, displayName,
+                    prefColWidth, horizontalAlignment, filterable);
 
-			List<AlertBoxAndWhiskerReportColumn> defaultAlertMessageReportColumnList = AlertBoxAndWhiskerReportColumn.getDefaultAlertMessageReportColumnList();
+            alertMessageReportColumnList.add(amReportColumn);
 
-			alertMessageReportColumnList.addAll(defaultAlertMessageReportColumnList);
-		}
+            List<AlertBoxAndWhiskerReportColumn> defaultAlertMessageReportColumnList = AlertBoxAndWhiskerReportColumn
+                    .getDefaultAlertMessageReportColumnList();
 
-		return alertMessageReportColumnList;
-	}
+            alertMessageReportColumnList.addAll(defaultAlertMessageReportColumnList);
+        }
 
-	@Override
-	public String getAlertMessageReportEntryKey(AlertLogEntry alertLogEntry, ArrayList<String> logEntryValueList) {
+        return alertMessageReportColumnList;
+    }
 
-		String alertMessageReportEntryKey = null;
+    @Override
+    public String getAlertMessageReportEntryKey(String dataText) {
 
-		AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
+        String alertMessageReportEntryKey = null;
 
-		List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
+        for (Pattern pattern : patternList) {
 
-		int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
-		String message = logEntryValueList.get(messageIndex);
+            Matcher patternMatcher = pattern.matcher(dataText);
+            boolean matches = patternMatcher.find();
 
-		for (Pattern pattern : patternList) {
-			
-			Matcher patternMatcher = pattern.matcher(message);
-			boolean matches = patternMatcher.find();
+            if (matches) {
+                alertMessageReportEntryKey = patternMatcher.group(1).trim();
+                break;
+            }
+        }
 
-			if (matches) {
-				alertMessageReportEntryKey = patternMatcher.group(1).trim();
-				break;
-			}
-		}
+        return alertMessageReportEntryKey;
 
-		if (alertMessageReportEntryKey == null) {
-			LOG.info("PEGA0052ReportModel - Could'nt match - [" + message + "]");
-		}
+    }
 
-		return alertMessageReportEntryKey;
-	}
+    @Override
+    public String getAlertMessageReportEntryKey(ArrayList<String> logEntryValueList) {
 
-	public static void main(String[] args) {
+        String alertMessageReportEntryKey = null;
 
-		long before = System.currentTimeMillis();
-		String message1 = "";
+        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
 
-		String regex = "";
+        List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
 
-		Pattern pattern = Pattern.compile(regex);
+        int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
+        String message = logEntryValueList.get(messageIndex);
 
-		Matcher patternMatcher = pattern.matcher(message1);
-		boolean matches = patternMatcher.find();
-		System.out.println(matches);
+        alertMessageReportEntryKey = getAlertMessageReportEntryKey(message);
 
-		if (matches) {
-			System.out.println(patternMatcher.groupCount());
-			System.out.println(patternMatcher.group(1));
-		}
-		long after = System.currentTimeMillis();
+        if (alertMessageReportEntryKey == null) {
+            LOG.info("PEGA0052ReportModel - Could'nt match - [" + message + "]");
+        }
 
-		System.out.println(after - before);
-	}
+        return alertMessageReportEntryKey;
+    }
 
 }

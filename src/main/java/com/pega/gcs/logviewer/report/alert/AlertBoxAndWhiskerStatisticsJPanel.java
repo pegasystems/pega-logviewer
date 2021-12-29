@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alert;
 
 import java.awt.Color;
@@ -14,7 +15,7 @@ import java.awt.Insets;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.Locale;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
@@ -24,253 +25,206 @@ import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
 import com.pega.gcs.logviewer.model.AlertBoxAndWhiskerItem;
-import com.pega.gcs.logviewer.model.LogSeries;
-import com.pega.gcs.logviewer.model.LogSeriesCollection;
-import com.pega.gcs.logviewer.model.LogTimeSeries;
 
 public class AlertBoxAndWhiskerStatisticsJPanel extends JPanel {
 
-	private static final long serialVersionUID = 5136211947722573170L;
+    private static final long serialVersionUID = 5136211947722573170L;
 
-	public AlertBoxAndWhiskerStatisticsJPanel(AlertBoxAndWhiskerItem alertBoxAndWhiskerItem,
-			NumberFormat numberFormat) {
-		super();
+    public AlertBoxAndWhiskerStatisticsJPanel(AlertBoxAndWhiskerItem alertBoxAndWhiskerItem, Locale locale) {
+        super();
 
-		setLayout(new GridBagLayout());
+        setLayout(new GridBagLayout());
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = 1;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		buildAlertBoxAndWhiskerHeaderRow(this, 0);
-		buildAlertBoxAndWhiskerDataRow(alertBoxAndWhiskerItem, numberFormat, this, 0, 1);
-	}
+        buildAlertBoxAndWhiskerHeaderRow(this, 0);
+        buildAlertBoxAndWhiskerDataRow(alertBoxAndWhiskerItem, locale, this, 0, 1);
+    }
 
-	// not used. see AlertAllStatisticsSummaryJPanel for all alerts statistics
-	@SuppressWarnings("unused")
-	private AlertBoxAndWhiskerStatisticsJPanel(Set<LogSeriesCollection> typeLogSeriesCollectionSet,
-			NumberFormat numberFormat) {
+    private JPanel getNameJPanel(String name) {
 
-		super();
+        JPanel nameJPanel = new JPanel();
 
-		setLayout(new GridBagLayout());
+        nameJPanel.setLayout(new GridBagLayout());
 
-		buildAlertBoxAndWhiskerHeaderRow(this, 1);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(5, 5, 5, 5);
 
-		int yIndex = 1;
+        JLabel nameJLabel = new JLabel(name);
 
-		for (LogSeriesCollection logSeriesCollection : typeLogSeriesCollectionSet) {
+        Font labelFont = nameJLabel.getFont();
+        Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
 
-			String alertMessageID = logSeriesCollection.getName();
+        nameJLabel.setFont(tabFont);
+        nameJLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-			GridBagConstraints gbc = new GridBagConstraints();
-			gbc.gridx = 0;
-			gbc.gridy = yIndex;
-			gbc.weightx = 1.0D;
-			gbc.weighty = 1.0D;
-			gbc.fill = GridBagConstraints.BOTH;
-			gbc.anchor = GridBagConstraints.NORTHWEST;
-			gbc.insets = new Insets(0, 0, 0, 0);
-			// gbc.gridheight = GridBagConstraints.RELATIVE;
+        nameJPanel.add(nameJLabel, gbc1);
 
-			JPanel nameJPanel = getNameJPanel(alertMessageID);
-			add(nameJPanel, gbc);
+        nameJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-			for (LogSeries logSeries : logSeriesCollection.getLogSeriesList()) {
+        return nameJPanel;
+    }
 
-				LogTimeSeries logTimeSeries = (LogTimeSeries) logSeries;
+    private JPanel getValueJPanel(String value) {
 
-				AlertBoxAndWhiskerItem alertBoxAndWhiskerItem;
-				alertBoxAndWhiskerItem = (AlertBoxAndWhiskerItem) logTimeSeries.getBoxAndWhiskerItem();
+        JPanel valueJPanel = new JPanel();
 
-				buildAlertBoxAndWhiskerDataRow(alertBoxAndWhiskerItem, numberFormat, this, 1, yIndex);
+        valueJPanel.setLayout(new GridBagLayout());
 
-				yIndex++;
-			}
-		}
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(5, 5, 5, 5);
 
-	}
+        JComponent valueComponent = null;
 
-	private JPanel getNameJPanel(String name) {
+        JTextField valueJTextField = new JTextField(value);
+        valueJTextField.setEditable(false);
+        valueJTextField.setBackground(null);
+        valueJTextField.setBorder(null);
 
-		JPanel nameJPanel = new JPanel();
+        valueJTextField.setHorizontalAlignment(SwingConstants.CENTER);
+        valueComponent = valueJTextField;
 
-		nameJPanel.setLayout(new GridBagLayout());
+        valueJPanel.add(valueComponent, gbc1);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(5, 5, 5, 5);
+        valueJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		JLabel nameJLabel = new JLabel(name);
+        return valueJPanel;
+    }
 
-		Font labelFont = nameJLabel.getFont();
-		Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
+    private void buildAlertBoxAndWhiskerHeaderRow(JPanel parent, int startColumnIndex) {
 
-		nameJLabel.setFont(tabFont);
-		nameJLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        List<String> nameList = new ArrayList<>();
 
-		nameJPanel.add(nameJLabel, gbc1);
+        // "KPI Threshold";
+        nameList.add(AlertBoxAndWhiskerReportColumn.KPI_THRESHOLD.getDisplayName());
 
-		nameJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        // "Count";
+        nameList.add(AlertBoxAndWhiskerReportColumn.COUNT.getDisplayName());
 
-		return nameJPanel;
-	}
+        // "Min";
+        nameList.add(AlertBoxAndWhiskerReportColumn.MINOUTLIER.getDisplayName());
 
-	private JPanel getValueJPanel(String value) {
+        // "Q1";
+        nameList.add(AlertBoxAndWhiskerReportColumn.Q1.getDisplayName());
 
-		JPanel valueJPanel = new JPanel();
+        // "Median";
+        nameList.add(AlertBoxAndWhiskerReportColumn.MEDIAN.getDisplayName());
 
-		valueJPanel.setLayout(new GridBagLayout());
+        // "Mean";
+        nameList.add(AlertBoxAndWhiskerReportColumn.MEAN.getDisplayName());
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(5, 5, 5, 5);
+        // "Q3";
+        nameList.add(AlertBoxAndWhiskerReportColumn.Q3.getDisplayName());
 
-		JComponent valueComponent = null;
+        // "Max";
+        nameList.add(AlertBoxAndWhiskerReportColumn.MAXOUTLIER.getDisplayName());
 
-		JTextField valueJTextField = new JTextField(value);
-		valueJTextField.setEditable(false);
-		valueJTextField.setBackground(null);
-		valueJTextField.setBorder(null);
+        // "IQR";
+        nameList.add(AlertBoxAndWhiskerReportColumn.IQR.getDisplayName());
 
-		valueJTextField.setHorizontalAlignment(SwingConstants.CENTER);
-		valueComponent = valueJTextField;
+        // "Outliers";
+        nameList.add(AlertBoxAndWhiskerReportColumn.OUTLIERS.getDisplayName());
 
-		valueJPanel.add(valueComponent, gbc1);
+        int xindex = startColumnIndex;
 
-		valueJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        for (String name : nameList) {
 
-		return valueJPanel;
-	}
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridx = xindex++;
+            gbc.gridy = 0;
+            gbc.weightx = 1.0D;
+            gbc.weighty = 1.0D;
+            gbc.fill = GridBagConstraints.BOTH;
+            gbc.anchor = GridBagConstraints.NORTHWEST;
+            gbc.insets = new Insets(0, 0, 0, 0);
 
-	private void buildAlertBoxAndWhiskerHeaderRow(JPanel parent, int startColumnIndex) {
+            JPanel nameJPanel = getNameJPanel(name);
+            parent.add(nameJPanel, gbc);
+        }
 
-		List<String> nameList = new ArrayList<>();
+    }
 
-		// "KPI Threshold";
-		nameList.add(AlertBoxAndWhiskerReportColumn.KPI_THRESHOLD.getDisplayName());
+    private void buildAlertBoxAndWhiskerDataRow(AlertBoxAndWhiskerItem alertBoxAndWhiskerItem, Locale locale,
+            JPanel parent, int startColumnIndex, int rowIndex) {
 
-		// "Count";
-		nameList.add(AlertBoxAndWhiskerReportColumn.COUNT.getDisplayName());
+        List<String> valueList = new ArrayList<>();
 
-		// "Min";
-		nameList.add(AlertBoxAndWhiskerReportColumn.MINOUTLIER.getDisplayName());
+        NumberFormat numberFormat = NumberFormat.getInstance(locale);
 
-		// "Q1";
-		nameList.add(AlertBoxAndWhiskerReportColumn.Q1.getDisplayName());
+        // "KPI Threshold";
+        valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getThresholdKPI()));
 
-		// "Median";
-		nameList.add(AlertBoxAndWhiskerReportColumn.MEDIAN.getDisplayName());
+        // "Count";
+        valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getCount()));
 
-		// "Mean";
-		nameList.add(AlertBoxAndWhiskerReportColumn.MEAN.getDisplayName());
+        // "Min";
+        valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getMinOutlier()));
 
-		// "Q3";
-		nameList.add(AlertBoxAndWhiskerReportColumn.Q3.getDisplayName());
+        // "Q1";
+        valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getQ1()));
 
-		// "Max";
-		nameList.add(AlertBoxAndWhiskerReportColumn.MAXOUTLIER.getDisplayName());
+        // "Median";
+        valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getMedian()));
 
-		// "IQR";
-		nameList.add(AlertBoxAndWhiskerReportColumn.IQR.getDisplayName());
+        // "Mean";
+        valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getMean()));
 
-		// "Outliers";
-		nameList.add(AlertBoxAndWhiskerReportColumn.OUTLIERS.getDisplayName());
+        // "Q3";
+        valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getQ3()));
 
-		int xIndex = startColumnIndex;
+        // "Max";
+        valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getMaxOutlier()));
 
-		for (String name : nameList) {
+        // "IQR";
+        valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getIQR()));
 
-			GridBagConstraints gbc = new GridBagConstraints();
-			gbc.gridx = xIndex++;
-			gbc.gridy = 0;
-			gbc.weightx = 1.0D;
-			gbc.weighty = 1.0D;
-			gbc.fill = GridBagConstraints.BOTH;
-			gbc.anchor = GridBagConstraints.NORTHWEST;
-			gbc.insets = new Insets(0, 0, 0, 0);
+        // "Outliers";
+        valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getOutliers().size()));
 
-			JPanel nameJPanel = getNameJPanel(name);
-			parent.add(nameJPanel, gbc);
-		}
+        int xindex = startColumnIndex;
 
-	}
+        for (String value : valueList) {
 
-	private void buildAlertBoxAndWhiskerDataRow(AlertBoxAndWhiskerItem alertBoxAndWhiskerItem,
-			NumberFormat numberFormat, JPanel parent, int startColumnIndex, int rowIndex) {
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.gridx = xindex++;
+            gbc.gridy = rowIndex;
+            gbc.weightx = 1.0D;
+            gbc.weighty = 1.0D;
+            gbc.fill = GridBagConstraints.BOTH;
+            gbc.anchor = GridBagConstraints.NORTHWEST;
+            gbc.insets = new Insets(0, 0, 0, 0);
 
-		List<String> valueList = new ArrayList<>();
+            JPanel valueJPanel = getValueJPanel(value);
+            parent.add(valueJPanel, gbc);
+        }
 
-		// "KPI Threshold";
-		valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getThresholdKPI()));
-
-		// "Count";
-		valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getCount()));
-
-		// "Min";
-		valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getMinOutlier()));
-
-		// "Q1";
-		valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getQ1()));
-
-		// "Median";
-		valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getMedian()));
-
-		// "Mean";
-		valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getMean()));
-
-		// "Q3";
-		valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getQ3()));
-
-		// "Max";
-		valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getMaxOutlier()));
-
-		// "IQR";
-		valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getIQR()));
-
-		// "Outliers";
-		valueList.add(numberFormat.format(alertBoxAndWhiskerItem.getOutliers().size()));
-
-		int xIndex = startColumnIndex;
-
-		for (String value : valueList) {
-
-			GridBagConstraints gbc = new GridBagConstraints();
-			gbc.gridx = xIndex++;
-			gbc.gridy = rowIndex;
-			gbc.weightx = 1.0D;
-			gbc.weighty = 1.0D;
-			gbc.fill = GridBagConstraints.BOTH;
-			gbc.anchor = GridBagConstraints.NORTHWEST;
-			gbc.insets = new Insets(0, 0, 0, 0);
-
-			JPanel valueJPanel = getValueJPanel(value);
-			parent.add(valueJPanel, gbc);
-		}
-
-	}
+    }
 }

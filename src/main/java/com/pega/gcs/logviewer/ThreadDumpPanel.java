@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.BorderLayout;
@@ -20,8 +21,8 @@ import java.awt.event.KeyListener;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -56,510 +57,518 @@ import com.pega.gcs.logviewer.pegatdp.PegaThreadDumpParserPanel;
 
 public class ThreadDumpPanel extends JPanel {
 
-	private static final long serialVersionUID = 791827616015609624L;
+    private static final long serialVersionUID = 791827616015609624L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(ThreadDumpPanel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(ThreadDumpPanel.class);
 
-	private Log4jLogThreadDumpEntry log4jLogThreadDumpEntry;
+    private Log4jLogThreadDumpEntry log4jLogThreadDumpEntry;
 
-	// multiple usages hence extract it once
-	private String logEntryText;
+    // multiple usages hence extract it once
+    private String logEntryText;
 
-	private JTabbedPane threadDumpTabbedPane;
+    private LogTableModel logTableModel;
 
-	private JPanel threadDumpThreadInfoJPanel;
+    private JTabbedPane threadDumpTabbedPane;
 
-	private JPanel requestorLockLogEntryJPanel;
+    private JPanel threadDumpThreadInfoJPanel;
 
-	private JTextField filterJTextField;
+    private JPanel requestorLockLogEntryJPanel;
 
-	private JCheckBox caseSensitiveFilterJCheckBox;
+    private JTextField filterJTextField;
 
-	private JCheckBox excludeBenignFilterJCheckBox;
+    private JCheckBox caseSensitiveFilterJCheckBox;
 
-	private ThreadDumpTableModel threadDumpTableModel;
+    private JCheckBox excludeBenignFilterJCheckBox;
 
-	private ThreadDumpTable threadDumpTable;
+    private ThreadDumpTableModel threadDumpTableModel;
 
-	public ThreadDumpPanel(Log4jLogThreadDumpEntry log4jLogThreadDumpEntry, LogTableModel logTableModel,
-			AtomicInteger threadDumpSelectedTab) {
+    private ThreadDumpTable threadDumpTable;
 
-		super();
+    public ThreadDumpPanel(Log4jLogThreadDumpEntry log4jLogThreadDumpEntry, LogTableModel logTableModel,
+            AtomicInteger threadDumpSelectedTab) {
 
-		this.log4jLogThreadDumpEntry = log4jLogThreadDumpEntry;
-		this.logEntryText = log4jLogThreadDumpEntry.getLogEntryText();
+        super();
 
-		List<String> threadLineList = new LinkedList<String>();
+        this.log4jLogThreadDumpEntry = log4jLogThreadDumpEntry;
+        this.logEntryText = log4jLogThreadDumpEntry.getLogEntryText();
+        this.logTableModel = logTableModel;
 
-		try (StringReader stringReader = new StringReader(logEntryText);
-				BufferedReader bufferedReader = new BufferedReader(stringReader)) {
+        List<String> threadLineList = new ArrayList<String>();
 
-			String line = null;
+        try (StringReader stringReader = new StringReader(logEntryText);
+                BufferedReader bufferedReader = new BufferedReader(stringReader)) {
 
-			line = bufferedReader.readLine();
+            String line = null;
 
-			while (line != null) {
-				threadLineList.add(line);
-				line = bufferedReader.readLine();
-			}
+            line = bufferedReader.readLine();
 
-		} catch (IOException ioe) {
-			LOG.error("Error reading logEntryText: " + logEntryText, ioe);
-		}
+            while (line != null) {
+                threadLineList.add(line);
+                line = bufferedReader.readLine();
+            }
 
-		List<ThreadDumpThreadInfo> threadDumpThreadInfoList = LogThreadDumpParser.parseThreadLineList(threadLineList);
+        } catch (IOException ioe) {
+            LOG.error("Error reading logEntryText: " + logEntryText, ioe);
+        }
 
-		threadDumpTableModel = new ThreadDumpTableModel(threadDumpThreadInfoList);
+        List<ThreadDumpThreadInfo> threadDumpThreadInfoList = LogThreadDumpParser.parseThreadLineList(threadLineList);
 
-		setLayout(new BorderLayout());
+        threadDumpTableModel = new ThreadDumpTableModel(threadDumpThreadInfoList);
 
-		JTabbedPane threadDumpTabbedPane = getThreadDumpTabbedPane();
-		add(threadDumpTabbedPane, BorderLayout.CENTER);
+        setLayout(new BorderLayout());
 
-		int tabCounter = 0;
+        JTabbedPane threadDumpTabbedPane = getThreadDumpTabbedPane();
+        add(threadDumpTabbedPane, BorderLayout.CENTER);
 
-		String tabText = "Thread Dump";
-		JLabel tabLabel = new JLabel(tabText);
-		Font labelFont = tabLabel.getFont();
-		Font tabFont = labelFont.deriveFont(Font.BOLD, 12);
-		Dimension dim = new Dimension(140, 26);
-		tabLabel.setFont(tabFont);
-		tabLabel.setSize(dim);
-		tabLabel.setPreferredSize(dim);
-		tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        int tabCounter = 0;
 
-		JSplitPane threadDumpTabJSplitPane = getThreadDumpTabJSplitPane();
+        String tabText = "Thread Dump";
+        JLabel tabLabel = new JLabel(tabText);
+        Font labelFont = tabLabel.getFont();
+        Font tabFont = labelFont.deriveFont(Font.BOLD, 12);
+        Dimension dim = new Dimension(140, 26);
+        tabLabel.setFont(tabFont);
+        tabLabel.setSize(dim);
+        tabLabel.setPreferredSize(dim);
+        tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		threadDumpTabbedPane.addTab(tabText, threadDumpTabJSplitPane);
-		threadDumpTabbedPane.setTabComponentAt(tabCounter, tabLabel);
-		tabCounter++;
+        JSplitPane threadDumpTabJSplitPane = getThreadDumpTabJSplitPane();
 
-		// check if we have associated requestor locked errors
-		int size = log4jLogThreadDumpEntry.getLog4jLogRequestorLockEntryList().size();
+        threadDumpTabbedPane.addTab(tabText, threadDumpTabJSplitPane);
+        threadDumpTabbedPane.setTabComponentAt(tabCounter, tabLabel);
+        tabCounter++;
 
-		if (size > 0) {
-			tabText = "Requestor Locks";
-			tabLabel = new JLabel(tabText);
-			tabLabel.setFont(tabFont);
-			tabLabel.setSize(dim);
-			tabLabel.setPreferredSize(dim);
-			tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        // check if we have associated requestor locked errors
+        int size = log4jLogThreadDumpEntry.getLog4jLogRequestorLockEntryList().size();
 
-			JComponent requestorLocksJComponent = getRequestorLocksJComponent();
+        if (size > 0) {
+            tabText = "Requestor Locks";
+            tabLabel = new JLabel(tabText);
+            tabLabel.setFont(tabFont);
+            tabLabel.setSize(dim);
+            tabLabel.setPreferredSize(dim);
+            tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-			threadDumpTabbedPane.addTab(tabText, requestorLocksJComponent);
-			threadDumpTabbedPane.setTabComponentAt(tabCounter, tabLabel);
-			tabCounter++;
-		}
+            JComponent requestorLocksJComponent = getRequestorLocksJComponent();
 
-		tabText = "Raw View";
-		tabLabel = new JLabel(tabText);
-		tabLabel.setFont(tabFont);
-		tabLabel.setSize(dim);
-		tabLabel.setPreferredSize(dim);
-		tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            threadDumpTabbedPane.addTab(tabText, requestorLocksJComponent);
+            threadDumpTabbedPane.setTabComponentAt(tabCounter, tabLabel);
+            tabCounter++;
+        }
 
-		JPanel rawViewJPanel = getRawViewJPanel();
+        tabText = "Raw View";
+        tabLabel = new JLabel(tabText);
+        tabLabel.setFont(tabFont);
+        tabLabel.setSize(dim);
+        tabLabel.setPreferredSize(dim);
+        tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		threadDumpTabbedPane.addTab(tabText, rawViewJPanel);
-		threadDumpTabbedPane.setTabComponentAt(tabCounter, tabLabel);
-		tabCounter++;
+        JPanel rawViewJPanel = getRawViewJPanel();
 
-		// Pega 7 Thread Dump Parser
-		tabText = "Thread Dump Report";
-		tabLabel = new JLabel(tabText);
-		tabLabel.setFont(tabFont);
-		tabLabel.setSize(dim);
-		tabLabel.setPreferredSize(dim);
-		tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        threadDumpTabbedPane.addTab(tabText, rawViewJPanel);
+        threadDumpTabbedPane.setTabComponentAt(tabCounter, tabLabel);
+        tabCounter++;
 
-		ThreadDumpTable threadDumpTable = getThreadDumpTable();
+        // Pega 7 Thread Dump Parser
+        tabText = "Thread Dump Report";
+        tabLabel = new JLabel(tabText);
+        tabLabel.setFont(tabFont);
+        tabLabel.setSize(dim);
+        tabLabel.setPreferredSize(dim);
+        tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		boolean v7ThreadDump = threadDumpTableModel.isV7ThreadDump();
+        ThreadDumpTable threadDumpTable = getThreadDumpTable();
 
-		List<Integer> threadColumnList = new ArrayList<>();
-		threadColumnList.add(0);
+        boolean v7ThreadDump = threadDumpTableModel.isV7ThreadDump();
 
-		ThreadDumpRequestorLockTableMouseListener threadDumpRequestorLockTableMouseListener;
-		threadDumpRequestorLockTableMouseListener = new ThreadDumpRequestorLockTableMouseListener(threadDumpTable,
-				threadDumpTabbedPane, threadColumnList);
+        List<Integer> threadColumnList = new ArrayList<>();
+        threadColumnList.add(0);
 
-		JPanel pegaThreadDumpParserPanel = new PegaThreadDumpParserPanel(logEntryText, log4jLogThreadDumpEntry,
-				v7ThreadDump, logTableModel, threadDumpRequestorLockTableMouseListener);
+        ThreadDumpRequestorLockTableMouseListener threadDumpRequestorLockTableMouseListener;
+        threadDumpRequestorLockTableMouseListener = new ThreadDumpRequestorLockTableMouseListener(threadDumpTable,
+                threadDumpTabbedPane, threadColumnList);
 
-		threadDumpTabbedPane.addTab(tabText, pegaThreadDumpParserPanel);
-		threadDumpTabbedPane.setTabComponentAt(tabCounter, tabLabel);
-		tabCounter++;
+        JPanel pegaThreadDumpParserPanel = new PegaThreadDumpParserPanel(logEntryText, log4jLogThreadDumpEntry,
+                v7ThreadDump, logTableModel, threadDumpRequestorLockTableMouseListener);
 
-		int defaultSelectedTab = threadDumpSelectedTab.get();
-		int tabCount = threadDumpTabbedPane.getTabCount();
+        threadDumpTabbedPane.addTab(tabText, pegaThreadDumpParserPanel);
+        threadDumpTabbedPane.setTabComponentAt(tabCounter, tabLabel);
+        tabCounter++;
 
-		if (defaultSelectedTab >= tabCount) {
-			defaultSelectedTab = tabCount - 1;
-		}
+        int defaultSelectedTab = threadDumpSelectedTab.get();
+        int tabCount = threadDumpTabbedPane.getTabCount();
 
-		threadDumpTabbedPane.setSelectedIndex(defaultSelectedTab);
+        if (defaultSelectedTab >= tabCount) {
+            defaultSelectedTab = tabCount - 1;
+        }
 
-		ChangeListener tabChangeListener = new ChangeListener() {
+        threadDumpTabbedPane.setSelectedIndex(defaultSelectedTab);
 
-			@Override
-			public void stateChanged(ChangeEvent e) {
-				JTabbedPane sourceTabbedPane = (JTabbedPane) e.getSource();
-				int index = sourceTabbedPane.getSelectedIndex();
-				threadDumpSelectedTab.set(index);
-			}
-		};
+        ChangeListener tabChangeListener = new ChangeListener() {
 
-		threadDumpTabbedPane.addChangeListener(tabChangeListener);
-	}
+            @Override
+            public void stateChanged(ChangeEvent changeEvent) {
+                JTabbedPane sourceTabbedPane = (JTabbedPane) changeEvent.getSource();
+                int index = sourceTabbedPane.getSelectedIndex();
+                threadDumpSelectedTab.set(index);
+            }
+        };
 
-	private JTabbedPane getThreadDumpTabbedPane() {
+        threadDumpTabbedPane.addChangeListener(tabChangeListener);
+    }
 
-		if (threadDumpTabbedPane == null) {
-			threadDumpTabbedPane = new JTabbedPane();
-		}
+    private JTabbedPane getThreadDumpTabbedPane() {
 
-		return threadDumpTabbedPane;
-	}
+        if (threadDumpTabbedPane == null) {
+            threadDumpTabbedPane = new JTabbedPane();
+        }
 
-	private ThreadDumpTable getThreadDumpTable() {
+        return threadDumpTabbedPane;
+    }
 
-		if (threadDumpTable == null) {
-			threadDumpTable = new ThreadDumpTable(threadDumpTableModel);
+    private ThreadDumpTable getThreadDumpTable() {
 
-			ListSelectionModel lsm = threadDumpTable.getSelectionModel();
+        if (threadDumpTable == null) {
+            threadDumpTable = new ThreadDumpTable(threadDumpTableModel);
 
-			lsm.addListSelectionListener(new ListSelectionListener() {
+            ListSelectionModel lsm = threadDumpTable.getSelectionModel();
 
-				@Override
-				public void valueChanged(ListSelectionEvent e) {
+            lsm.addListSelectionListener(new ListSelectionListener() {
 
-					if (!e.getValueIsAdjusting()) {
+                @Override
+                public void valueChanged(ListSelectionEvent listSelectionEvent) {
 
-						int selectedRow = threadDumpTable.getSelectedRow();
+                    if (!listSelectionEvent.getValueIsAdjusting()) {
 
-						if (selectedRow >= 0) {
+                        int selectedRow = threadDumpTable.getSelectedRow();
 
-							JPanel threadDumpThreadInfoJPanel = getThreadDumpThreadInfoJPanel();
+                        if (selectedRow >= 0) {
 
-							threadDumpThreadInfoJPanel.removeAll();
+                            JPanel threadDumpThreadInfoJPanel = getThreadDumpThreadInfoJPanel();
 
-							ThreadDumpThreadInfo threadDumpThreadInfo = threadDumpTableModel
-									.getThreadDumpThreadInfo(selectedRow);
-							JPanel threadInfoJPanel = new LogEntryPanel(threadDumpThreadInfo.getThreadDumpString());
+                            threadDumpThreadInfoJPanel.removeAll();
 
-							threadDumpThreadInfoJPanel.add(threadInfoJPanel, BorderLayout.CENTER);
+                            ThreadDumpThreadInfo threadDumpThreadInfo = threadDumpTableModel
+                                    .getThreadDumpThreadInfo(selectedRow);
 
-							threadDumpThreadInfoJPanel.revalidate();
-						}
-					}
+                            String logEntryText = threadDumpThreadInfo.getThreadDumpString();
+                            Charset charset = logTableModel.getCharset();
 
-				}
-			});
+                            JPanel threadInfoJPanel = new LogEntryPanel(logEntryText, charset);
 
-			lsm.setSelectionInterval(0, 0);
-		}
+                            threadDumpThreadInfoJPanel.add(threadInfoJPanel, BorderLayout.CENTER);
 
-		return threadDumpTable;
-	}
+                            threadDumpThreadInfoJPanel.revalidate();
+                        }
+                    }
 
-	private JSplitPane getThreadDumpTabJSplitPane() {
+                }
+            });
 
-		JPanel threadDumpJPanel = getThreadDumpJPanel();
+            lsm.setSelectionInterval(0, 0);
+        }
 
-		JPanel threadDumpThreadInfoJPanel = getThreadDumpThreadInfoJPanel();
+        return threadDumpTable;
+    }
 
-		JSplitPane threadDumpTabJSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, threadDumpJPanel,
-				threadDumpThreadInfoJPanel);
+    private JSplitPane getThreadDumpTabJSplitPane() {
 
-		threadDumpTabJSplitPane.setResizeWeight(0.6d);
-		threadDumpTabJSplitPane.setDividerLocation(0.6d);
+        JPanel threadDumpJPanel = getThreadDumpJPanel();
 
-		return threadDumpTabJSplitPane;
-	}
+        JPanel threadDumpThreadInfoJPanel = getThreadDumpThreadInfoJPanel();
 
-	private JPanel getThreadDumpJPanel() {
+        JSplitPane threadDumpTabJSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, threadDumpJPanel,
+                threadDumpThreadInfoJPanel);
 
-		JPanel threadDumpJPanel = new JPanel();
+        threadDumpTabJSplitPane.setResizeWeight(0.6d);
+        threadDumpTabJSplitPane.setDividerLocation(0.6d);
 
-		threadDumpJPanel.setLayout(new GridBagLayout());
+        return threadDumpTabJSplitPane;
+    }
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(2, 2, 2, 2);
+    private JPanel getThreadDumpJPanel() {
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = 1;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(2, 3, 2, 3);
+        JPanel threadDumpJPanel = new JPanel();
 
-		JPanel controlsJPanel = getControlsJPanel();
-		ThreadDumpTable threadDumpTable = getThreadDumpTable();
-		JScrollPane threadDumpTableJScrollPane = new JScrollPane(threadDumpTable);
+        threadDumpJPanel.setLayout(new GridBagLayout());
 
-		threadDumpJPanel.add(controlsJPanel, gbc1);
-		threadDumpJPanel.add(threadDumpTableJScrollPane, gbc2);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(2, 2, 2, 2);
 
-		return threadDumpJPanel;
-	}
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(2, 3, 2, 3);
 
-	private JPanel getControlsJPanel() {
+        JPanel controlsJPanel = getControlsJPanel();
+        ThreadDumpTable threadDumpTable = getThreadDumpTable();
+        JScrollPane threadDumpTableJScrollPane = new JScrollPane(threadDumpTable);
 
-		JPanel controlsJPanel = new JPanel();
+        threadDumpJPanel.add(controlsJPanel, gbc1);
+        threadDumpJPanel.add(threadDumpTableJScrollPane, gbc2);
 
-		LayoutManager layout = new BoxLayout(controlsJPanel, BoxLayout.X_AXIS);
-		controlsJPanel.setLayout(layout);
+        return threadDumpJPanel;
+    }
 
-		JLabel filterJLabel = new JLabel("Filter Text");
-		JTextField filterJTextField = getFilterJTextField();
-		JCheckBox caseSensitiveFilterJCheckBox = getCaseSensitiveFilterJCheckBox();
-		JCheckBox excludeBenignFilterJCheckBox = getExcludeBenignFilterJCheckBox();
+    private JPanel getControlsJPanel() {
 
-		Dimension dim = new Dimension(10, 40);
+        JPanel controlsJPanel = new JPanel();
 
-		controlsJPanel.add(Box.createRigidArea(dim));
-		controlsJPanel.add(filterJLabel);
-		controlsJPanel.add(Box.createRigidArea(dim));
-		controlsJPanel.add(filterJTextField);
-		controlsJPanel.add(Box.createRigidArea(dim));
-		controlsJPanel.add(caseSensitiveFilterJCheckBox);
-		controlsJPanel.add(Box.createRigidArea(dim));
-		controlsJPanel.add(Box.createRigidArea(dim));
-		controlsJPanel.add(Box.createRigidArea(dim));
-		controlsJPanel.add(excludeBenignFilterJCheckBox);
-		controlsJPanel.add(Box.createRigidArea(dim));
-		controlsJPanel.add(Box.createHorizontalGlue());
+        LayoutManager layout = new BoxLayout(controlsJPanel, BoxLayout.X_AXIS);
+        controlsJPanel.setLayout(layout);
 
-		Border loweredEtched = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
+        JLabel filterJLabel = new JLabel("Filter Text");
+        JTextField filterJTextField = getFilterJTextField();
+        JCheckBox caseSensitiveFilterJCheckBox = getCaseSensitiveFilterJCheckBox();
+        JCheckBox excludeBenignFilterJCheckBox = getExcludeBenignFilterJCheckBox();
 
-		controlsJPanel.setBorder(BorderFactory.createTitledBorder(loweredEtched, "Filter"));
+        Dimension dim = new Dimension(10, 40);
 
-		return controlsJPanel;
-	}
+        controlsJPanel.add(Box.createRigidArea(dim));
+        controlsJPanel.add(filterJLabel);
+        controlsJPanel.add(Box.createRigidArea(dim));
+        controlsJPanel.add(filterJTextField);
+        controlsJPanel.add(Box.createRigidArea(dim));
+        controlsJPanel.add(caseSensitiveFilterJCheckBox);
+        controlsJPanel.add(Box.createRigidArea(dim));
+        controlsJPanel.add(Box.createRigidArea(dim));
+        controlsJPanel.add(Box.createRigidArea(dim));
+        controlsJPanel.add(excludeBenignFilterJCheckBox);
+        controlsJPanel.add(Box.createRigidArea(dim));
+        controlsJPanel.add(Box.createHorizontalGlue());
 
-	private JPanel getRawViewJPanel() {
+        Border loweredEtched = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
 
-		JPanel rawViewJPanel = new LogEntryPanel(logEntryText);
+        controlsJPanel.setBorder(BorderFactory.createTitledBorder(loweredEtched, "Filter"));
 
-		return rawViewJPanel;
-	}
+        return controlsJPanel;
+    }
 
-	private JTextField getFilterJTextField() {
+    private JPanel getRawViewJPanel() {
 
-		if (filterJTextField == null) {
+        JPanel rawViewJPanel = new LogEntryPanel(logEntryText, logTableModel.getCharset());
 
-			filterJTextField = new JTextField();
+        return rawViewJPanel;
+    }
 
-			filterJTextField.setEditable(true);
+    private JTextField getFilterJTextField() {
 
-			Dimension dim = new Dimension(250, 22);
-			filterJTextField.setPreferredSize(dim);
-			filterJTextField.setMaximumSize(dim);
+        if (filterJTextField == null) {
 
-			filterJTextField.addKeyListener(new KeyListener() {
+            filterJTextField = new JTextField();
 
-				@Override
-				public void keyTyped(KeyEvent e) {
-					// do nothing
-				}
+            filterJTextField.setEditable(true);
 
-				@Override
-				public void keyReleased(KeyEvent e) {
+            Dimension dim = new Dimension(250, 22);
+            filterJTextField.setPreferredSize(dim);
+            filterJTextField.setMaximumSize(dim);
 
-					if (e.getSource() instanceof JTextField) {
-						refreshThreadDumpTable();
-					}
-				}
+            filterJTextField.addKeyListener(new KeyListener() {
 
-				@Override
-				public void keyPressed(KeyEvent e) {
-					// do nothing
-				}
-			});
-		}
-		return filterJTextField;
-	}
+                @Override
+                public void keyTyped(KeyEvent keyEvent) {
+                    // do nothing
+                }
 
-	private JCheckBox getCaseSensitiveFilterJCheckBox() {
+                @Override
+                public void keyReleased(KeyEvent keyEvent) {
 
-		if (caseSensitiveFilterJCheckBox == null) {
+                    if (keyEvent.getSource() instanceof JTextField) {
+                        refreshThreadDumpTable();
+                    }
+                }
 
-			caseSensitiveFilterJCheckBox = new JCheckBox("Case Sensitive");
+                @Override
+                public void keyPressed(KeyEvent keyEvent) {
+                    // do nothing
+                }
+            });
+        }
+        return filterJTextField;
+    }
 
-			caseSensitiveFilterJCheckBox.addItemListener(new ItemListener() {
+    private JCheckBox getCaseSensitiveFilterJCheckBox() {
 
-				@Override
-				public void itemStateChanged(ItemEvent e) {
-					refreshThreadDumpTable();
-				}
-			});
-		}
+        if (caseSensitiveFilterJCheckBox == null) {
 
-		return caseSensitiveFilterJCheckBox;
-	}
+            caseSensitiveFilterJCheckBox = new JCheckBox("Case Sensitive");
 
-	private JCheckBox getExcludeBenignFilterJCheckBox() {
+            caseSensitiveFilterJCheckBox.addItemListener(new ItemListener() {
 
-		if (excludeBenignFilterJCheckBox == null) {
+                @Override
+                public void itemStateChanged(ItemEvent itemEvent) {
+                    refreshThreadDumpTable();
+                }
+            });
+        }
 
-			excludeBenignFilterJCheckBox = new JCheckBox("Exclude Benign Threads (Stack Depth <= 5)");
+        return caseSensitiveFilterJCheckBox;
+    }
 
-			excludeBenignFilterJCheckBox.addItemListener(new ItemListener() {
+    private JCheckBox getExcludeBenignFilterJCheckBox() {
 
-				@Override
-				public void itemStateChanged(ItemEvent e) {
-					refreshThreadDumpTable();
-				}
-			});
-		}
+        if (excludeBenignFilterJCheckBox == null) {
 
-		return excludeBenignFilterJCheckBox;
-	}
+            excludeBenignFilterJCheckBox = new JCheckBox("Exclude Benign Threads (Stack Depth <= 5)");
 
-	protected void refreshThreadDumpTable() {
+            excludeBenignFilterJCheckBox.addItemListener(new ItemListener() {
 
-		JTextField filterJTextField = getFilterJTextField();
-		String filterText = filterJTextField.getText().trim();
+                @Override
+                public void itemStateChanged(ItemEvent itemEvent) {
+                    refreshThreadDumpTable();
+                }
+            });
+        }
 
-		JCheckBox caseSensitiveFilterJCheckBox = getCaseSensitiveFilterJCheckBox();
-		JCheckBox excludeBenignFilterJCheckBox = getExcludeBenignFilterJCheckBox();
+        return excludeBenignFilterJCheckBox;
+    }
 
-		boolean caseSensitiveFilter = caseSensitiveFilterJCheckBox.isSelected();
-		boolean excludeBenignFilter = excludeBenignFilterJCheckBox.isSelected();
+    protected void refreshThreadDumpTable() {
 
-		if (!caseSensitiveFilter) {
-			filterText = filterText.toUpperCase();
-		}
+        JTextField filterJTextField = getFilterJTextField();
+        String filterText = filterJTextField.getText().trim();
 
-		threadDumpTableModel.applyFilter(filterText, caseSensitiveFilter, excludeBenignFilter);
+        JCheckBox caseSensitiveFilterJCheckBox = getCaseSensitiveFilterJCheckBox();
+        JCheckBox excludeBenignFilterJCheckBox = getExcludeBenignFilterJCheckBox();
 
-	}
+        boolean caseSensitiveFilter = caseSensitiveFilterJCheckBox.isSelected();
+        boolean excludeBenignFilter = excludeBenignFilterJCheckBox.isSelected();
 
-	private JComponent getRequestorLocksJComponent() {
+        if (!caseSensitiveFilter) {
+            filterText = filterText.toUpperCase();
+        }
 
-		JPanel requestorLockTableJPanel = getRequestorLockTableJPanel();
-		JPanel requestorLockLogEntryJPanel = getRequestorLockLogEntryJPanel();
+        threadDumpTableModel.applyFilter(filterText, caseSensitiveFilter, excludeBenignFilter);
 
-		JSplitPane threadDumpJSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, requestorLockTableJPanel,
-				requestorLockLogEntryJPanel);
+    }
 
-		threadDumpJSplitPane.setDividerLocation(200);
+    private JComponent getRequestorLocksJComponent() {
 
-		return threadDumpJSplitPane;
-	}
+        JPanel requestorLockTableJPanel = getRequestorLockTableJPanel();
+        JPanel requestorLockLogEntryJPanel = getRequestorLockLogEntryJPanel();
 
-	private JPanel getRequestorLockTableJPanel() {
+        JSplitPane threadDumpJSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, requestorLockTableJPanel,
+                requestorLockLogEntryJPanel);
 
-		JPanel requestorLockTableJPanel = new JPanel();
-		LayoutManager layout = new BoxLayout(requestorLockTableJPanel, BoxLayout.PAGE_AXIS);
+        threadDumpJSplitPane.setDividerLocation(200);
 
-		requestorLockTableJPanel.setLayout(layout);
+        return threadDumpJSplitPane;
+    }
 
-		JTable requestorLockLogEntryJtable = getRequestorLockLogEntryJtable();
+    private JPanel getRequestorLockTableJPanel() {
 
-		JScrollPane requestorLockLogEntrytableJScrollPane = new JScrollPane(requestorLockLogEntryJtable);
+        JPanel requestorLockTableJPanel = new JPanel();
+        LayoutManager layout = new BoxLayout(requestorLockTableJPanel, BoxLayout.PAGE_AXIS);
 
-		String noteText = "Right click on the cell to select the thread in 'Thread Dump' tab.";
-		NoteJPanel noteJPanel = new NoteJPanel(noteText, 1);
+        requestorLockTableJPanel.setLayout(layout);
 
-		requestorLockTableJPanel.add(requestorLockLogEntrytableJScrollPane);
-		requestorLockTableJPanel.add(noteJPanel);
+        JTable requestorLockLogEntryJtable = getRequestorLockLogEntryJtable();
 
-		return requestorLockTableJPanel;
-	}
+        JScrollPane requestorLockLogEntrytableJScrollPane = new JScrollPane(requestorLockLogEntryJtable);
 
-	protected JTable getRequestorLockLogEntryJtable() {
+        String noteText = "Right click on the cell to select the thread in 'Thread Dump' tab.";
+        NoteJPanel noteJPanel = new NoteJPanel(noteText, 1);
 
-		final List<Log4jLogRequestorLockEntry> requestorLockLogEntryIndexList;
+        requestorLockTableJPanel.add(requestorLockLogEntrytableJScrollPane);
+        requestorLockTableJPanel.add(noteJPanel);
 
-		requestorLockLogEntryIndexList = log4jLogThreadDumpEntry.getLog4jLogRequestorLockEntryList();
+        return requestorLockTableJPanel;
+    }
 
-		ThreadDumpRequestorLockTableModel threadDumpRequestorLockTableModel;
+    protected JTable getRequestorLockLogEntryJtable() {
 
-		threadDumpRequestorLockTableModel = new ThreadDumpRequestorLockTableModel(requestorLockLogEntryIndexList);
+        final List<Log4jLogRequestorLockEntry> requestorLockLogEntryIndexList;
 
-		ThreadDumpRequestorLockTable requestorLockLogEntryJtable = new ThreadDumpRequestorLockTable(
-				threadDumpRequestorLockTableModel);
+        requestorLockLogEntryIndexList = log4jLogThreadDumpEntry.getLog4jLogRequestorLockEntryList();
 
-		ListSelectionModel lsm = requestorLockLogEntryJtable.getSelectionModel();
+        ThreadDumpRequestorLockTableModel threadDumpRequestorLockTableModel;
 
-		lsm.addListSelectionListener(new ListSelectionListener() {
+        threadDumpRequestorLockTableModel = new ThreadDumpRequestorLockTableModel(requestorLockLogEntryIndexList);
 
-			@Override
-			public void valueChanged(ListSelectionEvent e) {
+        ThreadDumpRequestorLockTable requestorLockLogEntryJtable = new ThreadDumpRequestorLockTable(
+                threadDumpRequestorLockTableModel);
 
-				if (!e.getValueIsAdjusting()) {
+        ListSelectionModel lsm = requestorLockLogEntryJtable.getSelectionModel();
 
-					int selectedRow = requestorLockLogEntryJtable.getSelectedRow();
+        lsm.addListSelectionListener(new ListSelectionListener() {
 
-					if (selectedRow >= 0) {
+            @Override
+            public void valueChanged(ListSelectionEvent listSelectionEvent) {
 
-						Log4jLogRequestorLockEntry log4jLogRequestorLockEntry;
+                if (!listSelectionEvent.getValueIsAdjusting()) {
 
-						log4jLogRequestorLockEntry = requestorLockLogEntryIndexList.get(selectedRow);
+                    int selectedRow = requestorLockLogEntryJtable.getSelectedRow();
 
-						JPanel requestorLockLogEntryDetailJPanel = log4jLogRequestorLockEntry.getDetailsJPanel(null);
+                    if (selectedRow >= 0) {
 
-						JPanel requestorLockLogEntryJPanel = getRequestorLockLogEntryJPanel();
+                        Log4jLogRequestorLockEntry log4jLogRequestorLockEntry;
 
-						requestorLockLogEntryJPanel.removeAll();
+                        log4jLogRequestorLockEntry = requestorLockLogEntryIndexList.get(selectedRow);
 
-						requestorLockLogEntryJPanel.add(requestorLockLogEntryDetailJPanel, BorderLayout.CENTER);
+                        JPanel requestorLockLogEntryDetailJPanel = log4jLogRequestorLockEntry
+                                .getDetailsJPanel(logTableModel);
 
-						requestorLockLogEntryJPanel.revalidate();
-					}
-				}
+                        JPanel requestorLockLogEntryJPanel = getRequestorLockLogEntryJPanel();
 
-			}
-		});
+                        requestorLockLogEntryJPanel.removeAll();
 
-		lsm.setSelectionInterval(0, 0);
+                        requestorLockLogEntryJPanel.add(requestorLockLogEntryDetailJPanel, BorderLayout.CENTER);
 
-		ThreadDumpTable threadDumpTable = getThreadDumpTable();
-		JTabbedPane threadDumpTabbedPane = getThreadDumpTabbedPane();
-		List<Integer> threadColumnList = new ArrayList<>();
-		threadColumnList.add(2);
-		threadColumnList.add(3);
-		threadColumnList.add(4);
+                        requestorLockLogEntryJPanel.revalidate();
+                    }
+                }
 
-		ThreadDumpRequestorLockTableMouseListener threadDumpRequestorLockTableMouseListener;
+            }
+        });
 
-		threadDumpRequestorLockTableMouseListener = new ThreadDumpRequestorLockTableMouseListener(threadDumpTable,
-				threadDumpTabbedPane, threadColumnList);
+        lsm.setSelectionInterval(0, 0);
 
-		requestorLockLogEntryJtable.addMouseListener(threadDumpRequestorLockTableMouseListener);
+        ThreadDumpTable threadDumpTable = getThreadDumpTable();
+        JTabbedPane threadDumpTabbedPane = getThreadDumpTabbedPane();
+        List<Integer> threadColumnList = new ArrayList<>();
+        threadColumnList.add(2);
+        threadColumnList.add(3);
+        threadColumnList.add(4);
 
-		return requestorLockLogEntryJtable;
-	}
+        ThreadDumpRequestorLockTableMouseListener threadDumpRequestorLockTableMouseListener;
 
-	private JPanel getThreadDumpThreadInfoJPanel() {
+        threadDumpRequestorLockTableMouseListener = new ThreadDumpRequestorLockTableMouseListener(threadDumpTable,
+                threadDumpTabbedPane, threadColumnList);
 
-		if (threadDumpThreadInfoJPanel == null) {
-			threadDumpThreadInfoJPanel = new JPanel();
-			threadDumpThreadInfoJPanel.setLayout(new BorderLayout());
-		}
+        requestorLockLogEntryJtable.addMouseListener(threadDumpRequestorLockTableMouseListener);
 
-		return threadDumpThreadInfoJPanel;
-	}
+        return requestorLockLogEntryJtable;
+    }
 
-	private JPanel getRequestorLockLogEntryJPanel() {
+    private JPanel getThreadDumpThreadInfoJPanel() {
 
-		if (requestorLockLogEntryJPanel == null) {
+        if (threadDumpThreadInfoJPanel == null) {
+            threadDumpThreadInfoJPanel = new JPanel();
+            threadDumpThreadInfoJPanel.setLayout(new BorderLayout());
+        }
 
-			requestorLockLogEntryJPanel = new JPanel();
-			requestorLockLogEntryJPanel.setLayout(new BorderLayout());
-		}
+        return threadDumpThreadInfoJPanel;
+    }
 
-		return requestorLockLogEntryJPanel;
-	}
+    private JPanel getRequestorLockLogEntryJPanel() {
+
+        if (requestorLockLogEntryJPanel == null) {
+
+            requestorLockLogEntryJPanel = new JPanel();
+            requestorLockLogEntryJPanel.setLayout(new BorderLayout());
+        }
+
+        return requestorLockLogEntryJPanel;
+    }
 
 }

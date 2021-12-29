@@ -4,22 +4,23 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.Frame;
 import java.awt.LayoutManager;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.text.DateFormat;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -38,1042 +39,867 @@ import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
-import javax.swing.JTable;
+import javax.swing.JTabbedPane;
 import javax.swing.JTree;
 import javax.swing.ListSelectionModel;
-import javax.swing.SwingConstants;
+import javax.swing.TransferHandler;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.event.TreeSelectionListener;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
-import javax.swing.table.JTableHeader;
-import javax.swing.table.TableColumn;
-import javax.swing.table.TableColumnModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
-import com.pega.gcs.fringecommon.guiutilities.MyColor;
+import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
 import com.pega.gcs.fringecommon.guiutilities.NavigationTableController;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.LogEntryPanel;
 import com.pega.gcs.logviewer.LogTableModel;
 import com.pega.gcs.logviewer.LogViewerUtil;
 import com.pega.gcs.logviewer.ThreadDumpPanel;
+import com.pega.gcs.logviewer.model.HazelcastMembership;
 import com.pega.gcs.logviewer.model.Log4jLogEntryModel;
 import com.pega.gcs.logviewer.model.Log4jLogThreadDumpEntry;
 import com.pega.gcs.logviewer.model.LogEntry;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
-import com.pega.gcs.logviewer.model.LogEntryData;
+import com.pega.gcs.logviewer.model.LogEntryKey;
+import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.SystemStart;
-import com.pega.gcs.logviewer.parser.LogSystemStartParser;
 
 public class Log4jSystemReportDialog extends SystemReportDialog {
 
-	private static final long serialVersionUID = -9039423327032627896L;
+    private static final long serialVersionUID = -9039423327032627896L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(Log4jSystemReportDialog.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(Log4jSystemReportDialog.class);
 
-	private static final String EXPAND_ALL_ACTION = "Expand all nodes";
+    private static final String EXPAND_ALL_ACTION = "Expand all nodes";
 
-	private static final String COLLAPSE_ALL_ACTION = "Collapse all nodes";
+    private static final String COLLAPSE_ALL_ACTION = "Collapse all nodes";
 
-	private JList<SystemStart> systemStartJList;
+    private DefaultListModel<ExceptionLeafNode> errorDefaultListModel;
 
-	private JTable systemStartJTable;
+    private DefaultTreeModel exceptionDefaultTreeModel;
 
-	private DefaultListModel<ExceptionLeafNode> errorDefaultListModel;
+    private JList<ExceptionLeafNode> errorJList;
 
-	private DefaultTreeModel exceptionDefaultTreeModel;
+    private JTree exceptionJTree;
 
-	private JList<ExceptionLeafNode> errorJList;
+    private JPanel errorAreaJPanel;
 
-	private JTree exceptionJTree;
+    private JButton expandAllExceptionJButton;
 
-	private JPanel errorAreaJPanel;
+    private JList<Log4jLogThreadDumpEntry> threadDumpJList;
 
-	private JButton expandAllExceptionJButton;
+    private JPanel threadDumpJPanel;
 
-	private JList<String> threadDumpJList;
+    private List<LogEntryKey> errorLogEntryIndexList;
 
-	private JPanel threadDumpJPanel;
+    private AtomicInteger threadDumpSelectedTab;
 
-	private List<Integer> errorLogEntryIndexList;
+    public Log4jSystemReportDialog(LogTableModel logTableModel,
+            NavigationTableController<LogEntryKey> navigationTableController, ImageIcon appIcon, Component parent) {
 
-	private AtomicInteger threadDumpSelectedTab;
+        super("System Overview - " + logTableModel.getModelName(), logTableModel, navigationTableController, appIcon,
+                parent);
 
-	public Log4jSystemReportDialog(LogTableModel logTableModel,
-			NavigationTableController<Integer> navigationTableController, ImageIcon appIcon, Component parent) {
+        threadDumpSelectedTab = new AtomicInteger(0);
 
-		super("System Overview - " + logTableModel.getModelName(), logTableModel, navigationTableController, appIcon,
-				parent);
+        setIconImage(appIcon.getImage());
 
-		threadDumpSelectedTab = new AtomicInteger(0);
+        setPreferredSize(new Dimension(1400, 800));
 
-		setIconImage(appIcon.getImage());
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-		setPreferredSize(new Dimension(1400, 800));
+        setContentPane(getMainJPanel());
 
-		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        pack();
 
-		setContentPane(getMainJPanel());
+        setExtendedState(Frame.MAXIMIZED_BOTH);
 
-		pack();
+    }
 
-		setExtendedState(Frame.MAXIMIZED_BOTH);
+    protected List<LogEntryKey> getErrorLogEntryIndexList() {
+        return errorLogEntryIndexList;
+    }
 
-	}
+    @Override
+    protected void buildTabs() {
 
-	protected List<Integer> getErrorLogEntryIndexList() {
-		return errorLogEntryIndexList;
-	}
+        try {
 
-	@Override
-	protected void buildTabs() {
+            addDefaultTabs();
 
-		try {
+            JTabbedPane reportTabbedPane = getReportTabbedPane();
 
-			addDefaultTabs();
+            Dimension labelDim = new Dimension(140, 26);
 
-			LogTableModel logTableModel = getLogTableModel();
+            NavigationTableController<LogEntryKey> navigationTableController;
+            navigationTableController = getNavigationTableController();
 
-			Log4jLogEntryModel log4jLogEntryModel;
-			log4jLogEntryModel = (Log4jLogEntryModel) logTableModel.getLogEntryModel();
+            LogTableModel logTableModel = getLogTableModel();
 
-			List<SystemStart> systemStartList = log4jLogEntryModel.getSystemStartList();
-			Map<String, List<Integer>> errorLogEntryIndexMap = log4jLogEntryModel.getErrorLogEntryIndexMap();
-			List<Integer> threadDumpIndexList = log4jLogEntryModel.getThreadDumpLogEntryIndexList();
+            Log4jLogEntryModel log4jLogEntryModel;
+            log4jLogEntryModel = (Log4jLogEntryModel) logTableModel.getLogEntryModel();
 
-			boolean containsSysStart = systemStartList.size() > 0;
-			boolean containsError = errorLogEntryIndexMap.size() > 0;
-			boolean containsThreadDump = threadDumpIndexList.size() > 0;
+            List<SystemStart> systemStartList = log4jLogEntryModel.getSystemStartList();
+            Map<String, List<LogEntryKey>> errorLogEntryIndexMap = log4jLogEntryModel.getErrorLogEntryIndexMap();
+            List<LogEntryKey> threadDumpIndexList = log4jLogEntryModel.getThreadDumpLogEntryKeyList();
+            List<HazelcastMembership> hazelcastMembershipList = log4jLogEntryModel.getHazelcastMembershipList();
 
-			if (containsSysStart) {
+            boolean containsSysStart = systemStartList.size() > 0;
+            boolean containsError = errorLogEntryIndexMap.size() > 0;
+            boolean containsThreadDump = threadDumpIndexList.size() > 0;
+            boolean containsHazelcastMembership = hazelcastMembershipList.size() > 0;
 
-				JComponent systemStartTabJComponent = getSystemStartTabJComponent();
+            if (containsSysStart) {
 
-				String tabLabelText = "System Start";
-				Dimension labelDim = new Dimension(140, 26);
+                SystemStartPanel systemStartPanel = new SystemStartPanel(logTableModel, navigationTableController);
 
-				addTab(systemStartTabJComponent, tabLabelText, labelDim);
+                String tabLabelText = "System Start";
 
-			}
+                GUIUtilities.addTab(reportTabbedPane, systemStartPanel, tabLabelText, labelDim);
 
-			if (containsError) {
+            }
 
-				initialiseErrorListModel();
+            if (containsError) {
 
-				JComponent errorTabJComponent = getErrorTabJComponent();
+                initialiseErrorListModel();
 
-				String tabLabelText = "Errors";
-				Dimension labelDim = new Dimension(140, 26);
+                JComponent errorTabJComponent = getErrorTabJComponent();
 
-				addTab(errorTabJComponent, tabLabelText, labelDim);
-			}
+                String tabLabelText = "Errors";
 
-			if (containsThreadDump) {
+                GUIUtilities.addTab(reportTabbedPane, errorTabJComponent, tabLabelText, labelDim);
+            }
 
-				JComponent threadDumpTabJComponent = getThreadDumpTabJComponent();
+            if (containsThreadDump) {
 
-				String tabLabelText = "Thread Dumps";
-				Dimension labelDim = new Dimension(140, 26);
+                JComponent threadDumpTabJComponent = getThreadDumpTabJComponent();
 
-				addTab(threadDumpTabJComponent, tabLabelText, labelDim);
-			}
+                String tabLabelText = "Thread Dumps";
 
-		} catch (Exception e) {
-			LOG.error("Error building overview tabs.", e);
-		}
-	}
+                GUIUtilities.addTab(reportTabbedPane, threadDumpTabJComponent, tabLabelText, labelDim);
+            }
 
-	private JComponent getSystemStartTabJComponent() {
+            if (containsHazelcastMembership) {
 
-		JList<SystemStart> systemStartJList = getSystemStartJList();
-		JTable systemStartJTable = getSystemStartJTable();
+                HazelcastMembershipReportPanel hzMembershipReportPanel;
+                hzMembershipReportPanel = new HazelcastMembershipReportPanel(logTableModel, navigationTableController);
 
-		JScrollPane systemStartJListJScrollPane = new JScrollPane(systemStartJList);
-		JScrollPane systemStartJTableJScrollPane = new JScrollPane(systemStartJTable);
+                String tabLabelText = "Cluster Info";
 
-		JSplitPane systemStartJSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, systemStartJListJScrollPane,
-				systemStartJTableJScrollPane);
+                GUIUtilities.addTab(reportTabbedPane, hzMembershipReportPanel, tabLabelText, labelDim);
 
-		systemStartJSplitPane.setDividerLocation(400);
+            }
 
-		return systemStartJSplitPane;
-	}
+        } catch (Exception e) {
+            LOG.error("Error building overview tabs.", e);
+        }
+    }
 
-	private JComponent getErrorTabJComponent() {
+    private JComponent getErrorTabJComponent() {
 
-		JComponent errorJComponent = getErrorJComponent();
-		JPanel errorAreaJPanel = getErrorAreaJPanel();
+        JComponent errorJComponent = getErrorJComponent();
+        JPanel errorAreaJPanel = getErrorAreaJPanel();
 
-		JSplitPane errorJSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, errorJComponent, errorAreaJPanel);
+        JSplitPane errorJSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, errorJComponent, errorAreaJPanel);
 
-		errorJSplitPane.setDividerLocation(400);
+        errorJSplitPane.setDividerLocation(400);
 
-		return errorJSplitPane;
-	}
+        return errorJSplitPane;
+    }
 
-	private JComponent getThreadDumpTabJComponent() {
+    private JComponent getThreadDumpTabJComponent() {
 
-		JList<String> threadDumpJList = getThreadDumpJList();
-		JPanel threadDumpJPanel = getThreadDumpJPanel();
+        JList<Log4jLogThreadDumpEntry> threadDumpJList = getThreadDumpJList();
+        JPanel threadDumpJPanel = getThreadDumpJPanel();
 
-		JScrollPane threadDumpJListJScrollPane = new JScrollPane(threadDumpJList);
+        JScrollPane threadDumpJListJScrollPane = new JScrollPane(threadDumpJList);
 
-		JSplitPane threadDumpJSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, threadDumpJListJScrollPane,
-				threadDumpJPanel);
+        JSplitPane threadDumpJSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, threadDumpJListJScrollPane,
+                threadDumpJPanel);
 
-		return threadDumpJSplitPane;
-	}
+        return threadDumpJSplitPane;
+    }
 
-	/**
-	 * @return the systemStartJList
-	 */
-	protected JList<SystemStart> getSystemStartJList() {
+    private void initialiseErrorListModel() {
 
-		if (systemStartJList == null) {
+        LogTableModel logTableModel = getLogTableModel();
 
-			LogTableModel logTableModel = getLogTableModel();
+        Log4jLogEntryModel log4jLogEntryModel;
+        log4jLogEntryModel = (Log4jLogEntryModel) logTableModel.getLogEntryModel();
 
-			final Log4jLogEntryModel log4jLogEntryModel;
-			log4jLogEntryModel = (Log4jLogEntryModel) logTableModel.getLogEntryModel();
+        Map<String, List<LogEntryKey>> errorLogEntryIndexMap = log4jLogEntryModel.getErrorLogEntryIndexMap();
 
-			List<SystemStart> systemStartList = log4jLogEntryModel.getSystemStartList();
+        Map<LogEntryKey, LogEntry> logEntryMap = log4jLogEntryModel.getLogEntryMap();
 
-			DefaultListModel<SystemStart> dlm = new DefaultListModel<SystemStart>();
+        errorDefaultListModel = new DefaultListModel<ExceptionLeafNode>();
 
-			for (SystemStart systemStart : systemStartList) {
-				dlm.addElement(systemStart);
-			}
+        DefaultMutableTreeNode root = new DefaultMutableTreeNode("TD");
+        exceptionDefaultTreeModel = new DefaultTreeModel(root);
 
-			systemStartJList = new JList<SystemStart>(dlm);
-			systemStartJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        errorLogEntryIndexList = new ArrayList<LogEntryKey>();
 
-			ListSelectionListener lsl = new ListSelectionListener() {
+        Map<String, DefaultMutableTreeNode> exceptionNodeMap;
+        exceptionNodeMap = new TreeMap<String, DefaultMutableTreeNode>();
 
-				@Override
-				public void valueChanged(ListSelectionEvent e) {
+        Map<LogEntryKey, ExceptionLeafNode> errorLogElementMap = new TreeMap<>();
 
-					JList<SystemStart> systemStartJList = getSystemStartJList();
+        for (String errorText : errorLogEntryIndexMap.keySet()) {
 
-					if ((!e.getValueIsAdjusting()) && (systemStartJList.getSelectedIndex() != -1)) {
+            DefaultMutableTreeNode dmtn = exceptionNodeMap.get(errorText);
 
-						SystemStart systemStart = (SystemStart) systemStartJList.getSelectedValue();
+            if (dmtn == null) {
 
-						LogSystemStartParser logSystemStartParser = LogSystemStartParser.getInstance();
+                dmtn = new DefaultMutableTreeNode(errorText) {
 
-						Map<String, String> systemStartMap;
-						systemStartMap = logSystemStartParser.getSystemStartMap(systemStart, log4jLogEntryModel);
+                    private static final long serialVersionUID = -4512307930740847502L;
 
-						DefaultTableModel dtm = new DefaultTableModel(new String[] { "Key", "Value" }, 0);
+                    @Override
+                    public String toString() {
 
-						for (Map.Entry<String, String> entrySet : systemStartMap.entrySet()) {
+                        String userObjectStr = super.toString();
+                        int count = getChildCount();
+                        return userObjectStr + " (" + count + ")";
+                    }
+                };
 
-							dtm.addRow(new String[] { entrySet.getKey(), entrySet.getValue() });
-						}
+                root.add(dmtn);
+                exceptionNodeMap.put(errorText, dmtn);
+            }
 
-						JTable systemStartJTable = getSystemStartJTable();
-						systemStartJTable.setModel(dtm);
+            List<LogEntryKey> errorLogEntryKeyList;
 
-						TableColumnModel tcm = systemStartJTable.getColumnModel();
+            errorLogEntryKeyList = errorLogEntryIndexMap.get(errorText);
 
-						for (int column = 0; column < dtm.getColumnCount(); column++) {
+            for (LogEntryKey logEntryKey : errorLogEntryKeyList) {
 
-							TableColumn tc = tcm.getColumn(column);
-							DefaultTableCellRenderer dtcr = getDefaultTableCellRenderer();
+                LogEntry logEntry = logEntryMap.get(logEntryKey);
 
-							if (column == 0) {
-								tc.setPreferredWidth(280);
-								tc.setWidth(270);
-							} else {
-								tc.setPreferredWidth(500);
-								tc.setWidth(450);
-							}
+                ExceptionLeafNode eln = new ExceptionLeafNode(logEntry);
 
-							tc.setCellRenderer(dtcr);
-						}
+                DefaultMutableTreeNode newChild = new DefaultMutableTreeNode(eln);
 
-						systemStartJTable.updateUI();
-					}
-				}
-			};
+                dmtn.add(newChild);
 
-			systemStartJList.addListSelectionListener(lsl);
+                errorLogElementMap.put(logEntryKey, eln);
 
-			systemStartJList.addMouseListener(new MouseAdapter() {
+            }
 
-				@Override
-				public void mouseClicked(MouseEvent e) {
+        }
 
-					if (e.getClickCount() == 2) {
+        int errorCounter = 1;
 
-						JList<SystemStart> systemStartJList = getSystemStartJList();
+        for (LogEntryKey logEntryKey : errorLogElementMap.keySet()) {
 
-						int clickedIndex = systemStartJList.locationToIndex(e.getPoint());
+            ExceptionLeafNode element = errorLogElementMap.get(logEntryKey);
+            element.setIndex(errorCounter);
 
-						List<SystemStart> systemStartList = log4jLogEntryModel.getSystemStartList();
+            errorLogEntryIndexList.add(logEntryKey);
+            errorDefaultListModel.addElement(element);
 
-						SystemStart systemStart = systemStartList.get(clickedIndex);
+            errorCounter++;
 
-						Integer logEntryIndex = systemStart.getBeginIndex();
+        }
 
-						NavigationTableController<Integer> navigationTableController;
-						navigationTableController = getNavigationTableController();
+    }
 
-						navigationTableController.scrollToKey(logEntryIndex);
+    private JComponent getErrorJComponent() {
 
-					} else {
-						super.mouseClicked(e);
-					}
-				}
+        JPanel errorJListJPanel = getErrorJListJPanel();
 
-			});
+        JPanel exceptionJTreeJPanel = getExceptionJTreeJPanel();
 
-			DefaultListCellRenderer dlcr = getDefaultListCellRenderer();
+        JSplitPane errorJSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, errorJListJPanel, exceptionJTreeJPanel);
 
-			systemStartJList.setCellRenderer(dlcr);
+        errorJSplitPane.setDividerLocation(300);
 
-			systemStartJList.setFixedCellHeight(20);
-		}
+        return errorJSplitPane;
+    }
 
-		return systemStartJList;
-	}
+    private JPanel getErrorJListJPanel() {
 
-	/**
-	 * @return the systemStartJTable
-	 */
-	protected JTable getSystemStartJTable() {
+        JPanel errorJListJPanel = new JPanel();
 
-		if (systemStartJTable == null) {
+        LayoutManager layout = new BoxLayout(errorJListJPanel, BoxLayout.PAGE_AXIS);
 
-			DefaultTableModel dtm = new DefaultTableModel();
+        errorJListJPanel.setLayout(layout);
 
-			systemStartJTable = new JTable(dtm);
+        JPanel errorJTreeHeaderJPanel = getErrorJTreeHeaderJPanel();
 
-			systemStartJTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        JList<ExceptionLeafNode> errorJList = getErrorJList();
+        JScrollPane errorJTreeJScrollPane = new JScrollPane(errorJList);
 
-			systemStartJTable.setRowHeight(20);
+        errorJListJPanel.add(errorJTreeHeaderJPanel);
+        errorJListJPanel.add(errorJTreeJScrollPane);
 
-			JTableHeader tableHeader = systemStartJTable.getTableHeader();
+        return errorJListJPanel;
+    }
 
-			DefaultTableCellRenderer dtcr = (DefaultTableCellRenderer) tableHeader.getDefaultRenderer();
-			dtcr.setHorizontalAlignment(SwingConstants.CENTER);
+    private JPanel getErrorJTreeHeaderJPanel() {
 
-			Font existingFont = tableHeader.getFont();
-			String existingFontName = existingFont.getName();
-			int existFontSize = existingFont.getSize();
-			Font newFont = new Font(existingFontName, Font.BOLD, existFontSize);
-			tableHeader.setFont(newFont);
+        JPanel errorJTreeHeaderJPanel = new JPanel();
 
-			tableHeader.setReorderingAllowed(false);
+        LayoutManager layout = new BoxLayout(errorJTreeHeaderJPanel, BoxLayout.LINE_AXIS);
 
-		}
+        errorJTreeHeaderJPanel.setLayout(layout);
 
-		return systemStartJTable;
-	}
+        String labelText = "Error List";
+        JLabel errorListJLabel = LogViewerUtil.getHeaderLabel(labelText, 200);
 
-	private void initialiseErrorListModel() {
+        Dimension edge = new Dimension(10, 35);
 
-		LogTableModel logTableModel = getLogTableModel();
+        errorJTreeHeaderJPanel.add(Box.createRigidArea(edge));
+        errorJTreeHeaderJPanel.add(Box.createHorizontalGlue());
+        errorJTreeHeaderJPanel.add(errorListJLabel);
+        errorJTreeHeaderJPanel.add(Box.createHorizontalGlue());
+        errorJTreeHeaderJPanel.add(Box.createRigidArea(edge));
 
-		Log4jLogEntryModel log4jLogEntryModel;
-		log4jLogEntryModel = (Log4jLogEntryModel) logTableModel.getLogEntryModel();
+        errorJTreeHeaderJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-		Map<String, List<Integer>> errorLogEntryIndexMap = log4jLogEntryModel.getErrorLogEntryIndexMap();
+        return errorJTreeHeaderJPanel;
+    }
 
-		Map<Integer, LogEntry> logEntryMap = log4jLogEntryModel.getLogEntryMap();
+    private JPanel getExceptionJTreeJPanel() {
 
-		DateFormat displayDateFormat = log4jLogEntryModel.getDisplayDateFormat();
+        JPanel exceptionJTreeJPanel = new JPanel();
 
-		errorDefaultListModel = new DefaultListModel<ExceptionLeafNode>();
+        LayoutManager layout = new BoxLayout(exceptionJTreeJPanel, BoxLayout.PAGE_AXIS);
 
-		DefaultMutableTreeNode root = new DefaultMutableTreeNode("TD");
-		exceptionDefaultTreeModel = new DefaultTreeModel(root);
+        exceptionJTreeJPanel.setLayout(layout);
 
-		errorLogEntryIndexList = new ArrayList<Integer>();
+        JPanel exceptionJTreeHeaderJPanel = getExceptionJTreeHeaderJPanel();
 
-		Map<String, DefaultMutableTreeNode> exceptionNodeMap;
-		exceptionNodeMap = new TreeMap<String, DefaultMutableTreeNode>();
+        JTree exceptionJTree = getExceptionJTree();
+        JScrollPane exceptionJTreeJScrollPane = new JScrollPane(exceptionJTree);
 
-		Map<Integer, ExceptionLeafNode> errorLogElementMap = new TreeMap<Integer, ExceptionLeafNode>();
+        exceptionJTreeJPanel.add(exceptionJTreeHeaderJPanel);
+        exceptionJTreeJPanel.add(exceptionJTreeJScrollPane);
 
-		List<String> logEntryColumnList = log4jLogEntryModel.getLogEntryColumnList();
+        return exceptionJTreeJPanel;
+    }
 
-		int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
+    private JPanel getExceptionJTreeHeaderJPanel() {
 
-		for (String errorText : errorLogEntryIndexMap.keySet()) {
+        JPanel exceptionJTreeHeaderJPanel = new JPanel();
 
-			DefaultMutableTreeNode dmtn = exceptionNodeMap.get(errorText);
+        LayoutManager layout = new BoxLayout(exceptionJTreeHeaderJPanel, BoxLayout.LINE_AXIS);
 
-			if (dmtn == null) {
+        exceptionJTreeHeaderJPanel.setLayout(layout);
 
-				dmtn = new DefaultMutableTreeNode(errorText) {
+        String labelText = "Error List - Grouped by Exception";
+        JLabel threadDumpAtTraceJLabel = LogViewerUtil.getHeaderLabel(labelText, 200);
 
-					private static final long serialVersionUID = -4512307930740847502L;
+        JButton expandAllExceptionJButton = getExpandAllExceptionJButton();
 
-					@Override
-					public String toString() {
+        Dimension edge = new Dimension(10, 35);
+        Dimension spacer = new Dimension(1, 35);
 
-						String userObjectStr = super.toString();
-						int count = getChildCount();
-						return userObjectStr + " (" + count + ")";
-					}
-				};
+        exceptionJTreeHeaderJPanel.add(Box.createRigidArea(edge));
+        exceptionJTreeHeaderJPanel.add(Box.createHorizontalGlue());
+        exceptionJTreeHeaderJPanel.add(threadDumpAtTraceJLabel);
+        exceptionJTreeHeaderJPanel.add(Box.createHorizontalGlue());
+        exceptionJTreeHeaderJPanel.add(Box.createRigidArea(spacer));
+        exceptionJTreeHeaderJPanel.add(Box.createHorizontalGlue());
+        exceptionJTreeHeaderJPanel.add(expandAllExceptionJButton);
+        exceptionJTreeHeaderJPanel.add(Box.createHorizontalGlue());
+        exceptionJTreeHeaderJPanel.add(Box.createRigidArea(edge));
 
-				root.add(dmtn);
-				exceptionNodeMap.put(errorText, dmtn);
-			}
+        exceptionJTreeHeaderJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-			List<Integer> errorLEIndexList;
+        return exceptionJTreeHeaderJPanel;
+    }
 
-			errorLEIndexList = errorLogEntryIndexMap.get(errorText);
+    protected JList<ExceptionLeafNode> getErrorJList() {
 
-			for (Integer errorLogEntryIndex : errorLEIndexList) {
+        if (errorJList == null) {
 
-				LogEntry logEntry = logEntryMap.get(errorLogEntryIndex);
+            LogTableModel logTableModel = getLogTableModel();
 
-				String timeText = null;
+            LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-				Date logEntryDate = logEntry.getLogEntryDate();
+            errorJList = new JList<ExceptionLeafNode>(errorDefaultListModel);
+            errorJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-				// date can be null in case of corrupted log file.
-				if (logEntryDate != null) {
-					timeText = displayDateFormat.format(logEntryDate);
-				}
+            ListSelectionListener lsl = new ListSelectionListener() {
 
-				LogEntryData logEntryData = logEntry.getLogEntryData();
+                @Override
+                public void valueChanged(ListSelectionEvent listSelectionEvent) {
 
-				String message = logEntryData.getLogEntryValueList().get(messageIndex);
+                    JList<ExceptionLeafNode> errorJList = getErrorJList();
 
-				String element = "Time [" + timeText + "] Line No [" + errorLogEntryIndex + "] [" + message + "]";
+                    int selectedIndex = errorJList.getSelectedIndex();
 
-				ExceptionLeafNode eln = new ExceptionLeafNode(element, logEntry);
+                    if ((!listSelectionEvent.getValueIsAdjusting()) && (selectedIndex != -1)) {
 
-				DefaultMutableTreeNode newChild = new DefaultMutableTreeNode(eln);
+                        ExceptionLeafNode exceptionLeafNode = errorJList.getSelectedValue();
 
-				dmtn.add(newChild);
+                        LogEntry logEntry = exceptionLeafNode.getLogEntry();
 
-				errorLogElementMap.put(errorLogEntryIndex, eln);
+                        String logEntryText = logEntry.getLogEntryText();
 
-			}
+                        Charset charset = logTableModel.getCharset();
 
-		}
+                        JPanel rawTextJPanel = new LogEntryPanel(logEntryText, charset);
 
-		int errorCounter = 1;
+                        JPanel errorJPanel = getErrorAreaJPanel();
 
-		for (Integer errorIndex : errorLogElementMap.keySet()) {
+                        errorJPanel.removeAll();
 
-			ExceptionLeafNode element = errorLogElementMap.get(errorIndex);
-			element.setCounter(errorCounter);
+                        errorJPanel.add(rawTextJPanel, BorderLayout.CENTER);
 
-			errorLogEntryIndexList.add(errorIndex);
-			errorDefaultListModel.addElement(element);
+                        errorJPanel.revalidate();
+                    }
+                }
+            };
 
-			errorCounter++;
+            errorJList.addListSelectionListener(lsl);
 
-		}
+            errorJList.addMouseListener(new MouseAdapter() {
 
-	}
+                @Override
+                public void mouseClicked(MouseEvent mouseEvent) {
 
-	private JComponent getErrorJComponent() {
+                    if (mouseEvent.getClickCount() == 2) {
 
-		JPanel errorJListJPanel = getErrorJListJPanel();
+                        JList<ExceptionLeafNode> errorJList = getErrorJList();
 
-		JPanel exceptionJTreeJPanel = getExceptionJTreeJPanel();
+                        int clickedIndex = errorJList.locationToIndex(mouseEvent.getPoint());
 
-		JSplitPane errorJSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, errorJListJPanel, exceptionJTreeJPanel);
+                        if (clickedIndex >= 0) {
 
-		errorJSplitPane.setDividerLocation(300);
+                            ExceptionLeafNode exceptionLeafNode;
+                            exceptionLeafNode = errorJList.getModel().getElementAt(clickedIndex);
 
-		return errorJSplitPane;
-	}
+                            LogEntry logEntry = exceptionLeafNode.getLogEntry();
 
-	private JPanel getErrorJListJPanel() {
+                            LogEntryKey logEntryKey = logEntry.getKey();
 
-		JPanel errorJListJPanel = new JPanel();
+                            NavigationTableController<LogEntryKey> navigationTableController;
+                            navigationTableController = getNavigationTableController();
+                            navigationTableController.scrollToKey(logEntryKey);
+                        }
 
-		LayoutManager layout = new BoxLayout(errorJListJPanel, BoxLayout.PAGE_AXIS);
+                    } else {
+                        super.mouseClicked(mouseEvent);
+                    }
+                }
 
-		errorJListJPanel.setLayout(layout);
+            });
 
-		JPanel errorJTreeHeaderJPanel = getErrorJTreeHeaderJPanel();
+            DefaultListCellRenderer dlcr = new DefaultListCellRenderer() {
 
-		JList<ExceptionLeafNode> errorJList = getErrorJList();
-		JScrollPane errorJTreeJScrollPane = new JScrollPane(errorJList);
+                private static final long serialVersionUID = 8776495897305233378L;
 
-		errorJListJPanel.add(errorJTreeHeaderJPanel);
-		errorJListJPanel.add(errorJTreeJScrollPane);
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                        boolean isSelected, boolean cellHasFocus) {
 
-		return errorJListJPanel;
-	}
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
 
-	private JPanel getErrorJTreeHeaderJPanel() {
+                    setBorder(new EmptyBorder(1, 10, 1, 1));
 
-		JPanel errorJTreeHeaderJPanel = new JPanel();
+                    ExceptionLeafNode exceptionLeafNode = (ExceptionLeafNode) value;
 
-		LayoutManager layout = new BoxLayout(errorJTreeHeaderJPanel, BoxLayout.LINE_AXIS);
+                    String displayString = exceptionLeafNode.getDisplayString(logEntryModel);
 
-		errorJTreeHeaderJPanel.setLayout(layout);
+                    setText(displayString);
+                    setToolTipText(displayString);
 
-		String labelText = "Error List";
-		JLabel errorListJLabel = LogViewerUtil.getHeaderJLabel(labelText, 200);
+                    return this;
+                }
 
-		Dimension edge = new Dimension(10, 35);
+            };
 
-		errorJTreeHeaderJPanel.add(Box.createRigidArea(edge));
-		errorJTreeHeaderJPanel.add(Box.createHorizontalGlue());
-		errorJTreeHeaderJPanel.add(errorListJLabel);
-		errorJTreeHeaderJPanel.add(Box.createHorizontalGlue());
-		errorJTreeHeaderJPanel.add(Box.createRigidArea(edge));
+            errorJList.setCellRenderer(dlcr);
 
-		errorJTreeHeaderJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+            errorJList.setFixedCellHeight(20);
+        }
 
-		return errorJTreeHeaderJPanel;
-	}
+        return errorJList;
+    }
 
-	private JPanel getExceptionJTreeJPanel() {
+    protected JTree getExceptionJTree() {
 
-		JPanel exceptionJTreeJPanel = new JPanel();
+        if (exceptionJTree == null) {
 
-		LayoutManager layout = new BoxLayout(exceptionJTreeJPanel, BoxLayout.PAGE_AXIS);
+            LogTableModel logTableModel = getLogTableModel();
 
-		exceptionJTreeJPanel.setLayout(layout);
+            LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-		JPanel exceptionJTreeHeaderJPanel = getExceptionJTreeHeaderJPanel();
+            exceptionJTree = new JTree(exceptionDefaultTreeModel);
+            exceptionJTree.setRootVisible(false);
+            exceptionJTree.setShowsRootHandles(true);
 
-		JTree exceptionJTree = getExceptionJTree();
-		JScrollPane exceptionJTreeJScrollPane = new JScrollPane(exceptionJTree);
+            DefaultTreeCellRenderer dtcr = new DefaultTreeCellRenderer() {
 
-		exceptionJTreeJPanel.add(exceptionJTreeHeaderJPanel);
-		exceptionJTreeJPanel.add(exceptionJTreeJScrollPane);
+                private static final long serialVersionUID = 6967086772869544871L;
 
-		return exceptionJTreeJPanel;
-	}
+                @Override
+                public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded,
+                        boolean leaf, int row, boolean hasFocus) {
 
-	private JPanel getExceptionJTreeHeaderJPanel() {
+                    super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row, hasFocus);
 
-		JPanel exceptionJTreeHeaderJPanel = new JPanel();
+                    setBorder(new EmptyBorder(1, 5, 1, 1));
 
-		LayoutManager layout = new BoxLayout(exceptionJTreeHeaderJPanel, BoxLayout.LINE_AXIS);
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) value;
 
-		exceptionJTreeHeaderJPanel.setLayout(layout);
+                    if (node != null) {
 
-		String labelText = "Error List - Grouped by Exception";
-		JLabel threadDumpAtTraceJLabel = LogViewerUtil.getHeaderJLabel(labelText, 200);
+                        Object userObject = node.getUserObject();
 
-		JButton expandAllExceptionJButton = getExpandAllExceptionJButton();
+                        if (userObject instanceof ExceptionLeafNode) {
 
-		Dimension edge = new Dimension(10, 35);
-		Dimension spacer = new Dimension(1, 35);
+                            ExceptionLeafNode eln = (ExceptionLeafNode) userObject;
 
-		exceptionJTreeHeaderJPanel.add(Box.createRigidArea(edge));
-		exceptionJTreeHeaderJPanel.add(Box.createHorizontalGlue());
-		exceptionJTreeHeaderJPanel.add(threadDumpAtTraceJLabel);
-		exceptionJTreeHeaderJPanel.add(Box.createHorizontalGlue());
-		exceptionJTreeHeaderJPanel.add(Box.createRigidArea(spacer));
-		exceptionJTreeHeaderJPanel.add(Box.createHorizontalGlue());
-		exceptionJTreeHeaderJPanel.add(expandAllExceptionJButton);
-		exceptionJTreeHeaderJPanel.add(Box.createHorizontalGlue());
-		exceptionJTreeHeaderJPanel.add(Box.createRigidArea(edge));
+                            String displayString = eln.getDisplayString(logEntryModel);
 
-		exceptionJTreeHeaderJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+                            setText(displayString);
+                            setToolTipText(displayString);
 
-		return exceptionJTreeHeaderJPanel;
-	}
+                        }
+                    }
 
-	/**
-	 * @return the errorJList
-	 */
-	protected JList<ExceptionLeafNode> getErrorJList() {
+                    return this;
+                }
+            };
 
-		if (errorJList == null) {
+            dtcr.setIcon(null);
+            dtcr.setOpenIcon(null);
+            dtcr.setClosedIcon(null);
+            dtcr.setLeafIcon(null);
 
-			errorJList = new JList<ExceptionLeafNode>(errorDefaultListModel);
-			errorJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            exceptionJTree.setCellRenderer(dtcr);
 
-			ListSelectionListener lsl = new ListSelectionListener() {
+            TreeSelectionListener tsl = new TreeSelectionListener() {
 
-				@Override
-				public void valueChanged(ListSelectionEvent e) {
+                @Override
+                public void valueChanged(TreeSelectionEvent treeSelectionEvent) {
 
-					JList<ExceptionLeafNode> errorJList = getErrorJList();
-					List<Integer> errorLogEntryIndexList = getErrorLogEntryIndexList();
+                    JTree exceptionJTree = getExceptionJTree();
 
-					int selectedIndex = errorJList.getSelectedIndex();
+                    DefaultMutableTreeNode node = (DefaultMutableTreeNode) exceptionJTree
+                            .getLastSelectedPathComponent();
 
-					if ((!e.getValueIsAdjusting()) && (selectedIndex != -1)) {
+                    if (node != null) {
 
-						Integer logEntryIndex = errorLogEntryIndexList.get(selectedIndex);
+                        Object userObject = node.getUserObject();
 
-						LogTableModel logTableModel = getLogTableModel();
+                        if (userObject instanceof ExceptionLeafNode) {
 
-						Log4jLogEntryModel log4jLogEntryModel;
-						log4jLogEntryModel = (Log4jLogEntryModel) logTableModel.getLogEntryModel();
+                            ExceptionLeafNode eln = (ExceptionLeafNode) userObject;
 
-						Map<Integer, LogEntry> logEntryMap = log4jLogEntryModel.getLogEntryMap();
+                            LogEntry logEntry = eln.getLogEntry();
+                            LogEntryKey logEntryKey = logEntry.getKey();
 
-						LogEntry logEntry = logEntryMap.get(logEntryIndex);
+                            errorJListScrollToIndex(logEntryKey);
 
-						String logEntryText = logEntry.getLogEntryText();
+                        }
 
-						JPanel rawTextJPanel = new LogEntryPanel(logEntryText);
+                    }
+                }
+            };
 
-						JPanel errorJPanel = getErrorAreaJPanel();
+            exceptionJTree.addTreeSelectionListener(tsl);
 
-						errorJPanel.removeAll();
+            TreeSelectionModel tsm = exceptionJTree.getSelectionModel();
 
-						errorJPanel.add(rawTextJPanel, BorderLayout.CENTER);
+            tsm.setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
 
-						errorJPanel.revalidate();
-					}
-				}
-			};
+            exceptionJTree.setRowHeight(20);
+            exceptionJTree.addMouseListener(new MouseAdapter() {
 
-			errorJList.addListSelectionListener(lsl);
+                @Override
+                public void mouseClicked(MouseEvent mouseEvent) {
 
-			DefaultListCellRenderer dlcr = getDefaultListCellRenderer();
+                    JTree exceptionJTree = getExceptionJTree();
 
-			errorJList.setCellRenderer(dlcr);
+                    int selRow = exceptionJTree.getRowForLocation(mouseEvent.getX(), mouseEvent.getY());
+                    TreePath selPath = exceptionJTree.getPathForLocation(mouseEvent.getX(), mouseEvent.getY());
 
-			errorJList.setFixedCellHeight(20);
+                    if (selRow != -1) {
 
-			errorJList.addMouseListener(new MouseAdapter() {
+                        DefaultMutableTreeNode dmtn = (DefaultMutableTreeNode) selPath.getLastPathComponent();
 
-				@Override
-				public void mouseClicked(MouseEvent e) {
+                        Object userObject = dmtn.getUserObject();
 
-					if (e.getClickCount() == 2) {
+                        if (userObject instanceof ExceptionLeafNode) {
+                            ExceptionLeafNode eln = (ExceptionLeafNode) userObject;
 
-						JList<ExceptionLeafNode> errorJList = getErrorJList();
-						List<Integer> errorLogEntryIndexList = getErrorLogEntryIndexList();
+                            LogEntry logEntry = eln.getLogEntry();
+                            LogEntryKey logEntryKey = logEntry.getKey();
 
-						int clickedIndex = errorJList.locationToIndex(e.getPoint());
+                            if (mouseEvent.getClickCount() == 2) {
 
-						Integer logEntryIndex = errorLogEntryIndexList.get(clickedIndex);
+                                NavigationTableController<LogEntryKey> navigationTableController;
+                                navigationTableController = getNavigationTableController();
+                                navigationTableController.scrollToKey(logEntryKey);
 
-						NavigationTableController<Integer> navigationTableController;
-						navigationTableController = getNavigationTableController();
-						navigationTableController.scrollToKey(logEntryIndex);
+                            } else {
+                                errorJListScrollToIndex(logEntryKey);
+                            }
+                        }
+                    }
+                }
 
-					} else {
-						super.mouseClicked(e);
-					}
-				}
+            });
 
-			});
-		}
+        }
 
-		return errorJList;
-	}
+        return exceptionJTree;
+    }
 
-	/**
-	 * @return the exceptionJTree
-	 */
-	protected JTree getExceptionJTree() {
+    protected void errorJListScrollToIndex(LogEntryKey logEntryKey) {
 
-		if (exceptionJTree == null) {
+        JList<ExceptionLeafNode> errorJList = getErrorJList();
 
-			exceptionJTree = new JTree(exceptionDefaultTreeModel);
-			exceptionJTree.setRootVisible(false);
-			exceptionJTree.setShowsRootHandles(true);
+        int index = errorLogEntryIndexList.indexOf(logEntryKey);
 
-			DefaultTreeCellRenderer dtcr = new DefaultTreeCellRenderer() {
+        errorJList.setSelectedIndex(index);
+        errorJList.ensureIndexIsVisible(index);
+    }
 
-				private static final long serialVersionUID = 6967086772869544871L;
+    public JButton getExpandAllExceptionJButton() {
+        if (expandAllExceptionJButton == null) {
 
-				@Override
-				public Component getTreeCellRendererComponent(JTree tree, Object value, boolean sel, boolean expanded,
-						boolean leaf, int row, boolean hasFocus) {
+            expandAllExceptionJButton = new JButton(EXPAND_ALL_ACTION);
+            expandAllExceptionJButton.setActionCommand(EXPAND_ALL_ACTION);
 
-					JLabel label = (JLabel) super.getTreeCellRendererComponent(tree, value, sel, expanded, leaf, row,
-							hasFocus);
+            Dimension dim = new Dimension(150, 25);
+            expandAllExceptionJButton.setPreferredSize(dim);
+            expandAllExceptionJButton.setMaximumSize(dim);
 
-					label.setBorder(new EmptyBorder(1, 5, 1, 1));
+            expandAllExceptionJButton.addActionListener(new ActionListener() {
 
-					return label;
-				}
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
 
-			};
+                    JButton expandAllExceptionJButton = getExpandAllExceptionJButton();
 
-			dtcr.setIcon(null);
-			dtcr.setOpenIcon(null);
-			dtcr.setClosedIcon(null);
-			dtcr.setLeafIcon(null);
+                    if (EXPAND_ALL_ACTION.equals(actionEvent.getActionCommand())) {
 
-			exceptionJTree.setCellRenderer(dtcr);
+                        JTree exceptionJTree = getExceptionJTree();
+                        LogViewerUtil.expandAll(exceptionJTree, true);
 
-			TreeSelectionListener tsl = new TreeSelectionListener() {
+                        expandAllExceptionJButton.setText(COLLAPSE_ALL_ACTION);
+                        expandAllExceptionJButton.setActionCommand(COLLAPSE_ALL_ACTION);
 
-				@Override
-				public void valueChanged(TreeSelectionEvent e) {
+                    } else {
 
-					JTree exceptionJTree = getExceptionJTree();
+                        JTree exceptionJTree = getExceptionJTree();
+                        LogViewerUtil.expandAll(exceptionJTree, false);
 
-					DefaultMutableTreeNode node = (DefaultMutableTreeNode) exceptionJTree
-							.getLastSelectedPathComponent();
+                        expandAllExceptionJButton.setText(EXPAND_ALL_ACTION);
+                        expandAllExceptionJButton.setActionCommand(EXPAND_ALL_ACTION);
 
-					if (node != null) {
+                    }
 
-						Object userObject = node.getUserObject();
+                }
+            });
+        }
 
-						if (userObject instanceof ExceptionLeafNode) {
+        return expandAllExceptionJButton;
+    }
 
-							ExceptionLeafNode eln = (ExceptionLeafNode) userObject;
+    protected JPanel getErrorAreaJPanel() {
 
-							LogEntry logEntry = eln.getLogEntry();
-							Integer logEntryIndex = logEntry.getKey();
+        if (errorAreaJPanel == null) {
+            errorAreaJPanel = new JPanel();
+            errorAreaJPanel.setLayout(new BorderLayout());
+        }
 
-							errorJListScrollToIndex(logEntryIndex);
+        return errorAreaJPanel;
+    }
 
-						}
+    protected JList<Log4jLogThreadDumpEntry> getThreadDumpJList() {
 
-					}
-				}
-			};
+        if (threadDumpJList == null) {
 
-			exceptionJTree.addTreeSelectionListener(tsl);
+            final LogTableModel logTableModel = getLogTableModel();
 
-			TreeSelectionModel tsm = exceptionJTree.getSelectionModel();
+            Log4jLogEntryModel log4jLogEntryModel;
+            log4jLogEntryModel = (Log4jLogEntryModel) logTableModel.getLogEntryModel();
 
-			tsm.setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
+            List<LogEntryKey> threadDumpKeyList = log4jLogEntryModel.getThreadDumpLogEntryKeyList();
 
-			exceptionJTree.setRowHeight(20);
-			exceptionJTree.addMouseListener(new MouseAdapter() {
+            Map<LogEntryKey, LogEntry> logEntryMap = log4jLogEntryModel.getLogEntryMap();
 
-				@Override
-				public void mouseClicked(MouseEvent e) {
+            DefaultListModel<Log4jLogThreadDumpEntry> dlm = new DefaultListModel<Log4jLogThreadDumpEntry>();
 
-					JTree exceptionJTree = getExceptionJTree();
+            for (LogEntryKey logEntryKey : threadDumpKeyList) {
 
-					int selRow = exceptionJTree.getRowForLocation(e.getX(), e.getY());
-					TreePath selPath = exceptionJTree.getPathForLocation(e.getX(), e.getY());
+                Log4jLogThreadDumpEntry log4jLogThreadDumpEntry = (Log4jLogThreadDumpEntry) logEntryMap
+                        .get(logEntryKey);
 
-					if (selRow != -1) {
+                dlm.addElement(log4jLogThreadDumpEntry);
+            }
 
-						DefaultMutableTreeNode dmtn = (DefaultMutableTreeNode) selPath.getLastPathComponent();
+            threadDumpJList = new JList<Log4jLogThreadDumpEntry>(dlm);
+            threadDumpJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-						Object userObject = dmtn.getUserObject();
+            ListSelectionListener lsl = new ListSelectionListener() {
 
-						if (userObject instanceof ExceptionLeafNode) {
-							ExceptionLeafNode eln = (ExceptionLeafNode) userObject;
+                @Override
+                public void valueChanged(ListSelectionEvent listSelectionEvent) {
 
-							LogEntry logEntry = eln.getLogEntry();
-							Integer logEntryIndex = logEntry.getKey();
+                    JList<Log4jLogThreadDumpEntry> threadDumpJList = getThreadDumpJList();
 
-							if (e.getClickCount() == 2) {
+                    int selectedIndex = threadDumpJList.getSelectedIndex();
 
-								NavigationTableController<Integer> navigationTableController;
-								navigationTableController = getNavigationTableController();
-								navigationTableController.scrollToKey(logEntryIndex);
+                    if ((!listSelectionEvent.getValueIsAdjusting()) && (selectedIndex != -1)) {
 
-							} else {
-								errorJListScrollToIndex(logEntryIndex);
-							}
-						}
-					}
-				}
+                        Log4jLogThreadDumpEntry log4jLogThreadDumpEntry = threadDumpJList.getSelectedValue();
 
-			});
+                        JPanel threadDumpPanel = new ThreadDumpPanel(log4jLogThreadDumpEntry, logTableModel,
+                                threadDumpSelectedTab);
 
-		}
+                        JPanel threadDumpJPanel = getThreadDumpJPanel();
 
-		return exceptionJTree;
-	}
+                        threadDumpJPanel.removeAll();
 
-	protected void errorJListScrollToIndex(Integer logEntryIndex) {
+                        threadDumpJPanel.add(threadDumpPanel, BorderLayout.CENTER);
 
-		JList<ExceptionLeafNode> errorJList = getErrorJList();
+                        threadDumpJPanel.revalidate();
+                    }
+                }
+            };
 
-		int index = errorLogEntryIndexList.indexOf(logEntryIndex);
+            threadDumpJList.addListSelectionListener(lsl);
 
-		errorJList.setSelectedIndex(index);
-		errorJList.ensureIndexIsVisible(index);
-	}
+            threadDumpJList.addMouseListener(new MouseAdapter() {
 
-	/**
-	 * @return the expandAllExceptionJButton
-	 */
-	public JButton getExpandAllExceptionJButton() {
-		if (expandAllExceptionJButton == null) {
+                @Override
+                public void mouseClicked(MouseEvent mouseEvent) {
 
-			expandAllExceptionJButton = new JButton(EXPAND_ALL_ACTION);
-			expandAllExceptionJButton.setActionCommand(EXPAND_ALL_ACTION);
+                    if (mouseEvent.getClickCount() == 2) {
 
-			Dimension dim = new Dimension(150, 25);
-			expandAllExceptionJButton.setPreferredSize(dim);
-			expandAllExceptionJButton.setMaximumSize(dim);
+                        JList<Log4jLogThreadDumpEntry> threadDumpJList = getThreadDumpJList();
 
-			expandAllExceptionJButton.addActionListener(new ActionListener() {
+                        int clickedIndex = threadDumpJList.locationToIndex(mouseEvent.getPoint());
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
+                        if (clickedIndex >= 0) {
 
-					JButton expandAllExceptionJButton = getExpandAllExceptionJButton();
+                            Log4jLogThreadDumpEntry log4jLogThreadDumpEntry;
+                            log4jLogThreadDumpEntry = threadDumpJList.getModel().getElementAt(clickedIndex);
 
-					if (EXPAND_ALL_ACTION.equals(e.getActionCommand())) {
+                            LogEntryKey logEntryKey = log4jLogThreadDumpEntry.getKey();
 
-						JTree exceptionJTree = getExceptionJTree();
-						LogViewerUtil.expandAll(exceptionJTree, true);
+                            NavigationTableController<LogEntryKey> navigationTableController;
+                            navigationTableController = getNavigationTableController();
+                            navigationTableController.scrollToKey(logEntryKey);
+                        }
 
-						expandAllExceptionJButton.setText(COLLAPSE_ALL_ACTION);
-						expandAllExceptionJButton.setActionCommand(COLLAPSE_ALL_ACTION);
+                    } else {
+                        super.mouseClicked(mouseEvent);
+                    }
+                }
 
-					} else {
+            });
 
-						JTree exceptionJTree = getExceptionJTree();
-						LogViewerUtil.expandAll(exceptionJTree, false);
+            DefaultListCellRenderer dlcr = new DefaultListCellRenderer() {
 
-						expandAllExceptionJButton.setText(EXPAND_ALL_ACTION);
-						expandAllExceptionJButton.setActionCommand(EXPAND_ALL_ACTION);
+                private static final long serialVersionUID = 8776495897305233378L;
 
-					}
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                        boolean isSelected, boolean cellHasFocus) {
 
-				}
-			});
-		}
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
 
-		return expandAllExceptionJButton;
-	}
+                    setBorder(new EmptyBorder(1, 10, 1, 1));
 
-	/**
-	 * @return the errorAreaJPanel
-	 */
-	protected JPanel getErrorAreaJPanel() {
+                    Log4jLogThreadDumpEntry log4jLogThreadDumpEntry = (Log4jLogThreadDumpEntry) value;
 
-		if (errorAreaJPanel == null) {
-			errorAreaJPanel = new JPanel();
-			errorAreaJPanel.setLayout(new BorderLayout());
-		}
+                    String displayString = log4jLogThreadDumpEntry.getDisplayString(log4jLogEntryModel);
 
-		return errorAreaJPanel;
-	}
+                    setText(displayString);
+                    setToolTipText(displayString);
 
-	/**
-	 * @return the threadDumpJList
-	 */
-	protected JList<String> getThreadDumpJList() {
+                    return this;
+                }
 
-		if (threadDumpJList == null) {
+            };
 
-			final LogTableModel logTableModel = getLogTableModel();
+            threadDumpJList.setCellRenderer(dlcr);
 
-			Log4jLogEntryModel log4jLogEntryModel;
-			log4jLogEntryModel = (Log4jLogEntryModel) logTableModel.getLogEntryModel();
+            threadDumpJList.setTransferHandler(new TransferHandler() {
 
-			List<Integer> threadDumpIndexList = log4jLogEntryModel.getThreadDumpLogEntryIndexList();
+                private static final long serialVersionUID = 5136321164682524214L;
 
-			Map<Integer, LogEntry> logEntryMap = log4jLogEntryModel.getLogEntryMap();
+                @Override
+                protected Transferable createTransferable(JComponent component) {
 
-			DateFormat displayDateFormat = log4jLogEntryModel.getDisplayDateFormat();
+                    Log4jLogThreadDumpEntry log4jLogThreadDumpEntry = threadDumpJList.getSelectedValue();
+                    String displayString = log4jLogThreadDumpEntry.getDisplayString(log4jLogEntryModel);
 
-			DefaultListModel<String> dlm = new DefaultListModel<String>();
+                    return new StringSelection(displayString);
+                }
 
-			int threadDumpCounter = 1;
+                @Override
+                public int getSourceActions(JComponent component) {
+                    return TransferHandler.COPY;
+                }
+            });
 
-			for (Integer threadDumpIndex : threadDumpIndexList) {
+            threadDumpJList.setFixedCellHeight(20);
+            threadDumpJList.setFixedCellWidth(400);
+        }
 
-				LogEntry logEntry = logEntryMap.get(threadDumpIndex);
+        return threadDumpJList;
+    }
 
-				Date logEntryDate = logEntry.getLogEntryDate();
-				String timeText = displayDateFormat.format(logEntryDate);
+    protected JPanel getThreadDumpJPanel() {
 
-				String element = threadDumpCounter + ". Thread Dump - Time [" + timeText + "] Line No ["
-						+ threadDumpIndex + "]";
-				dlm.addElement(element);
+        if (threadDumpJPanel == null) {
+            threadDumpJPanel = new JPanel();
+            threadDumpJPanel.setLayout(new BorderLayout());
+        }
 
-				threadDumpCounter++;
-			}
+        return threadDumpJPanel;
+    }
 
-			threadDumpJList = new JList<String>(dlm);
-			threadDumpJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+    private class ExceptionLeafNode {
 
-			ListSelectionListener lsl = new ListSelectionListener() {
+        private int index;
 
-				@Override
-				public void valueChanged(ListSelectionEvent e) {
+        private LogEntry logEntry;
 
-					JList<String> threadDumpJList = getThreadDumpJList();
+        protected ExceptionLeafNode(LogEntry logEntry) {
+            super();
+            this.logEntry = logEntry;
+            this.index = 0;
+        }
 
-					int selectedIndex = threadDumpJList.getSelectedIndex();
+        protected LogEntry getLogEntry() {
+            return logEntry;
+        }
 
-					if ((!e.getValueIsAdjusting()) && (selectedIndex != -1)) {
+        public void setIndex(int index) {
+            this.index = index;
+        }
 
-						Log4jLogEntryModel log4jLogEntryModel;
-						log4jLogEntryModel = (Log4jLogEntryModel) logTableModel.getLogEntryModel();
+        public String getDisplayString(LogEntryModel logEntryModel) {
 
-						List<Integer> threadDumpIndexList = log4jLogEntryModel.getThreadDumpLogEntryIndexList();
+            LogEntryKey logEntryKey = logEntry.getKey();
 
-						Integer logEntryIndex = threadDumpIndexList.get(selectedIndex);
+            String timeText = logEntryModel.getLogEntryTimeDisplayString(logEntryKey);
+            String message = logEntryModel.getFormattedLogEntryValue(logEntry, LogEntryColumn.MESSAGE);
 
-						Map<Integer, LogEntry> logEntryMap = log4jLogEntryModel.getLogEntryMap();
-						LogEntry logEntry = logEntryMap.get(logEntryIndex);
-
-						JPanel threadDumpPanel = new ThreadDumpPanel((Log4jLogThreadDumpEntry) logEntry, logTableModel,
-								threadDumpSelectedTab);
-						// JPanel threadDumpPanel =
-						// logEntry.getDetailsJPanel(logTableModel);
-
-						JPanel threadDumpJPanel = getThreadDumpJPanel();
-
-						threadDumpJPanel.removeAll();
-
-						threadDumpJPanel.add(threadDumpPanel, BorderLayout.CENTER);
-
-						threadDumpJPanel.revalidate();
-					}
-				}
-			};
-
-			threadDumpJList.addListSelectionListener(lsl);
-
-			threadDumpJList.addMouseListener(new MouseAdapter() {
-
-				@Override
-				public void mouseClicked(MouseEvent e) {
-
-					if (e.getClickCount() == 2) {
-
-						JList<String> threadDumpJList = getThreadDumpJList();
-
-						int clickedIndex = threadDumpJList.locationToIndex(e.getPoint());
-
-						Log4jLogEntryModel log4jLogEntryModel;
-						log4jLogEntryModel = (Log4jLogEntryModel) logTableModel.getLogEntryModel();
-
-						List<Integer> threadDumpIndexList = log4jLogEntryModel.getThreadDumpLogEntryIndexList();
-
-						Integer logEntryIndex = threadDumpIndexList.get(clickedIndex);
-
-						NavigationTableController<Integer> navigationTableController;
-						navigationTableController = getNavigationTableController();
-						navigationTableController.scrollToKey(logEntryIndex);
-
-					} else {
-						super.mouseClicked(e);
-					}
-				}
-
-			});
-
-			DefaultListCellRenderer dlcr = getDefaultListCellRenderer();
-
-			threadDumpJList.setCellRenderer(dlcr);
-
-			threadDumpJList.setFixedCellHeight(20);
-			threadDumpJList.setFixedCellWidth(400);
-		}
-
-		return threadDumpJList;
-	}
-
-	/**
-	 * @return the threadDumpJPanel
-	 */
-	protected JPanel getThreadDumpJPanel() {
-
-		if (threadDumpJPanel == null) {
-			threadDumpJPanel = new JPanel();
-			threadDumpJPanel.setLayout(new BorderLayout());
-		}
-
-		return threadDumpJPanel;
-	}
-
-	private DefaultListCellRenderer getDefaultListCellRenderer() {
-
-		DefaultListCellRenderer dlcr = new DefaultListCellRenderer() {
-
-			private static final long serialVersionUID = 7578704614877257466L;
-
-			@Override
-			public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
-					boolean cellHasFocus) {
-
-				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-
-				setBorder(new EmptyBorder(1, 10, 1, 1));
-
-				setToolTipText(value.toString());
-
-				return this;
-			}
-
-		};
-
-		return dlcr;
-	}
-
-	protected DefaultTableCellRenderer getDefaultTableCellRenderer() {
-
-		DefaultTableCellRenderer dtcr = new DefaultTableCellRenderer() {
-
-			private static final long serialVersionUID = 7231010655893711987L;
-
-			@Override
-			public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-					boolean hasFocus, int row, int column) {
-
-				super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-
-				setBorder(new EmptyBorder(1, 5, 1, 1));
-
-				if (!isSelected) {
-
-					if ((row % 2) == 0) {
-						setBackground(MyColor.LIGHTEST_LIGHT_GRAY);
-					} else {
-						setBackground(Color.WHITE);
-					}
-				}
-				return this;
-			}
-
-		};
-
-		return dtcr;
-	}
-
-	private class ExceptionLeafNode {
-
-		private int counter;
-
-		private String nodeText;
-
-		private LogEntry logEntry;
-
-		protected ExceptionLeafNode(String nodeText, LogEntry logEntry) {
-			super();
-			this.nodeText = nodeText;
-			this.logEntry = logEntry;
-			this.counter = 0;
-		}
-
-		/**
-		 * @return the logEntry
-		 */
-		protected LogEntry getLogEntry() {
-			return logEntry;
-		}
-
-		public void setCounter(int counter) {
-			this.counter = counter;
-		}
-
-		@Override
-		public String toString() {
-			StringBuffer sb = new StringBuffer();
-			sb.append(counter);
-			sb.append(".");
-			sb.append(nodeText);
-
-			return sb.toString();
-		}
-
-	}
+            StringBuilder sb = new StringBuilder();
+            sb.append(index);
+            sb.append(". Time [");
+            sb.append(timeText);
+            sb.append("] Line No [");
+            sb.append(logEntryKey.getLineNo());
+            sb.append("] [");
+            sb.append(message);
+            sb.append("]");
+            return sb.toString();
+        }
+    }
 }

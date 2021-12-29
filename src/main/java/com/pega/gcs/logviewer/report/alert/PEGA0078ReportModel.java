@@ -4,124 +4,119 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alert;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.SwingConstants;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.logviewer.model.AlertLogEntry;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
+import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 
 public class PEGA0078ReportModel extends AlertMessageReportModel {
 
-	private static final long serialVersionUID = -8889727175209305065L;
+    private static final long serialVersionUID = -8889727175209305065L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0078ReportModel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0078ReportModel.class);
 
-	private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
+    private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
 
-	private Pattern pattern;
+    private Pattern pattern;
 
-	public PEGA0078ReportModel(long thresholdKPI, String kpiUnit, AlertLogEntryModel alertLogEntryModel) {
+    public PEGA0078ReportModel(AlertMessage alertMessage, long thresholdKPI, AlertLogEntryModel alertLogEntryModel,
+            Locale locale) {
 
-		super("PEGA0078", thresholdKPI, kpiUnit, alertLogEntryModel);
+        super(alertMessage, thresholdKPI, alertLogEntryModel, locale);
 
-		String regex = "Shape (.*?) retrieved too many .* rows in data flow RuleKeys (.*)";
-		pattern = Pattern.compile(regex);
-	}
+        String regex = "Shape (.*?) retrieved too many \\((.*?)\\) rows in data flow RuleKeys\\{(.*?)\\}";
 
-	@Override
-	protected List<AlertBoxAndWhiskerReportColumn> getAlertMessageReportColumnList() {
+        pattern = Pattern.compile(regex);
+    }
 
-		if (alertMessageReportColumnList == null) {
-			alertMessageReportColumnList = new ArrayList<AlertBoxAndWhiskerReportColumn>();
+    @Override
+    protected List<AlertBoxAndWhiskerReportColumn> getAlertMessageReportColumnList() {
 
-			String displayName;
-			int prefColWidth;
-			int hAlignment;
-			boolean filterable;
-			AlertBoxAndWhiskerReportColumn amReportColumn = null;
+        if (alertMessageReportColumnList == null) {
+            alertMessageReportColumnList = new ArrayList<AlertBoxAndWhiskerReportColumn>();
 
-			// first column data is the key
-			displayName = "DataFlow RuleKeys";
-			prefColWidth = 500;
-			hAlignment = SwingConstants.LEFT;
-			filterable = true;
-			amReportColumn = new AlertBoxAndWhiskerReportColumn(AlertBoxAndWhiskerReportColumn.KEY, displayName, prefColWidth, hAlignment, filterable);
+            String displayName;
+            int prefColWidth;
+            int horizontalAlignment;
+            boolean filterable;
 
-			alertMessageReportColumnList.add(amReportColumn);
+            // first column data is the key
+            displayName = "Alert Subject (\"Shape - DataFlow RuleKeys\")";
+            prefColWidth = 500;
+            horizontalAlignment = SwingConstants.LEFT;
+            filterable = true;
 
-			List<AlertBoxAndWhiskerReportColumn> defaultAlertMessageReportColumnList = AlertBoxAndWhiskerReportColumn.getDefaultAlertMessageReportColumnList();
+            AlertBoxAndWhiskerReportColumn amReportColumn;
+            amReportColumn = new AlertBoxAndWhiskerReportColumn(AlertBoxAndWhiskerReportColumn.KEY, displayName,
+                    prefColWidth, horizontalAlignment, filterable);
 
-			alertMessageReportColumnList.addAll(defaultAlertMessageReportColumnList);
-		}
+            alertMessageReportColumnList.add(amReportColumn);
 
-		return alertMessageReportColumnList;
-	}
+            List<AlertBoxAndWhiskerReportColumn> defaultAlertMessageReportColumnList = AlertBoxAndWhiskerReportColumn
+                    .getDefaultAlertMessageReportColumnList();
 
-	@Override
-	public String getAlertMessageReportEntryKey(AlertLogEntry alertLogEntry, ArrayList<String> logEntryValueList) {
+            alertMessageReportColumnList.addAll(defaultAlertMessageReportColumnList);
+        }
 
-		String alertMessageReportEntryKey = null;
+        return alertMessageReportColumnList;
+    }
 
-		AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
+    @Override
+    public String getAlertMessageReportEntryKey(String dataText) {
 
-		List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
+        String alertMessageReportEntryKey = null;
 
-		int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
-		String message = logEntryValueList.get(messageIndex);
+        Matcher patternMatcher = pattern.matcher(dataText);
+        boolean matches = patternMatcher.find();
 
-		Matcher patternMatcher = pattern.matcher(message);
-		boolean matches = patternMatcher.find();
+        if (matches) {
 
-		if (matches) {
-			String composeShape = patternMatcher.group(1).trim();
-			String dfRuleKeys = patternMatcher.group(2).trim();
+            String composeShape = patternMatcher.group(1).trim();
+            String dfRuleKeys = patternMatcher.group(3).trim();
 
-			StringBuffer sb = new StringBuffer();
-			sb.append(composeShape);
-			sb.append(" - ");
-			sb.append(dfRuleKeys);
+            StringBuilder sb = new StringBuilder();
+            sb.append(composeShape);
+            sb.append(" - [");
+            sb.append(dfRuleKeys);
+            sb.append("]");
 
-			alertMessageReportEntryKey = sb.toString();
+            alertMessageReportEntryKey = sb.toString();
 
-		}
+        }
 
-		if (alertMessageReportEntryKey == null) {
-			LOG.info("PEGA0078ReportModel - Could'nt match - [" + message + "]");
-		}
+        return alertMessageReportEntryKey;
 
-		return alertMessageReportEntryKey;
-	}
+    }
 
-	public static void main(String[] args) {
+    @Override
+    public String getAlertMessageReportEntryKey(ArrayList<String> logEntryValueList) {
 
-		long before = System.currentTimeMillis();
-		String message = "Shape <compose shape name> retrieved too many <number of rows> rows in data flow RuleKeys <keys>";
+        String alertMessageReportEntryKey = null;
 
-		String regex = "Shape (.*?) retrieved too many .* rows in data flow RuleKeys (.*)";
+        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
 
-		Pattern pattern = Pattern.compile(regex);
+        List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
 
-		Matcher patternMatcher = pattern.matcher(message);
-		boolean matches = patternMatcher.find();
-		System.out.println(matches);
+        int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
+        String message = logEntryValueList.get(messageIndex);
 
-		if (matches) {
-			System.out.println(patternMatcher.groupCount());
-			System.out.println(patternMatcher.group(1));
-			System.out.println(patternMatcher.group(2));
-		}
+        alertMessageReportEntryKey = getAlertMessageReportEntryKey(message);
 
-		long after = System.currentTimeMillis();
+        if (alertMessageReportEntryKey == null) {
+            LOG.info("PEGA0078ReportModel - Could'nt match - [" + message + "]");
+        }
 
-		System.out.println(after - before);
-	}
-
+        return alertMessageReportEntryKey;
+    }
 }

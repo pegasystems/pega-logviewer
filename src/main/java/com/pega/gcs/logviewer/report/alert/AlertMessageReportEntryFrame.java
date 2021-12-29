@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alert;
 
 import java.awt.BorderLayout;
@@ -18,10 +19,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
-import java.text.NumberFormat;
-import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.swing.BorderFactory;
@@ -44,865 +46,1108 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.CategoryAxis;
+import org.jfree.chart.axis.DateAxis;
+import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.CombinedDomainXYPlot;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.title.TextTitle;
+import org.jfree.data.statistics.BoxAndWhiskerItem;
+
 import com.pega.gcs.fringecommon.guiutilities.NavigationTableController;
-import com.pega.gcs.fringecommon.guiutilities.NoteJPanel;
+import com.pega.gcs.fringecommon.guiutilities.RecentFile;
+import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.logviewer.AlertLogEntryPanel;
+import com.pega.gcs.logviewer.CombinedDomainXYPlotMouseListener;
+import com.pega.gcs.logviewer.CustomChartPanel;
+import com.pega.gcs.logviewer.LogTableModel;
+import com.pega.gcs.logviewer.LogViewerUtil;
 import com.pega.gcs.logviewer.model.AlertBoxAndWhiskerItem;
 import com.pega.gcs.logviewer.model.AlertLogEntry;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
+import com.pega.gcs.logviewer.model.AlertLogTimeSeries;
 import com.pega.gcs.logviewer.model.LogEntry;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 
 public class AlertMessageReportEntryFrame extends JFrame {
 
-	private static final long serialVersionUID = -4017902477655712304L;
+    private static final long serialVersionUID = -4017902477655712304L;
 
-	private AlertMessageReportEntry alertMessageReportEntry;
+    private static final Log4j2Helper LOG = new Log4j2Helper(AlertMessageReportEntryFrame.class);
 
-	private AlertMessageReportModel alertMessageReportModel;
+    private int snoIndex;
 
-	private NavigationTableController<Integer> navigationTableController;
+    private AlertMessageReportEntry alertMessageReportEntry;
 
-	private JComboBox<BoxAndWhiskerStatisticsRange> boxPlotRangeJCombobox;
+    private AlertMessageReportModel alertMessageReportModel;
 
-	private JList<AlertReportListEntry> alertLogEntryKeyJList;
+    private LogTableModel logTableModel;
 
-	private JPanel alertLogEntryDisplayPanel;
+    private NavigationTableController<LogEntryKey> navigationTableController;
 
-	public AlertMessageReportEntryFrame(String alertModelName, AlertMessageReportEntry alertMessageReportEntry,
-			AlertMessageReportModel alertMessageReportModel,
-			NavigationTableController<Integer> navigationTableController, ImageIcon appIcon, Component parent) {
+    private JComboBox<BoxAndWhiskerStatisticsRange> boxPlotRangeJCombobox;
 
-		this.alertMessageReportEntry = alertMessageReportEntry;
-		this.alertMessageReportModel = alertMessageReportModel;
-		this.navigationTableController = navigationTableController;
+    private JList<AlertReportListEntry> alertLogEntryKeyJList;
 
-		String alertMessageId = alertMessageReportModel.getAlertMessageID();
+    private JPanel alertLogEntryDisplayPanel;
 
-		StringBuffer titleSB = new StringBuffer();
+    private CombinedDomainXYPlot combinedDomainXYPlot;
 
-		titleSB.append(alertMessageId);
-		titleSB.append(" - ");
-		titleSB.append(alertMessageReportEntry.getAlertMessageReportEntryKey());
+    public AlertMessageReportEntryFrame(int snoIndex, AlertMessageReportEntry alertMessageReportEntry,
+            AlertMessageReportModel alertMessageReportModel, LogTableModel logTableModel,
+            NavigationTableController<LogEntryKey> navigationTableController, ImageIcon appIcon, Component parent) {
 
-		int titleSBLen = titleSB.length();
+        this.snoIndex = snoIndex;
+        this.alertMessageReportEntry = alertMessageReportEntry;
+        this.alertMessageReportModel = alertMessageReportModel;
+        this.logTableModel = logTableModel;
+        this.navigationTableController = navigationTableController;
 
-		if (titleSBLen > 100) {
-			titleSB.delete(100, titleSBLen);
-			titleSB.append("...");
-		}
+        String alertMessageId = alertMessageReportModel.getAlertMessageID();
 
-		titleSB.append(" - ");
-		titleSB.append(alertModelName);
+        StringBuilder titleSB = new StringBuilder();
 
-		setTitle(titleSB.toString());
+        titleSB.append(alertMessageId);
+        titleSB.append(" - ");
+        titleSB.append(alertMessageReportEntry.getAlertMessageReportEntryKey());
 
-		setIconImage(appIcon.getImage());
+        int titleSBLen = titleSB.length();
 
-		setPreferredSize(new Dimension(1200, 800));
+        if (titleSBLen > 100) {
+            titleSB.delete(100, titleSBLen);
+            titleSB.append("...");
+        }
 
-		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        String alertModelName = logTableModel.getModelName();
 
-		setContentPane(getMainJPanel());
+        titleSB.append(" - ");
+        titleSB.append(alertModelName);
 
-		pack();
+        setTitle(titleSB.toString());
 
-		setLocationRelativeTo(parent);
+        setIconImage(appIcon.getImage());
 
-		// visible should be the last step
-		setVisible(true);
-	}
+        setPreferredSize(new Dimension(1200, 800));
 
-	protected NavigationTableController<Integer> getNavigationTableController() {
-		return navigationTableController;
-	}
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-	private JComboBox<BoxAndWhiskerStatisticsRange> getBoxPlotRangeJCombobox() {
+        setContentPane(getMainJPanel());
 
-		if (boxPlotRangeJCombobox == null) {
+        pack();
 
-			BoxAndWhiskerStatisticsRange[] values = BoxAndWhiskerStatisticsRange.values();
+        setLocationRelativeTo(parent);
 
-			boxPlotRangeJCombobox = new JComboBox<>(values);
+        // visible should be the last step
+        setVisible(true);
+    }
 
-			boxPlotRangeJCombobox.setMaximumRowCount(values.length);
+    private NavigationTableController<LogEntryKey> getNavigationTableController() {
+        return navigationTableController;
+    }
 
-			boxPlotRangeJCombobox.addActionListener(new ActionListener() {
+    private JComboBox<BoxAndWhiskerStatisticsRange> getBoxPlotRangeJCombobox() {
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
+        if (boxPlotRangeJCombobox == null) {
 
-					BoxAndWhiskerStatisticsRange boxAndWhiskerStatisticsRange;
-					boxAndWhiskerStatisticsRange = (BoxAndWhiskerStatisticsRange) boxPlotRangeJCombobox
-							.getSelectedItem();
+            BoxAndWhiskerStatisticsRange[] values = BoxAndWhiskerStatisticsRange.values();
 
-					updateAlertLogEntryKeyJList(boxAndWhiskerStatisticsRange);
+            boxPlotRangeJCombobox = new JComboBox<>(values);
 
-				}
-			});
+            boxPlotRangeJCombobox.setMaximumRowCount(values.length);
 
-			DefaultListCellRenderer dlcr = new DefaultListCellRenderer() {
+            boxPlotRangeJCombobox.addActionListener(new ActionListener() {
 
-				private static final long serialVersionUID = -1431720875270818508L;
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
 
-				@Override
-				public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-						boolean isSelected, boolean cellHasFocus) {
+                    BoxAndWhiskerStatisticsRange boxAndWhiskerStatisticsRange;
+                    boxAndWhiskerStatisticsRange = (BoxAndWhiskerStatisticsRange) boxPlotRangeJCombobox
+                            .getSelectedItem();
 
-					super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                    updateAlertLogEntryKeyJList(boxAndWhiskerStatisticsRange);
 
-					setBorder(new EmptyBorder(1, 5, 1, 1));
+                }
+            });
 
-					return this;
-				}
+            DefaultListCellRenderer dlcr = new DefaultListCellRenderer() {
 
-			};
+                private static final long serialVersionUID = -1431720875270818508L;
 
-			boxPlotRangeJCombobox.setRenderer(dlcr);
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                        boolean isSelected, boolean cellHasFocus) {
 
-		}
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
 
-		return boxPlotRangeJCombobox;
-	}
+                    setBorder(new EmptyBorder(1, 5, 1, 1));
 
-	private JList<AlertReportListEntry> getAlertLogEntryKeyJList() {
+                    return this;
+                }
 
-		if (alertLogEntryKeyJList == null) {
+            };
 
-			List<Integer> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+            boxPlotRangeJCombobox.setRenderer(dlcr);
 
-			DefaultListModel<AlertReportListEntry> dlm = new DefaultListModel<AlertReportListEntry>();
+        }
 
-			int counter = 1;
+        return boxPlotRangeJCombobox;
+    }
 
-			for (Integer alertLogEntryKey : alertLogEntryKeyList) {
+    private JList<AlertReportListEntry> getAlertLogEntryKeyJList() {
 
-				AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+        if (alertLogEntryKeyJList == null) {
 
-				dlm.addElement(alertReportListEntry);
+            List<LogEntryKey> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
 
-				counter++;
-			}
+            DefaultListModel<AlertReportListEntry> dlm = new DefaultListModel<AlertReportListEntry>();
 
-			alertLogEntryKeyJList = new JList<AlertReportListEntry>(dlm);
-			alertLogEntryKeyJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            int counter = 1;
 
-			ListSelectionListener lsl = new ListSelectionListener() {
+            for (LogEntryKey alertLogEntryKey : alertLogEntryKeyList) {
 
-				@Override
-				public void valueChanged(ListSelectionEvent e) {
+                AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
 
-					JList<AlertReportListEntry> alertLogEntryKeyJList = getAlertLogEntryKeyJList();
+                dlm.addElement(alertReportListEntry);
 
-					int selectedIndex = alertLogEntryKeyJList.getSelectedIndex();
+                counter++;
+            }
 
-					if ((!e.getValueIsAdjusting()) && (selectedIndex != -1)) {
+            alertLogEntryKeyJList = new JList<AlertReportListEntry>(dlm);
+            alertLogEntryKeyJList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-						AlertReportListEntry alertReportListEntry = alertLogEntryKeyJList.getSelectedValue();
+            ListSelectionListener lsl = new ListSelectionListener() {
 
-						AlertLogEntryModel alertLogEntryModel = alertMessageReportModel.getAlertLogEntryModel();
-						Integer logEntryIndex = alertReportListEntry.getAlertLogEntryKey();
+                @Override
+                public void valueChanged(ListSelectionEvent listSelectionEvent) {
 
-						Map<Integer, LogEntry> logEntryMap = alertLogEntryModel.getLogEntryMap();
-						AlertLogEntry alertLogEntry = (AlertLogEntry) logEntryMap.get(logEntryIndex);
+                    JList<AlertReportListEntry> alertLogEntryKeyJList = getAlertLogEntryKeyJList();
 
-						JPanel alertLogEntryPanel = new AlertLogEntryPanel(alertLogEntry, alertLogEntryModel);
+                    int selectedIndex = alertLogEntryKeyJList.getSelectedIndex();
 
-						JPanel alertLogEntryDisplayPanel = getAlertLogEntryDisplayPanel();
+                    if ((!listSelectionEvent.getValueIsAdjusting()) && (selectedIndex != -1)) {
 
-						alertLogEntryDisplayPanel.removeAll();
+                        AlertReportListEntry alertReportListEntry = alertLogEntryKeyJList.getSelectedValue();
 
-						alertLogEntryDisplayPanel.add(alertLogEntryPanel, BorderLayout.CENTER);
+                        Charset charset = logTableModel.getCharset();
+                        AlertLogEntryModel alertLogEntryModel = (AlertLogEntryModel) logTableModel.getLogEntryModel();
 
-						alertLogEntryDisplayPanel.revalidate();
-					}
-				}
-			};
+                        LogEntryKey logEntryKey = alertReportListEntry.getAlertLogEntryKey();
 
-			alertLogEntryKeyJList.addListSelectionListener(lsl);
+                        Map<LogEntryKey, LogEntry> logEntryMap = alertLogEntryModel.getLogEntryMap();
+                        AlertLogEntry alertLogEntry = (AlertLogEntry) logEntryMap.get(logEntryKey);
 
-			alertLogEntryKeyJList.addMouseListener(new MouseAdapter() {
+                        JPanel alertLogEntryPanel = new AlertLogEntryPanel(alertLogEntry, alertLogEntryModel, charset);
 
-				@Override
-				public void mouseClicked(MouseEvent e) {
+                        JPanel alertLogEntryDisplayPanel = getAlertLogEntryDisplayPanel();
 
-					if (e.getClickCount() == 2) {
+                        alertLogEntryDisplayPanel.removeAll();
 
-						JList<AlertReportListEntry> alertLogEntryKeyJList = getAlertLogEntryKeyJList();
+                        alertLogEntryDisplayPanel.add(alertLogEntryPanel, BorderLayout.CENTER);
 
-						int clickedIndex = alertLogEntryKeyJList.locationToIndex(e.getPoint());
+                        alertLogEntryDisplayPanel.revalidate();
+                    }
+                }
+            };
 
-						List<Integer> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+            alertLogEntryKeyJList.addListSelectionListener(lsl);
 
-						Integer logEntryIndex = alertLogEntryKeyList.get(clickedIndex);
+            alertLogEntryKeyJList.addMouseListener(new MouseAdapter() {
 
-						NavigationTableController<Integer> navigationTableController;
-						navigationTableController = getNavigationTableController();
-						navigationTableController.scrollToKey(logEntryIndex);
+                @Override
+                public void mouseClicked(MouseEvent mouseEvent) {
 
-					} else {
-						super.mouseClicked(e);
-					}
-				}
+                    if (mouseEvent.getClickCount() == 2) {
 
-			});
+                        JList<AlertReportListEntry> alertLogEntryKeyJList = getAlertLogEntryKeyJList();
 
-			DefaultListCellRenderer dlcr = new DefaultListCellRenderer() {
+                        int clickedIndex = alertLogEntryKeyJList.locationToIndex(mouseEvent.getPoint());
 
-				private static final long serialVersionUID = -1431720875270818508L;
+                        List<LogEntryKey> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
 
-				@Override
-				public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-						boolean isSelected, boolean cellHasFocus) {
+                        LogEntryKey logEntryKey = alertLogEntryKeyList.get(clickedIndex);
 
-					super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                        NavigationTableController<LogEntryKey> navigationTableController;
+                        navigationTableController = getNavigationTableController();
+                        navigationTableController.scrollToKey(logEntryKey);
 
-					setBorder(new EmptyBorder(1, 10, 1, 1));
+                    } else {
+                        super.mouseClicked(mouseEvent);
+                    }
+                }
 
-					return this;
-				}
+            });
 
-			};
+            DefaultListCellRenderer dlcr = new DefaultListCellRenderer() {
 
-			alertLogEntryKeyJList.setCellRenderer(dlcr);
+                private static final long serialVersionUID = -1431720875270818508L;
 
-			alertLogEntryKeyJList.setFixedCellHeight(20);
-		}
+                @Override
+                public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                        boolean isSelected, boolean cellHasFocus) {
 
-		return alertLogEntryKeyJList;
-	}
+                    super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
 
-	private JPanel getAlertLogEntryDisplayPanel() {
+                    setBorder(new EmptyBorder(1, 10, 1, 1));
 
-		if (alertLogEntryDisplayPanel == null) {
+                    return this;
+                }
 
-			alertLogEntryDisplayPanel = new JPanel();
+            };
 
-			alertLogEntryDisplayPanel.setLayout(new BorderLayout());
-		}
+            alertLogEntryKeyJList.setCellRenderer(dlcr);
 
-		return alertLogEntryDisplayPanel;
-	}
+            alertLogEntryKeyJList.setFixedCellHeight(20);
+        }
 
-	protected JComponent getMainJPanel() {
+        return alertLogEntryKeyJList;
+    }
 
-		JPanel mainJPanel = new JPanel();
-		mainJPanel.setLayout(new GridBagLayout());
+    private JPanel getAlertLogEntryDisplayPanel() {
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.1D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+        if (alertLogEntryDisplayPanel == null) {
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = 1;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 0.9D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+            alertLogEntryDisplayPanel = new JPanel();
 
-		JPanel headerJPanel = getHeaderJPanel();
+            alertLogEntryDisplayPanel.setLayout(new BorderLayout());
+        }
 
-		JSplitPane dataJSplitPane = getDataJSplitPane();
+        return alertLogEntryDisplayPanel;
+    }
 
-		mainJPanel.add(headerJPanel, gbc1);
-		mainJPanel.add(dataJSplitPane, gbc2);
+    private CombinedDomainXYPlot getCombinedDomainXYPlot() {
 
-		return mainJPanel;
-	}
+        if (combinedDomainXYPlot == null) {
+            DateAxis domainAxis = new DateAxis("Time (-NA-)");
+            domainAxis.setLowerMargin(0.02);
+            domainAxis.setUpperMargin(0.02);
 
-	private JPanel getHeaderJPanel() {
+            Font labelFont = new Font("Arial", Font.PLAIN, 10);
+            domainAxis.setLabelFont(labelFont);
 
-		JPanel headerJPanel = new JPanel();
-		headerJPanel.setLayout(new GridBagLayout());
+            combinedDomainXYPlot = new CombinedDomainXYPlot(domainAxis);
+            combinedDomainXYPlot.setGap(5.0);
+            combinedDomainXYPlot.setOrientation(PlotOrientation.VERTICAL);
+        }
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+        return combinedDomainXYPlot;
+    }
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = 1;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+    private ChartPanel getChartPanel() {
 
-		GridBagConstraints gbc3 = new GridBagConstraints();
-		gbc3.gridx = 0;
-		gbc3.gridy = 2;
-		gbc3.weightx = 1.0D;
-		gbc3.weighty = 0.5D;
-		gbc3.fill = GridBagConstraints.BOTH;
-		gbc3.anchor = GridBagConstraints.NORTHWEST;
-		gbc3.insets = new Insets(0, 0, 0, 0);
+        RecentFile recentFile = logTableModel.getRecentFile();
+        String filePath = recentFile.getPath();
+        File file = new File(filePath);
+        File parentDir = file.getParentFile();
+        String name = FileUtilities.getNameWithoutExtension(file);
+        String alertMessageId = alertMessageReportModel.getAlertMessageID();
 
-		GridBagConstraints gbc4 = new GridBagConstraints();
-		gbc4.gridx = 0;
-		gbc4.gridy = 3;
-		gbc4.weightx = 1.0D;
-		gbc4.weighty = 0.0D;
-		gbc4.fill = GridBagConstraints.BOTH;
-		gbc4.anchor = GridBagConstraints.NORTHWEST;
-		gbc4.insets = new Insets(0, 0, 0, 0);
+        StringBuilder titleSB = new StringBuilder();
+        titleSB.append(name);
+        titleSB.append("-");
+        titleSB.append(alertMessageId);
+        titleSB.append("-");
+        titleSB.append(snoIndex);
 
-		String alertMessageId = alertMessageReportModel.getAlertMessageID();
+        AlertLogEntryModel alertLogEntryModel = (AlertLogEntryModel) logTableModel.getLogEntryModel();
 
-		Dimension preferredSize = new Dimension(Integer.MAX_VALUE, 30);
+        CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
 
-		JLabel titleJLabel = new JLabel(alertMessageId);
-		Font labelFont = titleJLabel.getFont();
-		Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
-		titleJLabel.setFont(tabFont);
-		titleJLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        // title will be used to fabricate filename
+        JFreeChart chart = new JFreeChart(titleSB.toString(), JFreeChart.DEFAULT_TITLE_FONT, combinedDomainXYPlot,
+                false);
 
-		JPanel titleJPanel = getMessageLabelJPanel(titleJLabel);
-		titleJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
-		titleJPanel.setPreferredSize(preferredSize);
+        TextTitle textTitle = chart.getTitle();
+        textTitle.setVisible(false);
 
-		JPanel alertMessageReportKeyJPanel = getAlertMessageReportKeyJPanel();
+        CustomChartPanel customChartPanel = new CustomChartPanel(chart);
 
-		AlertBoxAndWhiskerItem alertBoxAndWhiskerItem = alertMessageReportEntry.getAlertBoxAndWhiskerItem();
-		NumberFormat numberFormat = alertMessageReportModel.getAlertLogEntryModel().getNumberFormat();
+        customChartPanel.setMinimumDrawWidth(0);
+        customChartPanel.setMinimumDrawHeight(0);
+        customChartPanel.setMaximumDrawWidth(Integer.MAX_VALUE);
+        customChartPanel.setMaximumDrawHeight(Integer.MAX_VALUE);
+        customChartPanel.setMouseWheelEnabled(true);
+        customChartPanel.setRangeZoomable(false);
+        customChartPanel.setDefaultDirectoryForSaveAs(parentDir);
 
-		JPanel alertBoxAndWhiskerStatisticsJPanel = new AlertBoxAndWhiskerStatisticsJPanel(alertBoxAndWhiskerItem,
-				numberFormat);
+        customChartPanel.addChartMouseListener(
+                new CombinedDomainXYPlotMouseListener(customChartPanel, alertLogEntryModel, navigationTableController));
 
-		String noteText = "Select an entry to see the alert details. Double click on an entry to select the alert in main table.";
-		JPanel noteJPanel = new NoteJPanel(noteText, 1);
-		noteJPanel.setPreferredSize(preferredSize);
+        return customChartPanel;
+    }
 
-		headerJPanel.add(titleJPanel, gbc1);
-		headerJPanel.add(alertMessageReportKeyJPanel, gbc2);
-		headerJPanel.add(alertBoxAndWhiskerStatisticsJPanel, gbc3);
-		headerJPanel.add(noteJPanel, gbc4);
+    private JComponent getMainJPanel() {
 
-		return headerJPanel;
-	}
+        JPanel mainJPanel = new JPanel();
+        mainJPanel.setLayout(new GridBagLayout());
 
-	private JPanel getAlertMessageReportKeyJPanel() {
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.1D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-		JPanel alertMessageReportKeyJPanel = new JPanel();
-		alertMessageReportKeyJPanel.setLayout(new GridBagLayout());
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 0.9D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 0.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+        JPanel headerJPanel = getHeaderJPanel();
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 1;
-		gbc2.gridy = 0;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+        JSplitPane alertChartAndTableSplitPane = getAlertChartAndTableSplitPane();
 
-		AlertBoxAndWhiskerReportColumn keyAMRC = alertMessageReportModel.getKeyAlertMessageReportColumn();
-		String keyLabelName = (keyAMRC != null) ? keyAMRC.getDisplayName() : "<NULL>";
+        mainJPanel.add(headerJPanel, gbc1);
+        mainJPanel.add(alertChartAndTableSplitPane, gbc2);
 
-		String alertMessageReportEntryKey = alertMessageReportEntry.getAlertMessageReportEntryKey();
+        return mainJPanel;
+    }
 
-		JLabel keyJLabel = new JLabel(keyLabelName);
-		Font labelFont = keyJLabel.getFont();
-		Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
-		keyJLabel.setFont(tabFont);
-		keyJLabel.setHorizontalAlignment(SwingConstants.CENTER);
+    private JPanel getHeaderJPanel() {
 
-		JPanel messageLabelJPanel = getMessageLabelJPanel(keyJLabel);
-		messageLabelJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        JPanel headerJPanel = new JPanel();
+        headerJPanel.setLayout(new GridBagLayout());
 
-		JTextArea alertMessageReportEntryKeyJTextArea = new JTextArea(alertMessageReportEntryKey);
-		alertMessageReportEntryKeyJTextArea.setEditable(false);
-		alertMessageReportEntryKeyJTextArea.setBackground(null);
-		alertMessageReportEntryKeyJTextArea.setBorder(BorderFactory.createEmptyBorder(1, 1, 1, 1));
-		alertMessageReportEntryKeyJTextArea.setLineWrap(true);
-		alertMessageReportEntryKeyJTextArea.setWrapStyleWord(true);
-		alertMessageReportEntryKeyJTextArea.setFont(this.getFont());
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-		JScrollPane alertLogEntryKeyJScrollPane = new JScrollPane(alertMessageReportEntryKeyJTextArea,
-				ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		alertMessageReportKeyJPanel.add(messageLabelJPanel, gbc1);
-		alertMessageReportKeyJPanel.add(alertLogEntryKeyJScrollPane, gbc2);
+        GridBagConstraints gbc3 = new GridBagConstraints();
+        gbc3.gridx = 0;
+        gbc3.gridy = 2;
+        gbc3.weightx = 1.0D;
+        gbc3.weighty = 0.5D;
+        gbc3.fill = GridBagConstraints.BOTH;
+        gbc3.anchor = GridBagConstraints.NORTHWEST;
+        gbc3.insets = new Insets(0, 0, 0, 0);
 
-		return alertMessageReportKeyJPanel;
+        // GridBagConstraints gbc4 = new GridBagConstraints();
+        // gbc4.gridx = 0;
+        // gbc4.gridy = 3;
+        // gbc4.weightx = 1.0D;
+        // gbc4.weighty = 0.0D;
+        // gbc4.fill = GridBagConstraints.BOTH;
+        // gbc4.anchor = GridBagConstraints.NORTHWEST;
+        // gbc4.insets = new Insets(0, 0, 0, 0);
 
-	}
+        String alertMessageId = alertMessageReportModel.getAlertMessageID();
 
-	private JPanel getMessageLabelJPanel(JLabel label) {
+        Dimension preferredSize = new Dimension(Integer.MAX_VALUE, 30);
 
-		JPanel messageLabelJPanel = new JPanel();
-		messageLabelJPanel.setLayout(new GridBagLayout());
+        JLabel titleJLabel = new JLabel(alertMessageId);
+        Font labelFont = titleJLabel.getFont();
+        Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
+        titleJLabel.setFont(tabFont);
+        titleJLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.WEST;
-		gbc1.insets = new Insets(5, 5, 5, 5);
+        JPanel titleJPanel = getMessageLabelJPanel(titleJLabel);
+        titleJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        titleJPanel.setPreferredSize(preferredSize);
 
-		messageLabelJPanel.add(label, gbc1);
-		messageLabelJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        JPanel alertMessageReportKeyJPanel = getAlertMessageReportKeyJPanel();
 
-		return messageLabelJPanel;
+        AlertBoxAndWhiskerItem alertBoxAndWhiskerItem = alertMessageReportEntry.getAlertBoxAndWhiskerItem();
+        Locale locale = logTableModel.getLocale();
 
-	}
+        JPanel alertBoxAndWhiskerStatisticsJPanel = new AlertBoxAndWhiskerStatisticsJPanel(alertBoxAndWhiskerItem,
+                locale);
 
-	private JSplitPane getDataJSplitPane() {
+        // String noteText = "Select an entry to see the alert details. Double click on an entry to select the alert in main table.";
+        // JPanel noteJPanel = new NoteJPanel(noteText, 1);
+        // noteJPanel.setPreferredSize(preferredSize);
 
-		JPanel alertLogEntryDataPanel = getAlertLogEntryDataPanel();
-		JPanel alertLogEntryDisplayPanel = getAlertLogEntryDisplayPanel();
+        headerJPanel.add(titleJPanel, gbc1);
+        headerJPanel.add(alertMessageReportKeyJPanel, gbc2);
+        headerJPanel.add(alertBoxAndWhiskerStatisticsJPanel, gbc3);
+        // headerJPanel.add(noteJPanel, gbc4);
 
-		JSplitPane dataJSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, alertLogEntryDataPanel,
-				alertLogEntryDisplayPanel);
+        return headerJPanel;
+    }
 
-		dataJSplitPane.setContinuousLayout(true);
-		dataJSplitPane.setDividerLocation(300);
+    private JSplitPane getAlertChartAndTableSplitPane() {
 
-		return dataJSplitPane;
-	}
+        JPanel chartAndWiskerJPanel = getChartAndWhiskerJPanel();
+        JSplitPane dataJSplitPane = getDataJSplitPane();
 
-	private JPanel getAlertLogEntryDataPanel() {
+        JSplitPane alertChartAndTableSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, chartAndWiskerJPanel,
+                dataJSplitPane);
 
-		JPanel alertLogEntryDataPanel = new JPanel();
-		alertLogEntryDataPanel.setLayout(new GridBagLayout());
+        alertChartAndTableSplitPane.setContinuousLayout(true);
+        alertChartAndTableSplitPane.setDividerLocation(150);
+        alertChartAndTableSplitPane.setResizeWeight(0.5);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.WEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+        return alertChartAndTableSplitPane;
+    }
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = 1;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.WEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+    private JPanel getChartAndWhiskerJPanel() {
 
-		JPanel boxPlotRangeJPanel = getBoxPlotRangeJPanel();
-		JList<AlertReportListEntry> alertLogEntryKeyJList = getAlertLogEntryKeyJList();
+        JPanel chartAndWiskerJPanel = new JPanel();
 
-		JScrollPane alertLogEntryKeyJScrollPane = new JScrollPane(alertLogEntryKeyJList,
-				ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        chartAndWiskerJPanel.setLayout(new GridBagLayout());
 
-		alertLogEntryDataPanel.add(boxPlotRangeJPanel, gbc1);
-		alertLogEntryDataPanel.add(alertLogEntryKeyJScrollPane, gbc2);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(10, 0, 10, 0);
 
-		alertLogEntryDataPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        Locale locale = logTableModel.getLocale();
 
-		return alertLogEntryDataPanel;
+        AlertLogEntryModel alertLogEntryModel = (AlertLogEntryModel) logTableModel.getLogEntryModel();
 
-	}
+        DateFormat modelDateFormat = alertLogEntryModel.getModelDateFormat();
 
-	private JPanel getBoxPlotRangeJPanel() {
+        CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
+        DateAxis domainAxis = alertLogEntryModel.getDomainAxis();
 
-		JPanel boxPlotRangeJPanel = new JPanel();
+        try {
+            combinedDomainXYPlot.setDomainAxis((DateAxis) domainAxis.clone());
+        } catch (CloneNotSupportedException e) {
+            LOG.error("Error setting domain axis.", e);
+        }
 
-		boxPlotRangeJPanel.setLayout(new GridBagLayout());
+        XYPlot lsXYPlot = new XYPlot();
+        lsXYPlot.setDomainCrosshairVisible(false);
+        lsXYPlot.setDomainCrosshairLockedOnData(false);
+        lsXYPlot.setRangeCrosshairVisible(false);
+        lsXYPlot.setRangeCrosshairLockedOnData(false);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 0.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.WEST;
-		gbc1.insets = new Insets(5, 5, 5, 5);
+        combinedDomainXYPlot.add(lsXYPlot);
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 1;
-		gbc2.gridy = 0;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.HORIZONTAL;
-		gbc2.anchor = GridBagConstraints.WEST;
-		gbc2.insets = new Insets(5, 2, 5, 5);
+        long lowerDomainRange = alertLogEntryModel.getLowerDomainRange();
+        long upperDomainRange = alertLogEntryModel.getUpperDomainRange();
 
-		JLabel selectRangeJLabel = new JLabel("Select range: ");
-		JComboBox<BoxAndWhiskerStatisticsRange> boxPlotRangeJCombobox = getBoxPlotRangeJCombobox();
+        // empty plot to re-adjust time domain
+        XYPlot logXYPlot = LogViewerUtil.getLogXYPlot(lowerDomainRange, upperDomainRange, modelDateFormat, locale);
 
-		boxPlotRangeJPanel.add(selectRangeJLabel, gbc1);
-		boxPlotRangeJPanel.add(boxPlotRangeJCombobox, gbc2);
+        combinedDomainXYPlot.add(logXYPlot);
+        logXYPlot.setWeight(0);
 
-		return boxPlotRangeJPanel;
+        CategoryPlot categoryPlot = new CategoryPlot();
+        categoryPlot.setDomainCrosshairVisible(false);
+        categoryPlot.setRangeCrosshairVisible(false);
+        categoryPlot.setRangeCrosshairLockedOnData(false);
 
-	}
+        AlertLogTimeSeries alertLogTimeSeries = alertMessageReportEntry.getAlertLogTimeSeries();
 
-	private void updateAlertLogEntryKeyJList(BoxAndWhiskerStatisticsRange boxAndWhiskerStatisticsRange) {
+        // keep the same range axis for all AlertMessageReportEntry items
+        boolean autoRange = false;
+        double minRangeValue = alertMessageReportModel.getMinRangeValue();
+        double maxRangeValue = alertMessageReportModel.getMaxRangeValue();
 
-		JList<AlertReportListEntry> alertLogEntryKeyJList = getAlertLogEntryKeyJList();
+        LogViewerUtil.updatePlots(lsXYPlot, categoryPlot, alertLogTimeSeries, modelDateFormat, locale, false, autoRange,
+                minRangeValue, maxRangeValue);
 
-		DefaultListModel<AlertReportListEntry> defaultListModel;
-		defaultListModel = (DefaultListModel<AlertReportListEntry>) alertLogEntryKeyJList.getModel();
-		defaultListModel.clear();
+        JPanel chartPanel = getChartPanel();
 
-		switch (boxAndWhiskerStatisticsRange) {
+        chartAndWiskerJPanel.add(chartPanel, gbc1);
 
-		case ALL:
-			updateALL(defaultListModel);
-			break;
+        BoxAndWhiskerItem boxAndWhiskerItem = alertLogTimeSeries.getBoxAndWhiskerItem();
 
-		case MIN:
-			updateMIN(defaultListModel);
-			break;
+        if (boxAndWhiskerItem != null) {
 
-		case MIN_Q1:
-			updateMIN_Q1(defaultListModel);
-			break;
+            GridBagConstraints gbc2 = new GridBagConstraints();
+            gbc2.gridx = 1;
+            gbc2.gridy = 0;
+            gbc2.weightx = 0.0D;
+            gbc2.weighty = 1.0D;
+            gbc2.fill = GridBagConstraints.BOTH;
+            gbc2.anchor = GridBagConstraints.NORTHWEST;
+            gbc2.insets = new Insets(10, 0, 10, 0);
 
-		case Q1_MEDIAN:
-			updateQ1_MEDIAN(defaultListModel);
-			break;
+            JPanel boxAndWiskerPanel = getBoxAndWiskerPanel(categoryPlot);
 
-		case MEDIAN_Q3:
-			updateMEDIAN_Q3(defaultListModel);
-			break;
+            chartAndWiskerJPanel.add(boxAndWiskerPanel, gbc2);
 
-		case Q3_MAX:
-			updateQ3_MAX(defaultListModel);
-			break;
+        }
 
-		case IQR:
-			updateIQR(defaultListModel);
-			break;
+        chartAndWiskerJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		case MAX:
-			updateMAX(defaultListModel);
-			break;
+        return chartAndWiskerJPanel;
+    }
 
-		case OUTLIERS:
-			updateOUTLIERS(defaultListModel);
-			break;
+    private ChartPanel getBoxAndWiskerPanel(CategoryPlot categoryPlot) {
 
-		default:
-			break;
+        RecentFile recentFile = logTableModel.getRecentFile();
+        String filePath = recentFile.getPath();
+        File file = new File(filePath);
+        File parentDir = file.getParentFile();
+        String name = FileUtilities.getNameWithoutExtension(file);
+        String alertMessageId = alertMessageReportModel.getAlertMessageID();
 
-		}
+        StringBuilder titleSB = new StringBuilder();
+        titleSB.append(name);
+        titleSB.append("-");
+        titleSB.append(alertMessageId);
+        titleSB.append("-");
+        titleSB.append(snoIndex);
+        titleSB.append("-");
+        titleSB.append("BoxPlot");
 
-		JPanel alertLogEntryDisplayPanel = getAlertLogEntryDisplayPanel();
+        CategoryAxis categoryAxis = new CategoryAxis("Box Plot");
+        categoryAxis.setLowerMargin(0.01);
+        categoryAxis.setUpperMargin(0.01);
 
-		alertLogEntryDisplayPanel.removeAll();
-		alertLogEntryDisplayPanel.revalidate();
-	}
+        categoryPlot.setDomainAxis(categoryAxis);
 
-	private AlertReportListEntry getAlertReportListEntry(int counter, Integer alertLogEntryKey) {
+        JFreeChart chart = new JFreeChart(titleSB.toString(), JFreeChart.DEFAULT_TITLE_FONT, categoryPlot, false);
 
-		AlertLogEntryModel alertLogEntryModel = alertMessageReportModel.getAlertLogEntryModel();
+        // customise the title position and font
+        TextTitle textTitle = chart.getTitle();
+        textTitle.setVisible(false);
 
-		DateFormat displayDateFormat = alertLogEntryModel.getDisplayDateFormat();
+        CustomChartPanel customChartPanel = new CustomChartPanel(chart);
 
-		AlertLogEntry alertLogEntry = (AlertLogEntry) alertLogEntryModel.getLogEntry(alertLogEntryKey);
+        Dimension preferredSize = new Dimension(150, Integer.MAX_VALUE);
 
-		Date logEntryDate = alertLogEntry.getLogEntryDate();
-		String timeText = displayDateFormat.format(logEntryDate);
+        customChartPanel.setPreferredSize(preferredSize);
 
-		StringBuffer elementSB = new StringBuffer();
-		elementSB.append(counter);
-		elementSB.append(". Line No [");
-		elementSB.append(alertLogEntryKey);
-		elementSB.append("] Time [");
-		elementSB.append(timeText);
-		elementSB.append("]");
+        customChartPanel.setMinimumDrawWidth(0);
+        customChartPanel.setMinimumDrawHeight(0);
+        customChartPanel.setMaximumDrawWidth(Integer.MAX_VALUE);
+        customChartPanel.setMaximumDrawHeight(Integer.MAX_VALUE);
+        customChartPanel.setMouseWheelEnabled(true);
+        customChartPanel.setRangeZoomable(false);
+        customChartPanel.setDefaultDirectoryForSaveAs(parentDir);
 
-		AlertReportListEntry alertReportListEntry = new AlertReportListEntry(alertLogEntryKey, elementSB.toString());
+        return customChartPanel;
+    }
 
-		return alertReportListEntry;
-	}
+    private JPanel getAlertMessageReportKeyJPanel() {
 
-	private void updateALL(DefaultListModel<AlertReportListEntry> defaultListModel) {
+        JPanel alertMessageReportKeyJPanel = new JPanel();
+        alertMessageReportKeyJPanel.setLayout(new GridBagLayout());
 
-		List<Integer> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 0.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-		int counter = 1;
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 1;
+        gbc2.gridy = 0;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		for (Integer alertLogEntryKey : alertLogEntryKeyList) {
+        AlertBoxAndWhiskerReportColumn keyReportColumn = alertMessageReportModel.getKeyAlertMessageReportColumn();
+        String keyLabelName = (keyReportColumn != null) ? keyReportColumn.getDisplayName() : "<NULL>";
 
-			AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+        String alertMessageReportEntryKey = alertMessageReportEntry.getAlertMessageReportEntryKey();
 
-			defaultListModel.addElement(alertReportListEntry);
+        JLabel keyJLabel = new JLabel(keyLabelName);
+        Font labelFont = keyJLabel.getFont();
+        Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
+        keyJLabel.setFont(tabFont);
+        keyJLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-			counter++;
-		}
+        JPanel messageLabelJPanel = getMessageLabelJPanel(keyJLabel);
+        messageLabelJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-	}
+        JTextArea alertMessageReportEntryKeyJTextArea = new JTextArea(alertMessageReportEntryKey);
+        alertMessageReportEntryKeyJTextArea.setEditable(false);
+        alertMessageReportEntryKeyJTextArea.setBackground(null);
+        alertMessageReportEntryKeyJTextArea.setBorder(BorderFactory.createEmptyBorder(1, 1, 1, 1));
+        alertMessageReportEntryKeyJTextArea.setLineWrap(true);
+        alertMessageReportEntryKeyJTextArea.setWrapStyleWord(true);
+        alertMessageReportEntryKeyJTextArea.setFont(this.getFont());
 
-	private void updateMIN(DefaultListModel<AlertReportListEntry> defaultListModel) {
+        JScrollPane alertLogEntryKeyJScrollPane = new JScrollPane(alertMessageReportEntryKeyJTextArea,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-		double min = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getMinOutlier().doubleValue();
+        alertMessageReportKeyJPanel.add(messageLabelJPanel, gbc1);
+        alertMessageReportKeyJPanel.add(alertLogEntryKeyJScrollPane, gbc2);
 
-		List<Integer> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+        return alertMessageReportKeyJPanel;
 
-		int counter = 1;
+    }
 
-		for (Integer alertLogEntryKey : alertLogEntryKeyList) {
+    private JPanel getMessageLabelJPanel(JLabel label) {
 
-			double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
+        JPanel messageLabelJPanel = new JPanel();
+        messageLabelJPanel.setLayout(new GridBagLayout());
 
-			if (value == min) {
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.WEST;
+        gbc1.insets = new Insets(5, 5, 5, 5);
 
-				AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+        messageLabelJPanel.add(label, gbc1);
+        messageLabelJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-				defaultListModel.addElement(alertReportListEntry);
+        return messageLabelJPanel;
 
-				counter++;
-			}
-		}
+    }
 
-	}
+    private JSplitPane getDataJSplitPane() {
 
-	private void updateMIN_Q1(DefaultListModel<AlertReportListEntry> defaultListModel) {
+        JPanel alertLogEntryDataPanel = getAlertLogEntryDataPanel();
+        JPanel alertLogEntryDisplayPanel = getAlertLogEntryDisplayPanel();
 
-		double min = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getMinOutlier().doubleValue();
-		double q1 = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getQ1().doubleValue();
+        JSplitPane dataJSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, alertLogEntryDataPanel,
+                alertLogEntryDisplayPanel);
 
-		List<Integer> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+        dataJSplitPane.setContinuousLayout(true);
+        dataJSplitPane.setDividerLocation(300);
 
-		int counter = 1;
+        return dataJSplitPane;
+    }
 
-		for (Integer alertLogEntryKey : alertLogEntryKeyList) {
+    private JPanel getAlertLogEntryDataPanel() {
 
-			double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
+        JPanel alertLogEntryDataPanel = new JPanel();
+        alertLogEntryDataPanel.setLayout(new GridBagLayout());
 
-			if ((value >= min) && (value <= q1)) {
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.WEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-				AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.WEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-				defaultListModel.addElement(alertReportListEntry);
+        JPanel boxPlotRangeJPanel = getBoxPlotRangeJPanel();
+        JList<AlertReportListEntry> alertLogEntryKeyJList = getAlertLogEntryKeyJList();
 
-				counter++;
-			}
-		}
+        JScrollPane alertLogEntryKeyJScrollPane = new JScrollPane(alertLogEntryKeyJList,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-	}
+        alertLogEntryDataPanel.add(boxPlotRangeJPanel, gbc1);
+        alertLogEntryDataPanel.add(alertLogEntryKeyJScrollPane, gbc2);
 
-	private void updateQ1_MEDIAN(DefaultListModel<AlertReportListEntry> defaultListModel) {
+        alertLogEntryDataPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		double q1 = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getQ1().doubleValue();
-		double median = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getMedian().doubleValue();
+        return alertLogEntryDataPanel;
 
-		List<Integer> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+    }
 
-		int counter = 1;
+    private JPanel getBoxPlotRangeJPanel() {
 
-		for (Integer alertLogEntryKey : alertLogEntryKeyList) {
+        JPanel boxPlotRangeJPanel = new JPanel();
 
-			double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
+        boxPlotRangeJPanel.setLayout(new GridBagLayout());
 
-			if ((value >= q1) && (value <= median)) {
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 0.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.WEST;
+        gbc1.insets = new Insets(5, 5, 5, 5);
 
-				AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 1;
+        gbc2.gridy = 0;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.HORIZONTAL;
+        gbc2.anchor = GridBagConstraints.WEST;
+        gbc2.insets = new Insets(5, 2, 5, 5);
 
-				defaultListModel.addElement(alertReportListEntry);
+        JLabel selectRangeJLabel = new JLabel("Select range: ");
+        JComboBox<BoxAndWhiskerStatisticsRange> boxPlotRangeJCombobox = getBoxPlotRangeJCombobox();
 
-				counter++;
-			}
-		}
+        boxPlotRangeJPanel.add(selectRangeJLabel, gbc1);
+        boxPlotRangeJPanel.add(boxPlotRangeJCombobox, gbc2);
 
-	}
+        return boxPlotRangeJPanel;
 
-	private void updateMEDIAN_Q3(DefaultListModel<AlertReportListEntry> defaultListModel) {
+    }
 
-		double median = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getMedian().doubleValue();
-		double q3 = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getQ3().doubleValue();
+    private void updateAlertLogEntryKeyJList(BoxAndWhiskerStatisticsRange boxAndWhiskerStatisticsRange) {
 
-		List<Integer> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+        JList<AlertReportListEntry> alertLogEntryKeyJList = getAlertLogEntryKeyJList();
 
-		int counter = 1;
+        DefaultListModel<AlertReportListEntry> defaultListModel;
+        defaultListModel = (DefaultListModel<AlertReportListEntry>) alertLogEntryKeyJList.getModel();
+        defaultListModel.clear();
 
-		for (Integer alertLogEntryKey : alertLogEntryKeyList) {
+        switch (boxAndWhiskerStatisticsRange) {
 
-			double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
+        case ALL:
+            updateALL(defaultListModel);
+            break;
 
-			if ((value >= median) && (value <= q3)) {
+        case MIN:
+            updateMIN(defaultListModel);
+            break;
 
-				AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+        case MIN_Q1:
+            updateQ1Min(defaultListModel);
+            break;
 
-				defaultListModel.addElement(alertReportListEntry);
+        case Q1_MEDIAN:
+            updateQ1Median(defaultListModel);
+            break;
 
-				counter++;
-			}
-		}
+        case MEDIAN_Q3:
+            updateQ3Median(defaultListModel);
+            break;
 
-	}
+        case Q3_MAX:
+            updateQ3Max(defaultListModel);
+            break;
 
-	private void updateQ3_MAX(DefaultListModel<AlertReportListEntry> defaultListModel) {
+        case IQR:
+            updateIQR(defaultListModel);
+            break;
 
-		double q3 = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getQ3().doubleValue();
-		double max = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getMaxOutlier().doubleValue();
+        case MAX:
+            updateMAX(defaultListModel);
+            break;
 
-		List<Integer> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+        case OUTLIERS:
+            updateOutliers(defaultListModel);
+            break;
 
-		int counter = 1;
+        default:
+            break;
 
-		for (Integer alertLogEntryKey : alertLogEntryKeyList) {
+        }
 
-			double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
+        JPanel alertLogEntryDisplayPanel = getAlertLogEntryDisplayPanel();
 
-			if ((value >= q3) && (value <= max)) {
+        alertLogEntryDisplayPanel.removeAll();
+        alertLogEntryDisplayPanel.revalidate();
+    }
 
-				AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+    private AlertReportListEntry getAlertReportListEntry(int counter, LogEntryKey alertLogEntryKey) {
 
-				defaultListModel.addElement(alertReportListEntry);
+        AlertLogEntryModel alertLogEntryModel = alertMessageReportModel.getAlertLogEntryModel();
 
-				counter++;
-			}
-		}
+        String timeText = alertLogEntryModel.getLogEntryTimeDisplayString(alertLogEntryKey);
 
-	}
+        StringBuilder elementSB = new StringBuilder();
+        elementSB.append(counter);
+        elementSB.append(". Line No [");
+        elementSB.append(alertLogEntryKey.getLineNo());
+        elementSB.append("] Time [");
+        elementSB.append(timeText);
+        elementSB.append("]");
 
-	private void updateIQR(DefaultListModel<AlertReportListEntry> defaultListModel) {
+        AlertReportListEntry alertReportListEntry = new AlertReportListEntry(alertLogEntryKey, elementSB.toString());
 
-		double q1 = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getQ1().doubleValue();
-		double q3 = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getQ3().doubleValue();
+        return alertReportListEntry;
+    }
 
-		List<Integer> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+    private void updateALL(DefaultListModel<AlertReportListEntry> defaultListModel) {
 
-		int counter = 1;
+        List<LogEntryKey> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
 
-		for (Integer alertLogEntryKey : alertLogEntryKeyList) {
+        int counter = 1;
 
-			double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
+        for (LogEntryKey alertLogEntryKey : alertLogEntryKeyList) {
 
-			if ((value >= q1) && (value <= q3)) {
+            AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
 
-				AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+            defaultListModel.addElement(alertReportListEntry);
 
-				defaultListModel.addElement(alertReportListEntry);
+            counter++;
+        }
 
-				counter++;
-			}
-		}
+    }
 
-	}
+    private void updateMIN(DefaultListModel<AlertReportListEntry> defaultListModel) {
 
-	private void updateMAX(DefaultListModel<AlertReportListEntry> defaultListModel) {
+        double min = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getMinOutlier().doubleValue();
 
-		double max = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getMaxOutlier().doubleValue();
+        List<LogEntryKey> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
 
-		List<Integer> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+        int counter = 1;
 
-		int counter = 1;
+        for (LogEntryKey alertLogEntryKey : alertLogEntryKeyList) {
 
-		for (Integer alertLogEntryKey : alertLogEntryKeyList) {
+            double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
 
-			double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
+            if (value == min) {
 
-			if (value == max) {
+                AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
 
-				AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+                defaultListModel.addElement(alertReportListEntry);
 
-				defaultListModel.addElement(alertReportListEntry);
+                counter++;
+            }
+        }
 
-				counter++;
-			}
-		}
+    }
 
-	}
+    private void updateQ1Min(DefaultListModel<AlertReportListEntry> defaultListModel) {
 
-	private void updateOUTLIERS(DefaultListModel<AlertReportListEntry> defaultListModel) {
+        double min = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getMinOutlier().doubleValue();
+        double q1 = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getQ1().doubleValue();
 
-		@SuppressWarnings("unchecked")
-		List<Double> outliersList = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getOutliers();
+        List<LogEntryKey> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
 
-		List<Integer> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+        int counter = 1;
 
-		int counter = 1;
+        for (LogEntryKey alertLogEntryKey : alertLogEntryKeyList) {
 
-		for (Integer alertLogEntryKey : alertLogEntryKeyList) {
+            double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
 
-			double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
+            if ((value >= min) && (value <= q1)) {
 
-			if (outliersList.contains(value)) {
+                AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
 
-				AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+                defaultListModel.addElement(alertReportListEntry);
 
-				defaultListModel.addElement(alertReportListEntry);
+                counter++;
+            }
+        }
 
-				counter++;
-			}
-		}
+    }
 
-	}
+    private void updateQ1Median(DefaultListModel<AlertReportListEntry> defaultListModel) {
 
-	private class AlertReportListEntry {
+        double q1 = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getQ1().doubleValue();
+        double median = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getMedian().doubleValue();
 
-		private Integer alertLogEntryKey;
+        List<LogEntryKey> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
 
-		private String displaytext;
+        int counter = 1;
 
-		public AlertReportListEntry(Integer alertLogEntryKey, String displaytext) {
-			super();
-			this.alertLogEntryKey = alertLogEntryKey;
-			this.displaytext = displaytext;
-		}
+        for (LogEntryKey alertLogEntryKey : alertLogEntryKeyList) {
 
-		public Integer getAlertLogEntryKey() {
-			return alertLogEntryKey;
-		}
+            double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
 
-		public String getDisplaytext() {
-			return displaytext;
-		}
+            if ((value >= q1) && (value <= median)) {
 
-		@Override
-		public String toString() {
-			return getDisplaytext();
-		}
+                AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
 
-	}
+                defaultListModel.addElement(alertReportListEntry);
 
-	private enum BoxAndWhiskerStatisticsRange {
+                counter++;
+            }
+        }
 
-		// @formatter:off
-		ALL ("All"), 
-		MIN ("Min"),
-		MIN_Q1("Min to Q1"),
-		Q1_MEDIAN("Q1 to Median"),
-		MEDIAN_Q3("Median to Q3"),
-		Q3_MAX("Q3 to Max"),
-		IQR("IQR(Q1 to Q3)"),
-		MAX ("Max"),
-		OUTLIERS("Outliers");
-		// @formatter:on
+    }
 
-		private String displaytext;
+    private void updateQ3Median(DefaultListModel<AlertReportListEntry> defaultListModel) {
 
-		private BoxAndWhiskerStatisticsRange(String displaytext) {
-			this.displaytext = displaytext;
-		}
+        double median = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getMedian().doubleValue();
+        double q3 = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getQ3().doubleValue();
 
-		public String getDisplaytext() {
-			return displaytext;
-		}
+        List<LogEntryKey> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
 
-		@Override
-		public String toString() {
-			return getDisplaytext();
-		}
-	}
+        int counter = 1;
+
+        for (LogEntryKey alertLogEntryKey : alertLogEntryKeyList) {
+
+            double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
+
+            if ((value >= median) && (value <= q3)) {
+
+                AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+
+                defaultListModel.addElement(alertReportListEntry);
+
+                counter++;
+            }
+        }
+
+    }
+
+    private void updateQ3Max(DefaultListModel<AlertReportListEntry> defaultListModel) {
+
+        double q3 = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getQ3().doubleValue();
+        double max = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getMaxOutlier().doubleValue();
+
+        List<LogEntryKey> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+
+        int counter = 1;
+
+        for (LogEntryKey alertLogEntryKey : alertLogEntryKeyList) {
+
+            double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
+
+            if ((value >= q3) && (value <= max)) {
+
+                AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+
+                defaultListModel.addElement(alertReportListEntry);
+
+                counter++;
+            }
+        }
+
+    }
+
+    private void updateIQR(DefaultListModel<AlertReportListEntry> defaultListModel) {
+
+        double q1 = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getQ1().doubleValue();
+        double q3 = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getQ3().doubleValue();
+
+        List<LogEntryKey> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+
+        int counter = 1;
+
+        for (LogEntryKey alertLogEntryKey : alertLogEntryKeyList) {
+
+            double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
+
+            if ((value >= q1) && (value <= q3)) {
+
+                AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+
+                defaultListModel.addElement(alertReportListEntry);
+
+                counter++;
+            }
+        }
+
+    }
+
+    private void updateMAX(DefaultListModel<AlertReportListEntry> defaultListModel) {
+
+        double max = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getMaxOutlier().doubleValue();
+
+        List<LogEntryKey> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+
+        int counter = 1;
+
+        for (LogEntryKey alertLogEntryKey : alertLogEntryKeyList) {
+
+            double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
+
+            if (value == max) {
+
+                AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+
+                defaultListModel.addElement(alertReportListEntry);
+
+                counter++;
+            }
+        }
+
+    }
+
+    private void updateOutliers(DefaultListModel<AlertReportListEntry> defaultListModel) {
+
+        @SuppressWarnings("unchecked")
+        List<Double> outliersList = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getOutliers();
+
+        List<LogEntryKey> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
+
+        int counter = 1;
+
+        for (LogEntryKey alertLogEntryKey : alertLogEntryKeyList) {
+
+            double value = alertMessageReportEntry.getAlertMessageReportEntryKeyValue(alertLogEntryKey);
+
+            if (outliersList.contains(value)) {
+
+                AlertReportListEntry alertReportListEntry = getAlertReportListEntry(counter, alertLogEntryKey);
+
+                defaultListModel.addElement(alertReportListEntry);
+
+                counter++;
+            }
+        }
+
+    }
+
+    private class AlertReportListEntry {
+
+        private LogEntryKey alertLogEntryKey;
+
+        private String displaytext;
+
+        public AlertReportListEntry(LogEntryKey alertLogEntryKey, String displaytext) {
+            super();
+            this.alertLogEntryKey = alertLogEntryKey;
+            this.displaytext = displaytext;
+        }
+
+        public LogEntryKey getAlertLogEntryKey() {
+            return alertLogEntryKey;
+        }
+
+        public String getDisplaytext() {
+            return displaytext;
+        }
+
+        @Override
+        public String toString() {
+            return getDisplaytext();
+        }
+
+    }
+
+    private enum BoxAndWhiskerStatisticsRange {
+
+        // @formatter:off
+        // CHECKSTYLE:OFF
+        ALL       ("All"),
+        MIN       ("Min"),
+        MIN_Q1    ("Min to Q1"),
+        Q1_MEDIAN ("Q1 to Median"),
+        MEDIAN_Q3 ("Median to Q3"),
+        Q3_MAX    ("Q3 to Max"),
+        IQR       ("IQR(Q1 to Q3)"),
+        MAX       ("Max"),
+        OUTLIERS  ("Outliers");
+        // CHECKSTYLE:ON
+        // @formatter:on
+
+        private final String displaytext;
+
+        private BoxAndWhiskerStatisticsRange(String displaytext) {
+            this.displaytext = displaytext;
+        }
+
+        public String getDisplaytext() {
+            return displaytext;
+        }
+
+        @Override
+        public String toString() {
+            return getDisplaytext();
+        }
+    }
 }

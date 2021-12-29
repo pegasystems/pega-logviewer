@@ -4,519 +4,529 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.pegatdp;
 
 import java.awt.Component;
 import java.lang.reflect.Method;
+import java.net.URLClassLoader;
 import java.util.Map;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.logviewer.PluginClassloader;
 
 public class FindingAdapterFactory {
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(FindingAdapterFactory.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(FindingAdapterFactory.class);
 
-	private static final FindingAdapterFactory _INSTANCE = new FindingAdapterFactory();
+    private static final FindingAdapterFactory _INSTANCE = new FindingAdapterFactory();
 
-	private static boolean initialised;
+    private static boolean initialised;
 
-	private static Class<?> graphFindingClass;
+    private static Class<?> graphFindingClass;
 
-	private static Method swingUtilsGetComponentGraphMethod;
+    private static Method swingUtilsGetComponentGraphMethod;
 
-	private FindingAdapterFactory() {
+    private FindingAdapterFactory() {
 
-		try {
-			initialised = false;
+        try {
+            initialised = false;
 
-			graphFindingClass = Class.forName("com.pega.gcs.logs.threaddumpparser.analysis.graph.GraphFinding");
+            PluginClassloader pluginClassloader = PluginClassloader.getInstance();
 
-			Class<?> swingUtilsClass = Class.forName("com.pega.gcs.logs.threaddumpparser.utils.SwingUtils");
-			swingUtilsGetComponentGraphMethod = swingUtilsClass.getMethod("getComponentGraph", String.class);
+            URLClassLoader urlClassLoader = pluginClassloader.getUrlClassLoader();
 
-			initialised = true;
+            graphFindingClass = Class.forName("com.pega.gcs.logs.threaddumpparser.analysis.graph.GraphFinding", true,
+                    urlClassLoader);
 
-		} catch (Exception e) {
-			LOG.error("Error initialising FindingAdapterFactory", e);
-		}
-	}
+            Class<?> swingUtilsClass = Class.forName("com.pega.gcs.logs.threaddumpparser.utils.SwingUtils", true,
+                    urlClassLoader);
 
-	public static FindingAdapterFactory getInstance() {
+            swingUtilsGetComponentGraphMethod = swingUtilsClass.getMethod("getComponentGraph", String.class);
 
-		return _INSTANCE;
-	}
+            initialised = true;
 
-	private static boolean isInitialised() {
-		return initialised;
-	}
+        } catch (Exception e) {
+            LOG.error("Error initialising FindingAdapterFactory", e);
+        }
+    }
 
-	public FindingAdapter getFindingAdapter(Object finding) {
+    public static FindingAdapterFactory getInstance() {
 
-		FindingAdapter findingAdapter = null;
+        return _INSTANCE;
+    }
 
-		if (isInitialised()) {
-			try {
+    private static boolean isInitialised() {
+        return initialised;
+    }
 
-				if (finding.getClass().isAssignableFrom(graphFindingClass)) {
-					findingAdapter = getGraphFindingAdapter(finding);
-				} else {
+    public FindingAdapter getFindingAdapter(Object finding) {
 
-					findingAdapter = new FindingAdapter() {
+        FindingAdapter findingAdapter = null;
 
-						@Override
-						public Integer getId() {
+        if (isInitialised()) {
+            try {
 
-							Integer id = null;
+                if (finding.getClass().isAssignableFrom(graphFindingClass)) {
+                    findingAdapter = getGraphFindingAdapter(finding);
+                } else {
 
-							try {
-								Method method = graphFindingClass.getMethod("getId", (Class<?>[]) null);
-								method.setAccessible(true);
-								id = (Integer) method.invoke(finding, (Object[]) null);
-							} catch (Exception e) {
-								LOG.error("Error invoking getId.", e);
-							}
+                    findingAdapter = new FindingAdapter() {
 
-							return id;
-						}
+                        @Override
+                        public Integer getId() {
 
-						@Override
-						public String getName() {
+                            Integer id = null;
 
-							String name = null;
+                            try {
+                                Method method = graphFindingClass.getMethod("getId", (Class<?>[]) null);
+                                method.setAccessible(true);
+                                id = (Integer) method.invoke(finding, (Object[]) null);
+                            } catch (Exception e) {
+                                LOG.error("Error invoking getId.", e);
+                            }
 
-							try {
-								Method method = graphFindingClass.getMethod("getName", (Class<?>[]) null);
-								method.setAccessible(true);
-								name = (String) method.invoke(finding, (Object[]) null);
-							} catch (Exception e) {
-								LOG.error("Error invoking getName.", e);
-							}
+                            return id;
+                        }
 
-							return name;
-						}
+                        @Override
+                        public String getName() {
 
-						@Override
-						public String getCategory() {
+                            String name = null;
 
-							String category = null;
+                            try {
+                                Method method = graphFindingClass.getMethod("getName", (Class<?>[]) null);
+                                method.setAccessible(true);
+                                name = (String) method.invoke(finding, (Object[]) null);
+                            } catch (Exception e) {
+                                LOG.error("Error invoking getName.", e);
+                            }
 
-							try {
-								Method method = graphFindingClass.getMethod("getCategory", (Class<?>[]) null);
-								method.setAccessible(true);
-								category = (String) method.invoke(finding, (Object[]) null);
-							} catch (Exception e) {
-								LOG.error("Error invoking getCategory.", e);
-							}
+                            return name;
+                        }
 
-							return category;
-						}
+                        @Override
+                        public String getCategory() {
 
-						@Override
-						public String[] getSymptoms() {
+                            String category = null;
 
-							String[] symptoms = null;
-
-							try {
-								Method method = graphFindingClass.getMethod("getSymptoms", (Class<?>[]) null);
-								method.setAccessible(true);
-								symptoms = (String[]) method.invoke(finding, (Object[]) null);
-							} catch (Exception e) {
-								LOG.error("Error invoking getSymptoms.", e);
-							}
+                            try {
+                                Method method = graphFindingClass.getMethod("getCategory", (Class<?>[]) null);
+                                method.setAccessible(true);
+                                category = (String) method.invoke(finding, (Object[]) null);
+                            } catch (Exception e) {
+                                LOG.error("Error invoking getCategory.", e);
+                            }
 
-							return symptoms;
-						}
+                            return category;
+                        }
 
-						@SuppressWarnings("unchecked")
-						@Override
-						public Map<String, String> getApplyTo() {
+                        @Override
+                        public String[] getSymptoms() {
 
-							Map<String, String> applyTo = null;
+                            String[] symptoms = null;
 
-							try {
-								Method method = graphFindingClass.getMethod("getApplyTo", (Class<?>[]) null);
-								method.setAccessible(true);
-								applyTo = (Map<String, String>) method.invoke(finding, (Object[]) null);
-							} catch (Exception e) {
-								LOG.error("Error invoking getApplyTo.", e);
-							}
+                            try {
+                                Method method = graphFindingClass.getMethod("getSymptoms", (Class<?>[]) null);
+                                method.setAccessible(true);
+                                symptoms = (String[]) method.invoke(finding, (Object[]) null);
+                            } catch (Exception e) {
+                                LOG.error("Error invoking getSymptoms.", e);
+                            }
 
-							return applyTo;
-						}
+                            return symptoms;
+                        }
 
-						@Override
-						public String getDescription() {
+                        @SuppressWarnings("unchecked")
+                        @Override
+                        public Map<String, String> getApplyTo() {
 
-							String description = null;
+                            Map<String, String> applyTo = null;
 
-							try {
-								Method method = graphFindingClass.getMethod("getDescription", (Class<?>[]) null);
-								method.setAccessible(true);
-								description = (String) method.invoke(finding, (Object[]) null);
-							} catch (Exception e) {
-								LOG.error("Error invoking getDescription.", e);
-							}
+                            try {
+                                Method method = graphFindingClass.getMethod("getApplyTo", (Class<?>[]) null);
+                                method.setAccessible(true);
+                                applyTo = (Map<String, String>) method.invoke(finding, (Object[]) null);
+                            } catch (Exception e) {
+                                LOG.error("Error invoking getApplyTo.", e);
+                            }
 
-							return description;
-						}
+                            return applyTo;
+                        }
 
-						@Override
-						public Enum<?> getSeverity() {
+                        @Override
+                        public String getDescription() {
 
-							Enum<?> severity = null;
+                            String description = null;
 
-							try {
-								Method method = graphFindingClass.getMethod("getSeverity", (Class<?>[]) null);
-								method.setAccessible(true);
-								severity = (Enum<?>) method.invoke(finding, (Object[]) null);
-							} catch (Exception e) {
-								LOG.error("Error invoking getSeverity.", e);
-							}
+                            try {
+                                Method method = graphFindingClass.getMethod("getDescription", (Class<?>[]) null);
+                                method.setAccessible(true);
+                                description = (String) method.invoke(finding, (Object[]) null);
+                            } catch (Exception e) {
+                                LOG.error("Error invoking getDescription.", e);
+                            }
 
-							return severity;
+                            return description;
+                        }
 
-						}
+                        @Override
+                        public Enum<?> getSeverity() {
 
-						@Override
-						public String getAdvice() {
+                            Enum<?> severity = null;
 
-							String advice = null;
+                            try {
+                                Method method = graphFindingClass.getMethod("getSeverity", (Class<?>[]) null);
+                                method.setAccessible(true);
+                                severity = (Enum<?>) method.invoke(finding, (Object[]) null);
+                            } catch (Exception e) {
+                                LOG.error("Error invoking getSeverity.", e);
+                            }
 
-							try {
-								Method method = graphFindingClass.getMethod("getAdvice", (Class<?>[]) null);
-								method.setAccessible(true);
-								advice = (String) method.invoke(finding, (Object[]) null);
-							} catch (Exception e) {
-								LOG.error("Error invoking getAdvice.", e);
-							}
+                            return severity;
 
-							return advice;
-						}
+                        }
 
-						@SuppressWarnings("unchecked")
-						@Override
-						public Map<String, Object> getDetails() {
+                        @Override
+                        public String getAdvice() {
 
-							Map<String, Object> details = null;
+                            String advice = null;
 
-							try {
-								Method method = graphFindingClass.getMethod("getDetails", (Class<?>[]) null);
-								method.setAccessible(true);
-								details = (Map<String, Object>) method.invoke(finding, (Object[]) null);
-							} catch (Exception e) {
-								LOG.error("Error invoking getDetails.", e);
-							}
+                            try {
+                                Method method = graphFindingClass.getMethod("getAdvice", (Class<?>[]) null);
+                                method.setAccessible(true);
+                                advice = (String) method.invoke(finding, (Object[]) null);
+                            } catch (Exception e) {
+                                LOG.error("Error invoking getAdvice.", e);
+                            }
 
-							return details;
-						}
-					};
-				}
+                            return advice;
+                        }
 
-			} catch (Exception e) {
-				LOG.error("Error getting FindingAdapter", e);
-			}
-		}
+                        @SuppressWarnings("unchecked")
+                        @Override
+                        public Map<String, Object> getDetails() {
 
-		return findingAdapter;
+                            Map<String, Object> details = null;
 
-	}
+                            try {
+                                Method method = graphFindingClass.getMethod("getDetails", (Class<?>[]) null);
+                                method.setAccessible(true);
+                                details = (Map<String, Object>) method.invoke(finding, (Object[]) null);
+                            } catch (Exception e) {
+                                LOG.error("Error invoking getDetails.", e);
+                            }
 
-	private GraphFindingAdapter getGraphFindingAdapter(Object graphFinding) {
+                            return details;
+                        }
+                    };
+                }
 
-		GraphFindingAdapter graphFindingAdapter = null;
+            } catch (Exception e) {
+                LOG.error("Error getting FindingAdapter", e);
+            }
+        }
 
-		if (isInitialised()) {
-			try {
+        return findingAdapter;
 
-				graphFindingAdapter = new GraphFindingAdapter() {
+    }
 
-					@Override
-					public Integer getId() {
+    private GraphFindingAdapter getGraphFindingAdapter(Object graphFinding) {
 
-						Integer id = null;
+        GraphFindingAdapter graphFindingAdapter = null;
 
-						try {
-							Method method = graphFindingClass.getMethod("getId", (Class<?>[]) null);
-							method.setAccessible(true);
-							id = (Integer) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getId.", e);
-						}
+        if (isInitialised()) {
+            try {
 
-						return id;
-					}
+                graphFindingAdapter = new GraphFindingAdapter() {
 
-					@Override
-					public String getName() {
+                    @Override
+                    public Integer getId() {
 
-						String name = null;
+                        Integer id = null;
 
-						try {
-							Method method = graphFindingClass.getMethod("getName", (Class<?>[]) null);
-							method.setAccessible(true);
-							name = (String) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getName.", e);
-						}
+                        try {
+                            Method method = graphFindingClass.getMethod("getId", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            id = (Integer) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getId.", e);
+                        }
 
-						return name;
-					}
+                        return id;
+                    }
 
-					@Override
-					public String getCategory() {
-						String category = null;
+                    @Override
+                    public String getName() {
 
-						try {
-							Method method = graphFindingClass.getMethod("getCategory", (Class<?>[]) null);
-							method.setAccessible(true);
-							category = (String) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getCategory.", e);
-						}
+                        String name = null;
 
-						return category;
-					}
+                        try {
+                            Method method = graphFindingClass.getMethod("getName", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            name = (String) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getName.", e);
+                        }
 
-					@Override
-					public String[] getSymptoms() {
+                        return name;
+                    }
 
-						String[] symptoms = null;
+                    @Override
+                    public String getCategory() {
+                        String category = null;
 
-						try {
-							Method method = graphFindingClass.getMethod("getSymptoms", (Class<?>[]) null);
-							method.setAccessible(true);
-							symptoms = (String[]) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getSymptoms.", e);
-						}
+                        try {
+                            Method method = graphFindingClass.getMethod("getCategory", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            category = (String) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getCategory.", e);
+                        }
 
-						return symptoms;
-					}
+                        return category;
+                    }
 
-					@SuppressWarnings("unchecked")
-					@Override
-					public Map<String, String> getApplyTo() {
+                    @Override
+                    public String[] getSymptoms() {
 
-						Map<String, String> applyTo = null;
+                        String[] symptoms = null;
 
-						try {
-							Method method = graphFindingClass.getMethod("getApplyTo", (Class<?>[]) null);
-							method.setAccessible(true);
-							applyTo = (Map<String, String>) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getApplyTo.", e);
-						}
+                        try {
+                            Method method = graphFindingClass.getMethod("getSymptoms", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            symptoms = (String[]) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getSymptoms.", e);
+                        }
 
-						return applyTo;
-					}
+                        return symptoms;
+                    }
 
-					@Override
-					public String getDescription() {
+                    @SuppressWarnings("unchecked")
+                    @Override
+                    public Map<String, String> getApplyTo() {
 
-						String description = null;
+                        Map<String, String> applyTo = null;
 
-						try {
-							Method method = graphFindingClass.getMethod("getDescription", (Class<?>[]) null);
-							method.setAccessible(true);
-							description = (String) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getDescription.", e);
-						}
+                        try {
+                            Method method = graphFindingClass.getMethod("getApplyTo", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            applyTo = (Map<String, String>) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getApplyTo.", e);
+                        }
 
-						return description;
-					}
+                        return applyTo;
+                    }
 
-					@Override
-					public Enum<?> getSeverity() {
+                    @Override
+                    public String getDescription() {
 
-						Enum<?> severity = null;
+                        String description = null;
 
-						try {
-							Method method = graphFindingClass.getMethod("getSeverity", (Class<?>[]) null);
-							method.setAccessible(true);
-							severity = (Enum<?>) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getSeverity.", e);
-						}
+                        try {
+                            Method method = graphFindingClass.getMethod("getDescription", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            description = (String) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getDescription.", e);
+                        }
 
-						return severity;
-					}
+                        return description;
+                    }
 
-					@Override
-					public String getAdvice() {
+                    @Override
+                    public Enum<?> getSeverity() {
 
-						String advice = null;
+                        Enum<?> severity = null;
 
-						try {
-							Method method = graphFindingClass.getMethod("getAdvice", (Class<?>[]) null);
-							method.setAccessible(true);
-							advice = (String) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getAdvice.", e);
-						}
+                        try {
+                            Method method = graphFindingClass.getMethod("getSeverity", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            severity = (Enum<?>) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getSeverity.", e);
+                        }
 
-						return advice;
-					}
+                        return severity;
+                    }
 
-					@SuppressWarnings("unchecked")
-					@Override
-					public Map<String, Object> getDetails() {
+                    @Override
+                    public String getAdvice() {
 
-						Map<String, Object> details = null;
+                        String advice = null;
 
-						try {
-							Method method = graphFindingClass.getMethod("getDetails", (Class<?>[]) null);
-							method.setAccessible(true);
-							details = (Map<String, Object>) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getDetails.", e);
-						}
-
-						return details;
-					}
+                        try {
+                            Method method = graphFindingClass.getMethod("getAdvice", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            advice = (String) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getAdvice.", e);
+                        }
 
-					@Override
-					public Boolean isCyclic() {
+                        return advice;
+                    }
 
-						Boolean cyclic = null;
+                    @SuppressWarnings("unchecked")
+                    @Override
+                    public Map<String, Object> getDetails() {
 
-						try {
-							Method method = graphFindingClass.getMethod("isCyclic", (Class<?>[]) null);
-							method.setAccessible(true);
-							cyclic = (boolean) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking isCyclic.", e);
-						}
-
-						return cyclic;
-					}
+                        Map<String, Object> details = null;
 
-					@Override
-					public String getCyclicPath() {
+                        try {
+                            Method method = graphFindingClass.getMethod("getDetails", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            details = (Map<String, Object>) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getDetails.", e);
+                        }
 
-						String cyclicPath = null;
+                        return details;
+                    }
 
-						try {
-							Method method = graphFindingClass.getMethod("getCyclicPath", (Class<?>[]) null);
-							method.setAccessible(true);
-							cyclicPath = (String) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getCyclicPath.", e);
-						}
+                    @Override
+                    public Boolean isCyclic() {
 
-						return cyclicPath;
-					}
+                        Boolean cyclic = null;
 
-					@Override
-					public Integer getThreadsCount() {
+                        try {
+                            Method method = graphFindingClass.getMethod("isCyclic", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            cyclic = (boolean) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking isCyclic.", e);
+                        }
 
-						Integer threadsCount = null;
-
-						try {
-							Method method = graphFindingClass.getMethod("getThreadsCount", (Class<?>[]) null);
-							method.setAccessible(true);
-							threadsCount = (int) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getThreadsCount.", e);
-						}
+                        return cyclic;
+                    }
 
-						return threadsCount;
-					}
+                    @Override
+                    public String getCyclicPath() {
 
-					@Override
-					public String getWaitForGraph() {
+                        String cyclicPath = null;
 
-						String waitForGraph = null;
+                        try {
+                            Method method = graphFindingClass.getMethod("getCyclicPath", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            cyclicPath = (String) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getCyclicPath.", e);
+                        }
 
-						try {
-							Method method = graphFindingClass.getMethod("getWaitForGraph", (Class<?>[]) null);
-							method.setAccessible(true);
-							waitForGraph = (String) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getWaitForGraph.", e);
-						}
+                        return cyclicPath;
+                    }
 
-						return waitForGraph;
-					}
+                    @Override
+                    public Integer getThreadsCount() {
 
-					@Override
-					public String getResourceAllocationGraph() {
+                        Integer threadsCount = null;
 
-						String resourceAllocationGraph = null;
+                        try {
+                            Method method = graphFindingClass.getMethod("getThreadsCount", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            threadsCount = (int) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getThreadsCount.", e);
+                        }
 
-						try {
-							Method method = graphFindingClass.getMethod("getResourceAllocationGraph",
-									(Class<?>[]) null);
-							method.setAccessible(true);
-							resourceAllocationGraph = (String) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getResourceAllocationGraph.", e);
-						}
+                        return threadsCount;
+                    }
 
-						return resourceAllocationGraph;
-					}
+                    @Override
+                    public String getWaitForGraph() {
 
-					@Override
-					public String getRootName() {
+                        String waitForGraph = null;
 
-						String rootName = null;
+                        try {
+                            Method method = graphFindingClass.getMethod("getWaitForGraph", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            waitForGraph = (String) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getWaitForGraph.", e);
+                        }
 
-						try {
-							Method method = graphFindingClass.getMethod("getRootName", (Class<?>[]) null);
-							method.setAccessible(true);
-							rootName = (String) method.invoke(graphFinding, (Object[]) null);
-						} catch (Exception e) {
-							LOG.error("Error invoking getRootName.", e);
-						}
+                        return waitForGraph;
+                    }
 
-						return rootName;
-					}
+                    @Override
+                    public String getResourceAllocationGraph() {
 
-					@Override
-					public Component getWaitForGraphComponent() {
+                        String resourceAllocationGraph = null;
 
-						Component waitForGraphComponent = null;
+                        try {
+                            Method method = graphFindingClass.getMethod("getResourceAllocationGraph",
+                                    (Class<?>[]) null);
+                            method.setAccessible(true);
+                            resourceAllocationGraph = (String) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getResourceAllocationGraph.", e);
+                        }
 
-						try {
-							String graphInDOTFormat = getWaitForGraph();
+                        return resourceAllocationGraph;
+                    }
 
-							if (graphInDOTFormat != null) {
-								waitForGraphComponent = (Component) swingUtilsGetComponentGraphMethod.invoke(null,
-										graphInDOTFormat);
-							}
-						} catch (Exception e) {
-							LOG.error("Error invoking swingUtilsGetComponentGraphMethod.", e);
-						}
+                    @Override
+                    public String getRootName() {
 
-						return waitForGraphComponent;
-					}
+                        String rootName = null;
 
-					@Override
-					public Component getResourceAllocationGraphComponent() {
+                        try {
+                            Method method = graphFindingClass.getMethod("getRootName", (Class<?>[]) null);
+                            method.setAccessible(true);
+                            rootName = (String) method.invoke(graphFinding, (Object[]) null);
+                        } catch (Exception e) {
+                            LOG.error("Error invoking getRootName.", e);
+                        }
 
-						Component resourceAllocationGraphComponent = null;
+                        return rootName;
+                    }
 
-						try {
-							String graphInDOTFormat = getResourceAllocationGraph();
+                    @Override
+                    public Component getWaitForGraphComponent() {
 
-							if (graphInDOTFormat != null) {
-								resourceAllocationGraphComponent = (Component) swingUtilsGetComponentGraphMethod
-										.invoke(null, graphInDOTFormat);
-							}
-						} catch (Exception e) {
-							LOG.error("Error invoking swingUtilsGetComponentGraphMethod.", e);
-						}
+                        Component waitForGraphComponent = null;
 
-						return resourceAllocationGraphComponent;
-					}
-				};
-			} catch (Exception e) {
-				LOG.error("Error getting GraphFindingAdapter", e);
-			}
-		}
+                        try {
+                            String graphInDOTFormat = getWaitForGraph();
 
-		return graphFindingAdapter;
+                            if (graphInDOTFormat != null) {
+                                waitForGraphComponent = (Component) swingUtilsGetComponentGraphMethod.invoke(null,
+                                        graphInDOTFormat);
+                            }
+                        } catch (Exception e) {
+                            LOG.error("Error invoking swingUtilsGetComponentGraphMethod.", e);
+                        }
 
-	}
+                        return waitForGraphComponent;
+                    }
+
+                    @Override
+                    public Component getResourceAllocationGraphComponent() {
+
+                        Component resourceAllocationGraphComponent = null;
+
+                        try {
+                            String graphInDOTFormat = getResourceAllocationGraph();
+
+                            if (graphInDOTFormat != null) {
+                                resourceAllocationGraphComponent = (Component) swingUtilsGetComponentGraphMethod
+                                        .invoke(null, graphInDOTFormat);
+                            }
+                        } catch (Exception e) {
+                            LOG.error("Error invoking swingUtilsGetComponentGraphMethod.", e);
+                        }
+
+                        return resourceAllocationGraphComponent;
+                    }
+                };
+            } catch (Exception e) {
+                LOG.error("Error getting GraphFindingAdapter", e);
+            }
+        }
+
+        return graphFindingAdapter;
+
+    }
 
 }

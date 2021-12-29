@@ -2,12 +2,16 @@
 <Configuration status="WARN">
 	<Appenders>
 		<Console name="Console" target="SYSTEM_OUT">
-			<PatternLayout pattern="%d [%-5p] [%30.30t] (%50.50c{32}) - %m%n" />
+			<PatternLayout
+				pattern="%d [%30.30t] (%50.50c) [%-5p] - %m%n" />
 		</Console>
 
-		<RollingRandomAccessFile name="RollingRandomAccessFile"
-			fileName="${sys:user.dir}/logs/LogViewer.log" filePattern="logs/LogViewer-%d{yyyy-MM-dd}-%i.log.gz">
-			<PatternLayout pattern="%d [%-5p] [%30.30t] (%50.50c{32}) - %m%n%ex" />
+		<RollingRandomAccessFile
+			name="RollingRandomAccessFile"
+			fileName="${sys:user.dir}/logs/LogViewer.log"
+			filePattern="logs/LogViewer-%d{yyyy-MM-dd}-%i.log.gz">
+			<PatternLayout
+				pattern="%d [%30.30t] (%50.50c) [%-5p] - %m%n" />
 			<Policies>
 				<TimeBasedTriggeringPolicy />
 				<SizeBasedTriggeringPolicy size="15 MB" />
@@ -17,11 +21,17 @@
 
 	</Appenders>
 	<Loggers>
-		<Logger name="com.pega.gcs" additivity="false" level="info">
+		<!-- Logger name="com.pega.gcs.logviewer" additivity="false"
+			level="trace">
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="RollingRandomAccessFile" />
-		</Logger>
-		<Root level="warn">
+		</Logger-->
+        <!-- Logger name="com.pega.gcs.fringecommon" additivity="false"
+            level="trace">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="RollingRandomAccessFile" />
+        </Logger -->
+		<Root level="info">
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="RollingRandomAccessFile" />
 		</Root>

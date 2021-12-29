@@ -19,14 +19,14 @@
 							<xs:element name="Subcategory" type="xs:string" />
 							<xs:element name="Title" type="xs:string" />
 							<xs:element name="Severity" type="Severity" />
-							<xs:element name="PDNURL" type="xs:string" />
+							<xs:element name="PegaUrl" type="xs:string" />
 							<xs:element name="Description" type="xs:string" />
-							<xs:element name="DSSEnableConfig" type="xs:string" minOccurs="0"/>
-							<xs:element name="DSSEnabled" type="xs:string" minOccurs="0"/>
-							<xs:element name="DSSThresholdConfig" type="xs:string" minOccurs="0"/>
-							<xs:element name="DSSValueType" type="xs:string" minOccurs="0"/>
-							<xs:element name="DSSValueUnit" type="xs:string" minOccurs="0"/>
-							<xs:element name="DSSDefaultValue" type="xs:string" minOccurs="0"/>
+							<xs:element name="DssEnableConfig" type="xs:string" minOccurs="0"/>
+							<xs:element name="DssEnabled" type="xs:string" minOccurs="0"/>
+							<xs:element name="DssThresholdConfig" type="xs:string" minOccurs="0"/>
+							<xs:element name="DssValueType" type="xs:string" minOccurs="0"/>
+							<xs:element name="DssValueUnit" type="xs:string" minOccurs="0"/>
+							<xs:element name="DssDefaultValue" type="xs:string" minOccurs="0"/>
 							<xs:element name="ChartColor" type="xs:string" minOccurs="0"/>
 						</xs:sequence>
 					</xs:complexType>

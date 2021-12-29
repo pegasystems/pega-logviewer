@@ -4,27 +4,28 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.pegatdp;
 
 import java.awt.Component;
 
 public interface GraphFindingAdapter extends FindingAdapter {
 
-	// GraphFinding methods
-	public Boolean isCyclic();
+    // GraphFinding methods
+    public Boolean isCyclic();
 
-	public String getCyclicPath();
+    public String getCyclicPath();
 
-	public Integer getThreadsCount();
+    public Integer getThreadsCount();
 
-	public String getWaitForGraph();
+    public String getWaitForGraph();
 
-	public String getResourceAllocationGraph();
+    public String getResourceAllocationGraph();
 
-	public String getRootName();
+    public String getRootName();
 
-	// custom methods
-	public Component getWaitForGraphComponent();
+    // custom methods
+    public Component getWaitForGraphComponent();
 
-	public Component getResourceAllocationGraphComponent();
+    public Component getResourceAllocationGraphComponent();
 }

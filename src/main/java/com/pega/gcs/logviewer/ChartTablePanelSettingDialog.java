@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.Color;
@@ -34,327 +35,313 @@ import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
 
 public class ChartTablePanelSettingDialog extends JDialog {
 
-	private static final long serialVersionUID = -4890020854049502839L;
+    private static final long serialVersionUID = -4890020854049502839L;
 
-	private String charset;
+    private String charsetName;
 
-	private Locale fileLocale;
+    private Locale fileLocale;
 
-	private TimeZone timezone;
+    private TimeZone timezone;
 
-	private boolean settingUpdated;
+    private boolean settingUpdated;
 
-	private AutoCompleteJComboBox<String> charsetJComboBox;
+    private AutoCompleteJComboBox<String> charsetComboBox;
 
-	private AutoCompleteJComboBox<Locale> fileLocaleJComboBox;
+    private AutoCompleteJComboBox<Locale> fileLocaleComboBox;
 
-	private AutoCompleteJComboBox<String> timeZoneJComboBox;
+    private AutoCompleteJComboBox<String> timeZoneComboBox;
 
-	public ChartTablePanelSettingDialog(String charset, Locale fileLocale, TimeZone timezone, ImageIcon appIcon,
-			Component parent) {
+    public ChartTablePanelSettingDialog(String charsetName, Locale fileLocale, TimeZone timezone, ImageIcon appIcon,
+            Component parent) {
 
-		super();
+        super();
 
-		this.charset = charset;
-		this.fileLocale = fileLocale;
-		this.timezone = timezone;
+        this.charsetName = charsetName;
+        this.fileLocale = fileLocale;
+        this.timezone = timezone;
 
-		this.settingUpdated = false;
+        this.settingUpdated = false;
 
-		setIconImage(appIcon.getImage());
+        setIconImage(appIcon.getImage());
 
-		// setPreferredSize(new Dimension(350, 175));
-		setTitle("Log file Settings");
-		// setResizable(true);
-		setModalityType(ModalityType.APPLICATION_MODAL);
-		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-		// setAlwaysOnTop(true);
+        setTitle("Log file Settings");
 
-		setContentPane(getMainJPanel());
+        setModalityType(ModalityType.APPLICATION_MODAL);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-		pack();
+        setContentPane(getMainPanel());
 
-		setLocationRelativeTo(parent);
+        pack();
 
-		populateSettingsJPanel();
+        setLocationRelativeTo(parent);
 
-		// setVisible called by caller.
-		// setVisible(true);
+        populateSettingsJPanel();
 
-	}
+        // visible should be the last step
+        setVisible(true);
 
-	protected String getCharset() {
-		return charset;
-	}
+    }
 
-	protected Locale getFileLocale() {
-		return fileLocale;
-	}
+    private String getCharsetName() {
+        return charsetName;
+    }
 
-	protected TimeZone getTimezone() {
-		return timezone;
-	}
+    private Locale getFileLocale() {
+        return fileLocale;
+    }
 
-	protected void setSettingUpdated(boolean aSettingUpdated) {
-		settingUpdated = aSettingUpdated;
-	}
+    private TimeZone getTimezone() {
+        return timezone;
+    }
 
-	/**
-	 * @return the settingUpdated
-	 */
-	public boolean isSettingUpdated() {
-		return settingUpdated;
-	}
+    public boolean isSettingUpdated() {
+        return settingUpdated;
+    }
 
-	/**
-	 * @return the charsetJComboBox
-	 */
-	public AutoCompleteJComboBox<String> getCharsetJComboBox() {
+    private void setSettingUpdated(boolean settingUpdated) {
+        this.settingUpdated = settingUpdated;
+    }
 
-		if (charsetJComboBox == null) {
-			charsetJComboBox = GUIUtilities.getCharsetJComboBox();
-		}
+    public AutoCompleteJComboBox<String> getCharsetComboBox() {
 
-		return charsetJComboBox;
-	}
+        if (charsetComboBox == null) {
+            charsetComboBox = GUIUtilities.getCharsetJComboBox();
+        }
 
-	/**
-	 * @return the fileLocaleJComboBox
-	 */
-	public AutoCompleteJComboBox<Locale> getFileLocaleJComboBox() {
+        return charsetComboBox;
+    }
 
-		if (fileLocaleJComboBox == null) {
-			fileLocaleJComboBox = GUIUtilities.getFileLocaleJComboBox();
-		}
+    public AutoCompleteJComboBox<Locale> getFileLocaleComboBox() {
 
-		return fileLocaleJComboBox;
-	}
+        if (fileLocaleComboBox == null) {
+            fileLocaleComboBox = GUIUtilities.getFileLocaleJComboBox();
+        }
 
-	/**
-	 * @return the timeZoneJComboBox
-	 */
-	public AutoCompleteJComboBox<String> getTimeZoneJComboBox() {
+        return fileLocaleComboBox;
+    }
 
-		if (timeZoneJComboBox == null) {
-			timeZoneJComboBox = GUIUtilities.getTimeZoneJComboBox();
-		}
-
-		return timeZoneJComboBox;
-	}
-
-	private JPanel getMainJPanel() {
-
-		JPanel mainJPanel = new JPanel();
-
-		LayoutManager layout = new BoxLayout(mainJPanel, BoxLayout.Y_AXIS);
-		mainJPanel.setLayout(layout);
-
-		JPanel settingsJPanel = getSettingsJPanel();
-		JPanel buttonsJPanel = getButtonsJPanel();
-
-		mainJPanel.add(settingsJPanel);
-		mainJPanel.add(Box.createRigidArea(new Dimension(4, 2)));
-		mainJPanel.add(buttonsJPanel);
-		mainJPanel.add(Box.createRigidArea(new Dimension(4, 4)));
-		// mainJPanel.add(Box.createHorizontalGlue());
-
-		return mainJPanel;
-	}
-
-	private JPanel getSettingsJPanel() {
-		JPanel settingsJPanel = new JPanel();
-		settingsJPanel.setLayout(new GridBagLayout());
-
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(2, 2, 2, 2);
-
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 1;
-		gbc2.gridy = 0;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 0.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(2, 2, 2, 2);
-
-		GridBagConstraints gbc3 = new GridBagConstraints();
-		gbc3.gridx = 0;
-		gbc3.gridy = 1;
-		gbc3.weightx = 1.0D;
-		gbc3.weighty = 0.0D;
-		gbc3.fill = GridBagConstraints.BOTH;
-		gbc3.anchor = GridBagConstraints.NORTHWEST;
-		gbc3.insets = new Insets(2, 2, 2, 2);
-
-		GridBagConstraints gbc4 = new GridBagConstraints();
-		gbc4.gridx = 1;
-		gbc4.gridy = 1;
-		gbc4.weightx = 1.0D;
-		gbc4.weighty = 0.0D;
-		gbc4.fill = GridBagConstraints.BOTH;
-		gbc4.anchor = GridBagConstraints.NORTHWEST;
-		gbc4.insets = new Insets(2, 2, 2, 2);
-
-		GridBagConstraints gbc5 = new GridBagConstraints();
-		gbc5.gridx = 0;
-		gbc5.gridy = 2;
-		gbc5.weightx = 1.0D;
-		gbc5.weighty = 0.0D;
-		gbc5.fill = GridBagConstraints.BOTH;
-		gbc5.anchor = GridBagConstraints.NORTHWEST;
-		gbc5.insets = new Insets(2, 2, 2, 2);
-
-		GridBagConstraints gbc6 = new GridBagConstraints();
-		gbc6.gridx = 1;
-		gbc6.gridy = 2;
-		gbc6.weightx = 1.0D;
-		gbc6.weighty = 0.0D;
-		gbc6.fill = GridBagConstraints.BOTH;
-		gbc6.anchor = GridBagConstraints.NORTHWEST;
-		gbc6.insets = new Insets(2, 2, 2, 2);
-
-		JLabel charsetJLabel = new JLabel("File Encoding");
-		JLabel localeJLabel = new JLabel("Locale");
-		JLabel timeZoneJLabel = new JLabel("Time Zone");
-
-		AutoCompleteJComboBox<String> charsetJComboBox = getCharsetJComboBox();
-		AutoCompleteJComboBox<Locale> fileLocaleJComboBox = getFileLocaleJComboBox();
-		AutoCompleteJComboBox<String> timeZoneJComboBox = getTimeZoneJComboBox();
-
-		settingsJPanel.add(charsetJLabel, gbc1);
-		settingsJPanel.add(charsetJComboBox, gbc2);
-		settingsJPanel.add(localeJLabel, gbc3);
-		settingsJPanel.add(fileLocaleJComboBox, gbc4);
-		settingsJPanel.add(timeZoneJLabel, gbc5);
-		settingsJPanel.add(timeZoneJComboBox, gbc6);
-
-		Border loweredEtched = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
-
-		settingsJPanel.setBorder(BorderFactory.createTitledBorder(loweredEtched, "Settings"));
-
-		return settingsJPanel;
-	}
-
-	private JPanel getButtonsJPanel() {
-
-		JPanel buttonsJPanel = new JPanel();
-
-		LayoutManager layout = new BoxLayout(buttonsJPanel, BoxLayout.X_AXIS);
-		buttonsJPanel.setLayout(layout);
-
-		// OK Button
-		JButton okJButton = new JButton("OK");
-		okJButton.setToolTipText("OK");
-
-		okJButton.addActionListener(new ActionListener() {
-
-			@Override
-			public void actionPerformed(ActionEvent event) {
-				setSettingUpdated(true);
-				dispose();
-
-			}
-		});
-
-		// Cancel button
-		JButton cancelJButton = new JButton("Cancel");
-		cancelJButton.setToolTipText("Cancel");
-
-		cancelJButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent event) {
-				dispose();
-			}
-		});
-
-		// Reset button
-		JButton resetJButton = new JButton("Reset");
-		resetJButton.setToolTipText("Reset");
-
-		resetJButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent event) {
-
-				AutoCompleteJComboBox<String> charsetJComboBox = getCharsetJComboBox();
-				AutoCompleteJComboBox<Locale> localeJComboBox = getFileLocaleJComboBox();
-				AutoCompleteJComboBox<String> timeZoneJComboBox = getTimeZoneJComboBox();
-
-				charsetJComboBox.setSelectedItem(getCharset());
-				localeJComboBox.setSelectedItem(getFileLocale());
-				timeZoneJComboBox.setSelectedItem(getTimezone().getID());
-			}
-		});
-
-		Dimension dim = new Dimension(20, 30);
-		buttonsJPanel.add(Box.createHorizontalGlue());
-		buttonsJPanel.add(Box.createRigidArea(dim));
-		buttonsJPanel.add(okJButton);
-		buttonsJPanel.add(Box.createRigidArea(dim));
-		buttonsJPanel.add(cancelJButton);
-		buttonsJPanel.add(Box.createRigidArea(dim));
-		buttonsJPanel.add(resetJButton);
-		buttonsJPanel.add(Box.createRigidArea(dim));
-		buttonsJPanel.add(Box.createHorizontalGlue());
-
-		buttonsJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
-		return buttonsJPanel;
-	}
-
-	private void populateSettingsJPanel() {
-
-		AutoCompleteJComboBox<String> charsetJComboBox = getCharsetJComboBox();
-		AutoCompleteJComboBox<Locale> localeJComboBox = getFileLocaleJComboBox();
-		AutoCompleteJComboBox<String> timeZoneJComboBox = getTimeZoneJComboBox();
-
-		charsetJComboBox.setSelectedItem(charset);
-		localeJComboBox.setSelectedItem(fileLocale);
-		timeZoneJComboBox.setSelectedItem(timezone.getID());
-
-	}
-
-	public String getSelectedCharset() {
-		AutoCompleteJComboBox<String> charsetJComboBox = getCharsetJComboBox();
-		String charset = (String) charsetJComboBox.getSelectedItem();
-
-		if ((charset == null) || ("".equals(charset))) {
-			charset = this.charset;
-		}
-
-		return charset;
-	}
-
-	public Locale getSelectedLocale() {
-		AutoCompleteJComboBox<Locale> localeJComboBox = getFileLocaleJComboBox();
-
-		Locale locale = (Locale) localeJComboBox.getSelectedItem();
-
-		if (locale == null) {
-			locale = this.fileLocale;
-		}
-
-		return locale;
-	}
-
-	public TimeZone getSelectedTimeZone() {
-
-		AutoCompleteJComboBox<String> timeZoneJComboBox = getTimeZoneJComboBox();
-
-		String tzId = (String) timeZoneJComboBox.getSelectedItem();
-
-		TimeZone timeZone = null;
-
-		if ((tzId == null) || ("".equals(tzId))) {
-			timeZone = this.timezone;
-		} else {
-			timeZone = TimeZone.getTimeZone(tzId);
-		}
-
-		return timeZone;
-	}
+    public AutoCompleteJComboBox<String> getTimeZoneComboBox() {
+
+        if (timeZoneComboBox == null) {
+            timeZoneComboBox = GUIUtilities.getTimeZoneJComboBox();
+        }
+
+        return timeZoneComboBox;
+    }
+
+    private JPanel getMainPanel() {
+
+        JPanel mainPanel = new JPanel();
+
+        LayoutManager layout = new BoxLayout(mainPanel, BoxLayout.Y_AXIS);
+        mainPanel.setLayout(layout);
+
+        JPanel settingsPanel = getSettingsPanel();
+        JPanel buttonsPanel = getButtonsPanel();
+
+        mainPanel.add(settingsPanel);
+        mainPanel.add(buttonsPanel);
+
+        return mainPanel;
+    }
+
+    private JPanel getSettingsPanel() {
+
+        JPanel settingsPanel = new JPanel();
+        settingsPanel.setLayout(new GridBagLayout());
+
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(10, 10, 3, 2);
+
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 1;
+        gbc2.gridy = 0;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 0.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(10, 2, 3, 10);
+
+        GridBagConstraints gbc3 = new GridBagConstraints();
+        gbc3.gridx = 0;
+        gbc3.gridy = 1;
+        gbc3.weightx = 1.0D;
+        gbc3.weighty = 0.0D;
+        gbc3.fill = GridBagConstraints.BOTH;
+        gbc3.anchor = GridBagConstraints.NORTHWEST;
+        gbc3.insets = new Insets(3, 10, 3, 2);
+
+        GridBagConstraints gbc4 = new GridBagConstraints();
+        gbc4.gridx = 1;
+        gbc4.gridy = 1;
+        gbc4.weightx = 1.0D;
+        gbc4.weighty = 0.0D;
+        gbc4.fill = GridBagConstraints.BOTH;
+        gbc4.anchor = GridBagConstraints.NORTHWEST;
+        gbc4.insets = new Insets(3, 2, 3, 10);
+
+        GridBagConstraints gbc5 = new GridBagConstraints();
+        gbc5.gridx = 0;
+        gbc5.gridy = 2;
+        gbc5.weightx = 1.0D;
+        gbc5.weighty = 0.0D;
+        gbc5.fill = GridBagConstraints.BOTH;
+        gbc5.anchor = GridBagConstraints.NORTHWEST;
+        gbc5.insets = new Insets(3, 10, 10, 2);
+
+        GridBagConstraints gbc6 = new GridBagConstraints();
+        gbc6.gridx = 1;
+        gbc6.gridy = 2;
+        gbc6.weightx = 1.0D;
+        gbc6.weighty = 0.0D;
+        gbc6.fill = GridBagConstraints.BOTH;
+        gbc6.anchor = GridBagConstraints.NORTHWEST;
+        gbc6.insets = new Insets(3, 2, 10, 10);
+
+        JLabel charsetJLabel = new JLabel("File Encoding");
+        JLabel localeJLabel = new JLabel("Locale");
+        JLabel timeZoneJLabel = new JLabel("Time Zone");
+
+        AutoCompleteJComboBox<String> charsetJComboBox = getCharsetComboBox();
+        AutoCompleteJComboBox<Locale> fileLocaleJComboBox = getFileLocaleComboBox();
+        AutoCompleteJComboBox<String> timeZoneJComboBox = getTimeZoneComboBox();
+
+        settingsPanel.add(charsetJLabel, gbc1);
+        settingsPanel.add(charsetJComboBox, gbc2);
+        settingsPanel.add(localeJLabel, gbc3);
+        settingsPanel.add(fileLocaleJComboBox, gbc4);
+        settingsPanel.add(timeZoneJLabel, gbc5);
+        settingsPanel.add(timeZoneJComboBox, gbc6);
+
+        Border loweredEtched = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
+
+        settingsPanel.setBorder(BorderFactory.createTitledBorder(loweredEtched, "Settings"));
+
+        return settingsPanel;
+    }
+
+    private JPanel getButtonsPanel() {
+
+        JPanel buttonsJPanel = new JPanel();
+
+        LayoutManager layout = new BoxLayout(buttonsJPanel, BoxLayout.X_AXIS);
+        buttonsJPanel.setLayout(layout);
+
+        // OK Button
+        JButton okJButton = new JButton("OK");
+        okJButton.setToolTipText("OK");
+
+        okJButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                setSettingUpdated(true);
+                dispose();
+
+            }
+        });
+
+        // Cancel button
+        JButton cancelJButton = new JButton("Cancel");
+        cancelJButton.setToolTipText("Cancel");
+
+        cancelJButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                dispose();
+            }
+        });
+
+        // Reset button
+        JButton resetJButton = new JButton("Reset");
+        resetJButton.setToolTipText("Reset");
+
+        resetJButton.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                AutoCompleteJComboBox<String> charsetJComboBox = getCharsetComboBox();
+                AutoCompleteJComboBox<Locale> localeJComboBox = getFileLocaleComboBox();
+                AutoCompleteJComboBox<String> timeZoneJComboBox = getTimeZoneComboBox();
+
+                charsetJComboBox.setSelectedItem(getCharsetName());
+                localeJComboBox.setSelectedItem(getFileLocale());
+                timeZoneJComboBox.setSelectedItem(getTimezone().getID());
+            }
+        });
+
+        Dimension dim = new Dimension(20, 40);
+        buttonsJPanel.add(Box.createHorizontalGlue());
+        buttonsJPanel.add(Box.createRigidArea(dim));
+        buttonsJPanel.add(okJButton);
+        buttonsJPanel.add(Box.createRigidArea(dim));
+        buttonsJPanel.add(cancelJButton);
+        buttonsJPanel.add(Box.createRigidArea(dim));
+        buttonsJPanel.add(resetJButton);
+        buttonsJPanel.add(Box.createRigidArea(dim));
+        buttonsJPanel.add(Box.createHorizontalGlue());
+
+        buttonsJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        return buttonsJPanel;
+    }
+
+    private void populateSettingsJPanel() {
+
+        AutoCompleteJComboBox<String> charsetJComboBox = getCharsetComboBox();
+        AutoCompleteJComboBox<Locale> localeJComboBox = getFileLocaleComboBox();
+        AutoCompleteJComboBox<String> timeZoneJComboBox = getTimeZoneComboBox();
+
+        charsetJComboBox.setSelectedItem(charsetName);
+        localeJComboBox.setSelectedItem(fileLocale);
+        timeZoneJComboBox.setSelectedItem(timezone.getID());
+
+    }
+
+    public String getSelectedCharsetName() {
+
+        AutoCompleteJComboBox<String> charsetJComboBox = getCharsetComboBox();
+        String selectedCharsetName = (String) charsetJComboBox.getSelectedItem();
+
+        if ((selectedCharsetName == null) || ("".equals(selectedCharsetName))) {
+            selectedCharsetName = this.charsetName;
+        }
+
+        return selectedCharsetName;
+    }
+
+    public Locale getSelectedLocale() {
+        AutoCompleteJComboBox<Locale> localeJComboBox = getFileLocaleComboBox();
+
+        Locale locale = (Locale) localeJComboBox.getSelectedItem();
+
+        if (locale == null) {
+            locale = this.fileLocale;
+        }
+
+        return locale;
+    }
+
+    public TimeZone getSelectedTimeZone() {
+
+        AutoCompleteJComboBox<String> timeZoneJComboBox = getTimeZoneComboBox();
+
+        String tzId = (String) timeZoneJComboBox.getSelectedItem();
+
+        TimeZone timeZone = null;
+
+        if ((tzId == null) || ("".equals(tzId))) {
+            timeZone = this.timezone;
+        } else {
+            timeZone = TimeZone.getTimeZone(tzId);
+        }
+
+        return timeZone;
+    }
 }

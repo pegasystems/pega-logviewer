@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.BorderLayout;
@@ -18,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,750 +42,1086 @@ import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
 import com.pega.gcs.fringecommon.utilities.kyro.KryoSerializer;
 import com.pega.gcs.logviewer.alert.AlertCheatSheetFrame;
-import com.pega.gcs.logviewer.logfile.LogPattern;
+import com.pega.gcs.logviewer.catalog.CatalogManagerWrapper;
+import com.pega.gcs.logviewer.logfile.LogFileType;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
+import com.pega.gcs.logviewer.patchreleasecatalog.PatchReleaseCatalogWrapper;
+import com.pega.gcs.logviewer.socketreceiver.SocketReceiverOpenDialog;
 
 import gnu.getopt.Getopt;
 
 public class LogViewer extends BaseFrame {
 
-	private static final long serialVersionUID = 7083567192063249944L;
+    private static final long serialVersionUID = 7083567192063249944L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(LogViewer.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(LogViewer.class);
 
-	private static final String LOG_FILE_CHOOSER_FILTER_DESC = "Log Files";
+    private static LogViewer _INSTANCE;
 
-	protected static final String[] LOG_FILE_CHOOSER_FILTER_EXT = { "log", "" };
+    /* ================================== */
+    private static final String LOG_FILE_CHOOSER_FILTER_DESC = "Log Files";
 
-	private static final String LOG_FILE_CHOOSER_DIALOG_TITLE_PEGARULES = "Select Pega log or Alert file";
+    private static final String[] LOG_FILE_CHOOSER_FILTER_EXT = { "log", "" };
 
-	public static final String RECENT_FILE_PREV_COMPARE_FILE = "prevCompareFile";
+    private static final String LOG_FILE_CHOOSER_DIALOG_TITLE = "Select Pega log or Alert file";
 
-	public static final String SYSTEM_SCAN_FILE_CHOOSER_FILTER_DESC = "Pega Inventory File";
+    /* ================================== */
 
-	public static final String[] SYSTEM_SCAN_FILE_CHOOSER_FILTER_EXT = { "zip", "PEGA", "" };
+    private static final String SYSTEM_SCAN_FILE_CHOOSER_FILTER_DESC = "Pega Inventory File";
 
-	public static final String SYSTEM_SCAN_FILE_NAME_REGEX = "ScanResults(.*?)|INVENTORY(.*?)";
+    private static final String[] SYSTEM_SCAN_FILE_CHOOSER_FILTER_EXT = { "zip", "PEGA", "" };
 
-	public static final String SYSTEM_SCAN_FILE_CHOOSER_DIALOG_TITLE_PEGARULES = "Select Pega Hotfix Inventory File";
+    public static final String SYSTEM_SCAN_FILE_CHOOSER_DIALOG_TITLE = "Select Pega Hotfix Inventory File";
 
-	public static final String SYSTEM_SCAN_CATALOG_FILE_NAME = "CATALOG.PEGA";
+    public static final String SYSTEM_SCAN_FILE_NAME_REGEX_V7 = "(.*?)SCANRESULTS_(.*?)";
 
-	public static final String SYSTEM_SCAN_CATALOG_ZIP_FILE = "/CATALOG.ZIP";
+    public static final String SYSTEM_SCAN_FILE_NAME_REGEX_V6 = "(.*?)INVENTORY(.*?)";
 
-	private String appName;
+    public static final String SYSTEM_SCAN_FILE_NAME_REGEX = SYSTEM_SCAN_FILE_NAME_REGEX_V7 + "|"
+            + SYSTEM_SCAN_FILE_NAME_REGEX_V6;
 
-	private LogViewerSetting logViewerSetting;
+    public static final String SYSTEM_SCAN_CATALOG_FILE_NAME = "CATALOG.PEGA";
 
-	private ArrayList<String> openFileList;
+    public static final String SYSTEM_SCAN_CATALOG_ZIP_FILE = "/CATALOG.ZIP";
 
-	private File selectedFile;
+    public static final String RECENT_FILE_PREV_COMPARE_FILE = "prevCompareFile";
 
-	private RecentFileJMenu recentFileJMenu;
+    public static final String PREF_CATALOG_BOOKMARK = "catalog_bookmark";
 
-	private RecentFileContainer recentFileContainer;
+    private static final String SYSTEM_STATE_FILE_CHOOSER_FILTER_DESC = "System State JSON files";
 
-	private LogTabbedPane logTabbedPane;
+    private static final String[] SYSTEM_STATE_FILE_CHOOSER_FILTER_EXT = { "json", "zip", "" };
 
-	private AlertCheatSheetFrame alertCheatSheetFrame;
+    private static final String SYSTEM_STATE_FILE_CHOOSER_DIALOG_TITLE = "Select System State JSON file";
 
-	/**
-	 * @throws Exception
-	 */
-	public LogViewer() throws Exception {
+    // SystemState_60b1741a47967d78c6ee8c392d0397b6_20190501T092240.420 GMT.json
+    // SystemState_cluster.json
+    private static final String SYSTEM_STATE_FILE_NAME_REGEX = "SystemState(.*?)(_.*?)?";
 
-		super();
+    private String appName;
 
-		// setPreferredSize(new Dimension(1200, 700));
+    private LogViewerSetting logViewerSetting;
 
-		setFocusTraversalKeysEnabled(false);
+    private ArrayList<String> openFileList;
 
-		pack();
+    private File selectedFile;
 
-		// setLocationRelativeTo(null);
-		setExtendedState(Frame.MAXIMIZED_BOTH);
+    private RecentFileJMenu recentFileJMenu;
 
-		setVisible(true);
+    private RecentFileContainer recentFileContainer;
 
-		// openFileList is loaded in initialize method
-		if ((openFileList != null) && (openFileList.size() > 0)) {
-			loadFile(openFileList);
-		}
+    private LogTabbedPane logTabbedPane;
 
-		LOG.info("LogViewer - Started");
+    private AlertCheatSheetFrame alertCheatSheetFrame;
 
-	}
+    private PluginFrame hotfixCatalogViewerFrame;
 
-	protected LogViewerSetting getLogViewerSetting() {
-		return logViewerSetting;
-	}
+    private PluginFrame patchReleaseCatalogViewerFrame;
 
-	protected File getSelectedFile() {
-		return selectedFile;
-	}
+    private LogViewer() throws Exception {
 
-	protected RecentFileContainer getRecentFileContainer() {
-		return recentFileContainer;
-	}
+        super();
+        // preload plugin jars
+        PluginClassloader.getInstance();
 
-	public static boolean isSystemScanFile(File systemScanFile) {
+        // setPreferredSize(new Dimension(1200, 700));
 
-		boolean scanResultZipFile = false;
+        setFocusTraversalKeysEnabled(false);
 
-		if (systemScanFile.isFile()) {
+        pack();
 
-			String ext = FileUtilities.getExtension(systemScanFile);
+        // setLocationRelativeTo(null);
+        setExtendedState(Frame.MAXIMIZED_BOTH);
 
-			for (String fileExt : SYSTEM_SCAN_FILE_CHOOSER_FILTER_EXT) {
+        setVisible(true);
 
-				if (fileExt.equalsIgnoreCase(ext)) {
-					scanResultZipFile = true;
-					break;
-				}
-			}
+        // openFileList is loaded in initialize method
+        if ((openFileList != null) && (openFileList.size() > 0)) {
+            loadFile(openFileList);
+        }
 
-			if (scanResultZipFile) {
+        LOG.info(getAppName() + " - Started");
 
-				String filename = FileUtilities.getNameWithoutExtension(systemScanFile);
+    }
 
-				Pattern fileNamePattern = Pattern.compile(SYSTEM_SCAN_FILE_NAME_REGEX);
+    public static LogViewer getInstance() {
 
-				Matcher fileNameMatcher = fileNamePattern.matcher(filename);
-
-				if (fileNameMatcher.matches()) {
-					scanResultZipFile = true;
-				} else {
-					scanResultZipFile = false;
-				}
-			}
-		}
-
-		return scanResultZipFile;
+        if (_INSTANCE == null) {
+            try {
+                _INSTANCE = new LogViewer();
+            } catch (Exception e) {
+                LOG.error("Error  instantiating LogViewer ", e);
+            }
+        }
 
-	}
+        return _INSTANCE;
+    }
 
-	public static FileFilter getSystemScanFileFilter() {
+    private LogViewerSetting getLogViewerSetting() {
+        return logViewerSetting;
+    }
 
-		FileFilter systemScanFileFilter = new FileFilter() {
+    private File getSelectedFile() {
+        return selectedFile;
+    }
 
-			@Override
-			public String getDescription() {
-				return SYSTEM_SCAN_FILE_CHOOSER_FILTER_DESC;
-			}
+    private RecentFileContainer getRecentFileContainer() {
+        return recentFileContainer;
+    }
 
-			@Override
-			public boolean accept(File f) {
+    public static boolean isSystemScanFile(File systemScanFile) {
 
-				boolean retVal = true;
+        boolean scanResultZipFile = false;
 
-				// pass through directories
-				if (f.isFile()) {
-					retVal = isSystemScanFile(f);
-				}
+        String ext = FileUtilities.getExtension(systemScanFile);
 
-				return retVal;
-			}
-		};
+        for (String fileExt : SYSTEM_SCAN_FILE_CHOOSER_FILTER_EXT) {
 
-		return systemScanFileFilter;
-	}
+            if (fileExt.equalsIgnoreCase(ext)) {
+                scanResultZipFile = true;
+                break;
+            }
+        }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.pega.fringe.common.gui.BaseFrame#initialize()
-	 */
-	@SuppressWarnings("unchecked")
-	@Override
-	protected void initialize() throws Exception {
+        if (scanResultZipFile) {
 
-		byte[] byteArray;
+            String filename = FileUtilities.getNameWithoutExtension(systemScanFile);
 
-		// get LogViewerSetting
-		byteArray = GeneralUtilities.getPreferenceByteArray(LogViewer.class, PREF_SETTINGS);
+            Pattern fileNamePattern = Pattern.compile(SYSTEM_SCAN_FILE_NAME_REGEX, Pattern.CASE_INSENSITIVE);
 
-		if (byteArray != null) {
-			try {
-				logViewerSetting = KryoSerializer.decompress(byteArray, LogViewerSetting.class);
-			} catch (Exception e) {
-				LOG.error("Error decompressing logViewerSetting.", e);
-			}
-		}
+            Matcher fileNameMatcher = fileNamePattern.matcher(filename);
 
-		if (logViewerSetting == null) {
-			logViewerSetting = new LogViewerSetting();
-			byteArray = KryoSerializer.compress(logViewerSetting);
-			GeneralUtilities.setPreferenceByteArray(LogViewer.class, PREF_SETTINGS, byteArray);
-		}
+            if (fileNameMatcher.matches()) {
+                scanResultZipFile = true;
+            } else {
+                scanResultZipFile = false;
+            }
+        }
 
-		// get OpenFileList
-		byteArray = GeneralUtilities.getPreferenceByteArray(LogViewer.class, PREF_OPEN_FILE_LIST);
+        return scanResultZipFile;
 
-		if (byteArray != null) {
-			try {
-				openFileList = KryoSerializer.decompress(byteArray, ArrayList.class);
-			} catch (Exception e) {
-				LOG.error("Error decompressing open file list.", e);
-			}
-		}
+    }
 
-		if (openFileList == null) {
-			openFileList = new ArrayList<>();
-			byteArray = KryoSerializer.compress(openFileList);
-			GeneralUtilities.setPreferenceByteArray(LogViewer.class, PREF_OPEN_FILE_LIST, byteArray);
-		}
+    public static boolean isSystemStateFile(File systemStateFile) {
 
-		Set<LogPattern> pegaRuleslog4jPatternSet = logViewerSetting.getPegaRuleslog4jPatternSet();
+        boolean isSystemStateFile = false;
 
-		if (pegaRuleslog4jPatternSet == null) {
-			pegaRuleslog4jPatternSet = LogPattern.getDefaultPegaRulesLog4jPatternSet();
-			logViewerSetting.setPegaRuleslog4jPatternSet(pegaRuleslog4jPatternSet);
-		}
+        String ext = FileUtilities.getExtension(systemStateFile);
 
-		int capacity = logViewerSetting.getRecentItemsCount();
+        for (String fileExt : SYSTEM_STATE_FILE_CHOOSER_FILTER_EXT) {
 
-		recentFileContainer = new RecentFileContainer(getClass(), capacity);
-	}
+            if (fileExt.equalsIgnoreCase(ext)) {
+                isSystemStateFile = true;
+                break;
+            }
+        }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.pega.fringe.common.gui.BaseFrame#getMenuJMenuBar()
-	 */
-	@Override
-	protected JMenuBar getMenuJMenuBar() {
+        if (isSystemStateFile) {
 
-		// ---- FILE ----
-		JMenu fileJMenu = new JMenu("   File   ");
+            String filename = FileUtilities.getNameWithoutExtension(systemStateFile);
 
-		fileJMenu.setMnemonic(KeyEvent.VK_F);
+            Pattern fileNamePattern = Pattern.compile(SYSTEM_STATE_FILE_NAME_REGEX, Pattern.CASE_INSENSITIVE);
 
-		JMenuItem pegaLogJMenuItem = new JMenuItem("Load Pega Log File");
+            Matcher fileNameMatcher = fileNamePattern.matcher(filename);
 
-		pegaLogJMenuItem.setMnemonic(KeyEvent.VK_L);
-		pegaLogJMenuItem.setToolTipText("Load PegaRULES or Alert Log File");
+            if (fileNameMatcher.matches()) {
+                isSystemStateFile = true;
+            } else {
+                isSystemStateFile = false;
+            }
+        }
 
-		ImageIcon ii = FileUtilities.getImageIcon(this.getClass(), "open.png");
+        return isSystemStateFile;
 
-		pegaLogJMenuItem.setIcon(ii);
+    }
 
-		pegaLogJMenuItem.addActionListener(new ActionListener() {
+    public static FileFilter getSystemScanFileFilter() {
 
-			@Override
-			public void actionPerformed(ActionEvent event) {
+        FileFilter systemScanFileFilter = new FileFilter() {
 
-				File selectedFile = getSelectedFile();
+            @Override
+            public String getDescription() {
+                return SYSTEM_SCAN_FILE_CHOOSER_FILTER_DESC;
+            }
 
-				FileFilter fileFilter = LogViewer.getDefaultFileFilter(LogViewer.LOG_FILE_CHOOSER_FILTER_DESC,
-						Arrays.asList(LogViewer.LOG_FILE_CHOOSER_FILTER_EXT));
+            @Override
+            public boolean accept(File file) {
 
-				File aFile = openFileChooser(LogViewer.this, LogViewer.class, LOG_FILE_CHOOSER_DIALOG_TITLE_PEGARULES,
-						fileFilter, selectedFile);
+                boolean retVal = true;
 
-				if (aFile != null) {
-					loadLogFile(aFile);
-				}
-			}
-		});
+                // pass through directories
+                if (file.isFile()) {
+                    retVal = isSystemScanFile(file);
+                }
 
-		JMenuItem scanResultJMenuItem = new JMenuItem("Load Hotfix Inventory File");
+                return retVal;
+            }
+        };
 
-		scanResultJMenuItem.setMnemonic(KeyEvent.VK_S);
-		scanResultJMenuItem.setToolTipText("Load Hotfix Inventory zip or .PEGA File");
+        return systemScanFileFilter;
+    }
 
-		scanResultJMenuItem.setIcon(ii);
+    public static FileFilter getSystemStateFileFilter() {
 
-		scanResultJMenuItem.addActionListener(new ActionListener() {
+        FileFilter systemStateFileFilter = new FileFilter() {
 
-			@Override
-			public void actionPerformed(ActionEvent event) {
+            @Override
+            public String getDescription() {
+                return SYSTEM_STATE_FILE_CHOOSER_FILTER_DESC;
+            }
 
-				File selectedFile = getSelectedFile();
+            @Override
+            public boolean accept(File file) {
 
-				FileFilter fileFilter = getSystemScanFileFilter();
+                boolean retVal = true;
 
-				File aFile = openFileChooser(LogViewer.this, LogViewer.class,
-						SYSTEM_SCAN_FILE_CHOOSER_DIALOG_TITLE_PEGARULES, fileFilter, selectedFile);
+                // pass through directories
+                if (file.isFile()) {
+                    retVal = isSystemStateFile(file);
+                }
 
-				if (aFile != null) {
-					loadSystemScanFile(aFile);
-				}
-			}
-		});
+                return retVal;
+            }
+        };
 
-		RecentFileJMenu recentFileJMenu = getRecentFileJMenu();
+        return systemStateFileFilter;
+    }
 
-		JMenuItem clearRecentJMenuItem = new JMenuItem("Clear Recent");
-		clearRecentJMenuItem.setMnemonic(KeyEvent.VK_C);
-		clearRecentJMenuItem.setToolTipText("Clear Recent");
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.pega.fringe.common.gui.BaseFrame#initialize()
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    protected void initialize() throws Exception {
 
-		clearRecentJMenuItem.setIcon(ii);
+        byte[] byteArray;
 
-		clearRecentJMenuItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent event) {
-				clearRecentPreferences();
-				savePreferences();
-			}
-		});
+        // get LogViewerSetting
+        byteArray = GeneralUtilities.getPreferenceByteArray(LogViewer.class, PREF_SETTINGS);
 
-		JMenuItem exitJMenuItem = new JMenuItem("Exit");
-		exitJMenuItem.setMnemonic(KeyEvent.VK_X);
-		exitJMenuItem.setToolTipText("Exit application");
+        if (byteArray != null) {
 
-		ii = FileUtilities.getImageIcon(this.getClass(), "exit.png");
+            try {
 
-		exitJMenuItem.setIcon(ii);
+                logViewerSetting = KryoSerializer.decompress(byteArray, LogViewerSetting.class);
 
-		exitJMenuItem.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent event) {
-				exit(0);
-			}
-		});
+                int settingVersion = LogViewerSetting.getSettingVersion();
+                int objVersion = logViewerSetting.getObjVersion();
 
-		// fileJMenu.addSeparator();
-		fileJMenu.add(pegaLogJMenuItem);
-		fileJMenu.add(scanResultJMenuItem);
-		fileJMenu.add(recentFileJMenu);
-		fileJMenu.add(clearRecentJMenuItem);
-		fileJMenu.add(exitJMenuItem);
+                if (settingVersion != objVersion) {
+                    LOG.info("LogViewerSetting defaults changed - resetting to ootb");
+                    logViewerSetting = null;
+                }
 
-		// ---- EDIT ----
-		JMenu editJMenu = new JMenu("   Edit   ");
-		editJMenu.setMnemonic(KeyEvent.VK_E);
+            } catch (Exception e) {
+                LOG.error("Error decompressing logViewerSetting.", e);
+            }
+        }
 
-		JMenuItem alertCheatSheetJMenuItem = new JMenuItem("Alert Cheat Sheet");
-		alertCheatSheetJMenuItem.setToolTipText("Alert Cheat Sheet");
+        if (logViewerSetting == null) {
+            logViewerSetting = new LogViewerSetting();
+            byteArray = KryoSerializer.compress(logViewerSetting);
+            GeneralUtilities.setPreferenceByteArray(LogViewer.class, PREF_SETTINGS, byteArray);
+        }
 
-		// ii = FileUtilities.getImageIcon(this.getClass(), "settings.png");
-		// settingsJMenuItem.setIcon(ii);
+        // get OpenFileList
+        byteArray = GeneralUtilities.getPreferenceByteArray(LogViewer.class, PREF_OPEN_FILE_LIST);
 
-		alertCheatSheetJMenuItem.addActionListener(new ActionListener() {
+        if (byteArray != null) {
+            try {
+                openFileList = KryoSerializer.decompress(byteArray, ArrayList.class);
+            } catch (Exception e) {
+                LOG.error("Error decompressing open file list.", e);
+            }
+        }
 
-			@Override
-			public void actionPerformed(ActionEvent event) {
-				if (alertCheatSheetFrame == null) {
-					alertCheatSheetFrame = new AlertCheatSheetFrame(getAppName(), getAppIcon(), LogViewer.this);
-					alertCheatSheetFrame.addWindowListener(new WindowAdapter() {
+        if (openFileList == null) {
+            openFileList = new ArrayList<>();
+            byteArray = KryoSerializer.compress(openFileList);
+            GeneralUtilities.setPreferenceByteArray(LogViewer.class, PREF_OPEN_FILE_LIST, byteArray);
+        }
 
-						@Override
-						public void windowClosed(WindowEvent e) {
-							super.windowClosed(e);
-							alertCheatSheetFrame = null;
-						}
-					});
-					alertCheatSheetFrame.setVisible(true);
-				} else {
-					alertCheatSheetFrame.toFront();
-				}
-			}
-		});
+        int capacity = logViewerSetting.getRecentItemsCount();
 
-		editJMenu.add(alertCheatSheetJMenuItem);
+        recentFileContainer = new RecentFileContainer(getClass(), capacity);
+    }
 
-		JMenuItem settingsJMenuItem = new JMenuItem("Settings");
-		settingsJMenuItem.setToolTipText("Settings");
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.pega.fringe.common.gui.BaseFrame#getMenuJMenuBar()
+     */
+    @Override
+    protected JMenuBar getMenuJMenuBar() {
 
-		ii = FileUtilities.getImageIcon(this.getClass(), "settings.png");
-		settingsJMenuItem.setIcon(ii);
+        // ---- FILE ----
+        JMenu fileJMenu = new JMenu("   File   ");
 
-		settingsJMenuItem.addActionListener(new ActionListener() {
+        fileJMenu.setMnemonic(KeyEvent.VK_F);
 
-			@Override
-			public void actionPerformed(ActionEvent event) {
+        JMenuItem loadPegaLogFileMenuItem = getLoadPegaLogFileMenuItem();
+        JMenuItem loadHotfixInventoryFileMenuItem = getLoadHotfixInventoryFileMenuItem();
+        JMenuItem loadSystemStateFileMenuItem = getLoadSystemStateFileMenuItem();
+        JMenuItem socketReceiverLogFileMenuItem = getSocketReceiverLogFileMenuItem();
+        RecentFileJMenu recentFileJMenu = getRecentFileJMenu();
+        JMenuItem clearRecentMenuItem = getClearRecentMenuItem();
+        JMenuItem exitMenuItem = getExitMenuItem();
 
-				LogViewerSettingsDialog logViewerSettingsDialog = null;
-				logViewerSettingsDialog = new LogViewerSettingsDialog(getLogViewerSetting(), getAppIcon(),
-						LogViewer.this);
+        // fileJMenu.addSeparator();
+        fileJMenu.add(loadPegaLogFileMenuItem);
+        fileJMenu.add(loadHotfixInventoryFileMenuItem);
+        fileJMenu.add(loadSystemStateFileMenuItem);
+        fileJMenu.add(socketReceiverLogFileMenuItem);
+        fileJMenu.add(recentFileJMenu);
+        fileJMenu.add(clearRecentMenuItem);
+        fileJMenu.add(exitMenuItem);
 
-				logViewerSettingsDialog.setVisible(true);
+        JMenu editJMenu = new JMenu("   Edit   ");
+        editJMenu.setMnemonic(KeyEvent.VK_E);
 
-				if (logViewerSettingsDialog.isSettingUpdated()) {
+        JMenuItem alertCheatSheetMenuItem = getAlertCheatSheetMenuItem();
+        JMenuItem settingsMenuItem = getSettingsMenuItem();
+        JMenuItem hotfixCatalogViewerMenuItem = getHotfixCatalogViewerMenuItem();
+        JMenuItem patchReleaseCatalogViewerMenuItem = getPatchReleaseCatalogViewerMenuItem();
 
-					int recentItemsCount = logViewerSettingsDialog.getRecentItemsCount();
-					String charset = logViewerSettingsDialog.getSelectedCharset();
-					boolean tailLogFile = logViewerSettingsDialog.isTailLogFile();
-					boolean reloadPreviousFiles = logViewerSettingsDialog.isReloadPreviousFiles();
+        editJMenu.add(alertCheatSheetMenuItem);
 
-					LogViewerSetting logViewerSetting = getLogViewerSetting();
+        if (hotfixCatalogViewerMenuItem != null) {
+            editJMenu.add(hotfixCatalogViewerMenuItem);
+        }
 
-					logViewerSetting.setRecentItemsCount(recentItemsCount);
-					logViewerSetting.setCharset(charset);
-					logViewerSetting.setTailLogFile(tailLogFile);
-					logViewerSetting.setReloadPreviousFiles(reloadPreviousFiles);
-				}
-			}
-		});
+        if (patchReleaseCatalogViewerMenuItem != null) {
+            editJMenu.add(patchReleaseCatalogViewerMenuItem);
+        }
 
-		editJMenu.add(settingsJMenuItem);
+        editJMenu.add(settingsMenuItem);
 
-		// ---- HELP ----
-		JMenu helpJMenu = getHelpAboutJMenu();
+        // ---- HELP ----
+        JMenu helpJMenu = getHelpAboutJMenu();
 
-		JMenuBar jMenuBar = new JMenuBar();
-		jMenuBar.add(fileJMenu);
-		jMenuBar.add(editJMenu);
-		jMenuBar.add(helpJMenu);
+        JMenuBar menuBar = new JMenuBar();
+        menuBar.add(fileJMenu);
+        menuBar.add(editJMenu);
+        menuBar.add(helpJMenu);
 
-		return jMenuBar;
+        return menuBar;
 
-	}
+    }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.pega.fringe.common.gui.BaseFrame#getMainJPanel()
-	 */
-	@Override
-	protected JComponent getMainJPanel() {
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.pega.fringe.common.gui.BaseFrame#getMainJPanel()
+     */
+    @Override
+    protected JComponent getMainJPanel() {
 
-		JPanel mainJPanel = new JPanel();
+        JPanel mainJPanel = new JPanel();
 
-		LogTabbedPane logTabbedPane = getLogTabbedPane();
+        LogTabbedPane logTabbedPane = getLogTabbedPane();
 
-		mainJPanel.setLayout(new BorderLayout());
+        mainJPanel.setLayout(new BorderLayout());
 
-		mainJPanel.add(logTabbedPane, BorderLayout.CENTER);
+        mainJPanel.add(logTabbedPane, BorderLayout.CENTER);
 
-		return mainJPanel;
+        return mainJPanel;
 
-	}
+    }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.pega.fringe.common.gui.BaseFrame#getAppName()
-	 */
-	@Override
-	protected String getAppName() {
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.pega.fringe.common.gui.BaseFrame#getAppName()
+     */
+    @Override
+    protected String getAppName() {
 
-		if (appName == null) {
+        if (appName == null) {
 
-			Package p = LogViewer.class.getPackage();
+            Package classPackage = LogViewer.class.getPackage();
 
-			StringBuffer sb = new StringBuffer();
-			sb.append(p.getImplementationTitle());
-			sb.append(" ");
-			sb.append(p.getImplementationVersion());
+            StringBuilder appNameSB = new StringBuilder();
+            appNameSB.append(classPackage.getImplementationTitle());
+            appNameSB.append(" ");
+            appNameSB.append(classPackage.getImplementationVersion());
 
-			appName = sb.toString();
-		}
+            appName = appNameSB.toString();
+        }
 
-		return appName;
-	}
+        return appName;
+    }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see com.pega.fringe.common.gui.BaseFrame#release()
-	 */
-	@Override
-	protected void release() {
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.pega.fringe.common.gui.BaseFrame#release()
+     */
+    @Override
+    protected void release() {
 
-		savePreferences();
+        savePreferences();
 
-		LOG.info("LogViewer - Stopped");
-	}
+        LOG.info("LogViewer - Stopped");
+    }
 
-	protected void savePreferences() {
-		// save recent file container
-		recentFileContainer.saveRecentFilesPreferrence();
+    private JMenuItem getLoadPegaLogFileMenuItem() {
 
-		// save logViewerSetting
-		try {
-			byte[] byteArray = KryoSerializer.compress(logViewerSetting);
+        JMenuItem loadPegaLogFileMenuItem = new JMenuItem("Load Pega Log File");
 
-			LOG.info("LogViewerSetting ByteSize: " + byteArray.length);
+        loadPegaLogFileMenuItem.setMnemonic(KeyEvent.VK_L);
+        loadPegaLogFileMenuItem.setToolTipText("Load PegaRULES or Alert Log File");
 
-			GeneralUtilities.setPreferenceByteArray(this.getClass(), PREF_SETTINGS, byteArray);
-		} catch (Exception e) {
-			LOG.error("Error compressing logViewerSetting.", e);
-		}
+        ImageIcon ii = FileUtilities.getImageIcon(getClass(), "open.png");
 
-		// save openFileList
-		saveOpenFileList();
+        loadPegaLogFileMenuItem.setIcon(ii);
 
-	}
+        loadPegaLogFileMenuItem.addActionListener(new ActionListener() {
 
-	private void saveOpenFileList() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
 
-		try {
+                File selectedFile = getSelectedFile();
 
-			boolean reloadPreviousFiles = logViewerSetting.isReloadPreviousFiles();
+                FileFilter fileFilter = LogViewer.getDefaultFileFilter(LogViewer.LOG_FILE_CHOOSER_FILTER_DESC,
+                        Arrays.asList(LogViewer.LOG_FILE_CHOOSER_FILTER_EXT));
 
-			if (reloadPreviousFiles) {
-				LogTabbedPane logTabbedPane = getLogTabbedPane();
-				openFileList = logTabbedPane.getOpenFileList();
-			} else {
-				openFileList = new ArrayList<>();
-			}
+                File file = openFileChooser(LogViewer.this, LogViewer.class, LOG_FILE_CHOOSER_DIALOG_TITLE, fileFilter,
+                        selectedFile);
 
-			byte[] byteArray = KryoSerializer.compress(openFileList);
+                if (file != null) {
+                    loadLogFile(file);
+                }
+            }
+        });
 
-			LOG.info("Open File List ByteSize: " + byteArray.length);
+        return loadPegaLogFileMenuItem;
+    }
 
-			GeneralUtilities.setPreferenceByteArray(this.getClass(), PREF_OPEN_FILE_LIST, byteArray);
+    private JMenuItem getSocketReceiverLogFileMenuItem() {
 
-		} catch (Exception e) {
-			LOG.error("Error compressing open file list.", e);
-		}
-	}
+        JMenuItem socketReceiverLogFileMenuItem = new JMenuItem("Open Socket Receiver");
 
-	private RecentFileJMenu getRecentFileJMenu() {
+        socketReceiverLogFileMenuItem.setMnemonic(KeyEvent.VK_S);
+        socketReceiverLogFileMenuItem.setToolTipText("Open Socket Receiver");
 
-		if (recentFileJMenu == null) {
+        ImageIcon ii = FileUtilities.getImageIcon(getClass(), "open.png");
 
-			recentFileJMenu = new RecentFileJMenu(recentFileContainer) {
+        socketReceiverLogFileMenuItem.setIcon(ii);
 
-				private static final long serialVersionUID = -5159590911380579230L;
+        socketReceiverLogFileMenuItem.addActionListener(new ActionListener() {
 
-				@Override
-				public void onSelect(RecentFile recentFile) {
+            @Override
+            public void actionPerformed(ActionEvent event) {
 
-					String file = (String) recentFile.getAttribute(RecentFile.KEY_FILE);
+                SocketReceiverOpenDialog socketReceiverOpenDialog = new SocketReceiverOpenDialog(getAppIcon(),
+                        LogViewer.this);
 
-					File aFile = new File(file);
+                socketReceiverOpenDialog.setVisible(true);
 
-					if (aFile.exists() && aFile.isFile() && aFile.canRead()) {
+                int port = socketReceiverOpenDialog.getPort();
 
-						loadFile(aFile);
+                LogFileType logFileType = socketReceiverOpenDialog.getLogFileType();
 
-					} else {
+                if ((port > 0) && (logFileType != null)) {
+                    loadSocketReceiverLog(port, logFileType);
+                }
+            }
+        });
 
-						JOptionPane.showMessageDialog(this, "File: " + aFile + " cannot be read.", "File not found",
-								JOptionPane.ERROR_MESSAGE);
+        return socketReceiverLogFileMenuItem;
+    }
 
-						getRecentFileContainer().deleteRecentFile(recentFile);
-					}
-				}
-			};
-		}
+    private JMenuItem getLoadHotfixInventoryFileMenuItem() {
 
-		return recentFileJMenu;
-	}
+        JMenuItem loadHotfixInventoryFileMenuItem = new JMenuItem("Load Hotfix Inventory File");
 
-	/**
-	 * @return the logTabbedPane
-	 */
-	private LogTabbedPane getLogTabbedPane() {
+        loadHotfixInventoryFileMenuItem.setMnemonic(KeyEvent.VK_S);
+        loadHotfixInventoryFileMenuItem.setToolTipText("Load Hotfix Inventory zip or .PEGA File");
 
-		if (logTabbedPane == null) {
-			logTabbedPane = new LogTabbedPane(logViewerSetting, recentFileContainer);
-			logTabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+        ImageIcon ii = FileUtilities.getImageIcon(getClass(), "open.png");
 
-			// logTabbedPane.setBorder(BorderFactory.createLineBorder(
-			// MyColor.GRAY, 1));
-		}
-		return logTabbedPane;
-	}
+        loadHotfixInventoryFileMenuItem.setIcon(ii);
 
-	protected void clearRecentPreferences() {
-		recentFileContainer.clearRecentFilesPreferrence();
-		logViewerSetting = new LogViewerSetting();
-		openFileList = new ArrayList<>();
-	}
+        loadHotfixInventoryFileMenuItem.addActionListener(new ActionListener() {
 
-	protected void loadFile(List<String> fileNameList) {
+            @Override
+            public void actionPerformed(ActionEvent event) {
 
-		for (String filename : fileNameList) {
+                File selectedFile = getSelectedFile();
 
-			LOG.info("Processing file: " + filename);
+                FileFilter fileFilter = getSystemScanFileFilter();
 
-			File aFile = new File(filename);
+                File file = openFileChooser(LogViewer.this, LogViewer.class, SYSTEM_SCAN_FILE_CHOOSER_DIALOG_TITLE,
+                        fileFilter, selectedFile);
 
-			if (aFile.exists() && aFile.isFile() && aFile.canRead()) {
-				loadFile(aFile);
-			} else {
-				LOG.info("\"" + filename + "\" is not a file.");
-			}
-		}
-	}
+                if (file != null) {
+                    loadSystemScanFile(file);
+                }
+            }
+        });
 
-	protected void loadFile(File aFile) {
+        return loadHotfixInventoryFileMenuItem;
+    }
 
-		this.selectedFile = aFile;
+    private JMenuItem getLoadSystemStateFileMenuItem() {
 
-		LogTabbedPane logTabbedPane = getLogTabbedPane();
+        JMenuItem loadSystemStateFileMenuItem = new JMenuItem("Load System State File");
 
-		try {
+        loadSystemStateFileMenuItem.setMnemonic(KeyEvent.VK_K);
+        loadSystemStateFileMenuItem.setToolTipText("Load System State JSON File");
 
-			logTabbedPane.loadFile(selectedFile);
+        ImageIcon ii = FileUtilities.getImageIcon(getClass(), "open.png");
 
-			saveOpenFileList();
+        loadSystemStateFileMenuItem.setIcon(ii);
 
-		} catch (Exception e) {
-			LOG.error("Error loading file: " + selectedFile, e);
+        loadSystemStateFileMenuItem.addActionListener(new ActionListener() {
 
-			JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile), "Error loading file: ",
-					JOptionPane.ERROR_MESSAGE);
-		}
-	}
+            @Override
+            public void actionPerformed(ActionEvent event) {
 
-	protected void loadLogFile(File aFile) {
+                File selectedFile = getSelectedFile();
 
-		this.selectedFile = aFile;
+                FileFilter fileFilter = getSystemStateFileFilter();
 
-		LogTabbedPane logTabbedPane = getLogTabbedPane();
+                File file = openFileChooser(LogViewer.this, LogViewer.class, SYSTEM_STATE_FILE_CHOOSER_DIALOG_TITLE,
+                        fileFilter, selectedFile);
 
-		try {
+                if (file != null) {
+                    loadSystemStateFile(file);
+                }
+            }
+        });
 
-			logTabbedPane.loadLogFile(selectedFile);
+        return loadSystemStateFileMenuItem;
+    }
 
-			saveOpenFileList();
+    private RecentFileJMenu getRecentFileJMenu() {
 
-		} catch (Exception e) {
-			LOG.error("Error loading Log file: " + selectedFile, e);
+        if (recentFileJMenu == null) {
 
-			JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile), "Error loading Log file: ",
-					JOptionPane.ERROR_MESSAGE);
-		}
-	}
+            recentFileJMenu = new RecentFileJMenu(recentFileContainer) {
 
-	protected void loadSystemScanFile(File aFile) {
+                private static final long serialVersionUID = -5159590911380579230L;
 
-		this.selectedFile = aFile;
+                @Override
+                public void onSelect(RecentFile recentFile) {
 
-		LogTabbedPane logTabbedPane = getLogTabbedPane();
+                    String filePath = (String) recentFile.getPath();
 
-		try {
+                    File file = new File(filePath);
 
-			logTabbedPane.loadSystemScanFile(selectedFile);
+                    if (file.exists() && file.isFile() && file.canRead()) {
 
-			saveOpenFileList();
+                        loadFile(file);
 
-		} catch (Exception e) {
-			LOG.error("Error loading Scan Result Zip file: " + selectedFile, e);
+                    } else {
 
-			JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile),
-					"Error loading Scan Result Zip file: ", JOptionPane.ERROR_MESSAGE);
-		}
-	}
+                        JOptionPane.showMessageDialog(this, "File: " + file + " cannot be read.", "File not found",
+                                JOptionPane.ERROR_MESSAGE);
 
-	public static void generateReport(List<String> fileNameList) {
+                        getRecentFileContainer().deleteRecentFile(recentFile);
+                    }
+                }
+            };
+        }
 
-		if (fileNameList.size() == 0) {
-			LOG.info("no files to process");
-		}
+        return recentFileJMenu;
+    }
 
-		for (String filename : fileNameList) {
+    private JMenuItem getClearRecentMenuItem() {
 
-			LOG.info("Processing file: " + filename);
+        JMenuItem clearRecentMenuItem = new JMenuItem("Clear Recent");
 
-			File aFile = new File(filename);
+        clearRecentMenuItem.setMnemonic(KeyEvent.VK_C);
+        clearRecentMenuItem.setToolTipText("Clear Recent");
 
-			if (aFile.exists() && aFile.isFile() && aFile.canRead()) {
-				generateReport(aFile);
-			} else {
-				LOG.info("\"" + filename + "\" is not a file.");
-			}
-		}
-	}
+        clearRecentMenuItem.setIcon(null);
 
-	private static void generateReport(File logFile) {
-		// TODO - generate report
-		LOG.info("Generate Report - not implemented yet!!!.");
-	}
+        clearRecentMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                clearRecentPreferences();
+                savePreferences();
+            }
+        });
 
-	/**
-	 * @param args
-	 */
-	public static void main(final String[] args) {
+        return clearRecentMenuItem;
+    }
 
-		LOG.info("Default Locale: " + Locale.getDefault() + " args length: " + args.length);
+    private JMenuItem getExitMenuItem() {
 
-		SwingUtilities.invokeLater(new Runnable() {
+        JMenuItem exitMenuItem = new JMenuItem("Exit");
 
-			@Override
-			public void run() {
-				try {
+        exitMenuItem.setMnemonic(KeyEvent.VK_X);
+        exitMenuItem.setToolTipText("Exit application");
 
-					if (args.length > 0) {
+        ImageIcon ii = FileUtilities.getImageIcon(getClass(), "exit.png");
 
-						List<String> fileNameList = new ArrayList<String>();
+        exitMenuItem.setIcon(ii);
 
-						boolean isReport = false;
+        exitMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                exit(0);
+            }
+        });
 
-						Getopt getopt = new Getopt("LogViewer", args, "f:r:h:?;");
+        return exitMenuItem;
+    }
 
-						int c;
-						String arg;
+    private JMenuItem getAlertCheatSheetMenuItem() {
 
-						while ((c = getopt.getopt()) != -1) {
+        JMenuItem alertCheatSheetMenuItem = new JMenuItem("Alert Cheat Sheet");
+        alertCheatSheetMenuItem.setToolTipText("Alert Cheat Sheet");
 
-							switch (c) {
+        alertCheatSheetMenuItem.addActionListener(new ActionListener() {
 
-							case 'f':
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                if (alertCheatSheetFrame == null) {
+                    alertCheatSheetFrame = new AlertCheatSheetFrame(getAppName(), getAppIcon(), LogViewer.this);
+                    alertCheatSheetFrame.addWindowListener(new WindowAdapter() {
 
-								int index = getopt.getOptind() - 1;
-								// LOG.info("index -> " + index);
+                        @Override
+                        public void windowClosed(WindowEvent windowEvent) {
+                            super.windowClosed(windowEvent);
+                            alertCheatSheetFrame = null;
+                        }
+                    });
 
-								while (index < args.length) {
+                    alertCheatSheetFrame.setVisible(true);
+                } else {
+                    alertCheatSheetFrame.toFront();
+                }
+            }
+        });
 
-									String next = args[index];
-									index++;
+        return alertCheatSheetMenuItem;
+    }
 
-									if (next.startsWith("-")) {
-										break;
-									} else {
-										fileNameList.add(next);
-									}
-								}
+    private JMenuItem getHotfixCatalogViewerMenuItem() {
 
-								getopt.setOptind(index - 1);
+        JMenuItem hotfixCatalogViewerMenuItem = null;
 
-								break;
+        CatalogManagerWrapper catalogManagerWrapper = CatalogManagerWrapper.getInstance();
 
-							case 'r':
-								arg = getopt.getOptarg();
-								isReport = Boolean.parseBoolean(arg);
+        if (catalogManagerWrapper.isInitialised()) {
 
-								break;
+            hotfixCatalogViewerMenuItem = new JMenuItem("Hotfix Catalog Viewer");
 
-							case 'h':
-								printUsageAndExit();
-								break;
+            hotfixCatalogViewerMenuItem.setToolTipText("Hotfix Catalog Viewer");
 
-							case '?':
-								printUsageAndExit();
-								break;
+            hotfixCatalogViewerMenuItem.addActionListener(new ActionListener() {
 
-							default:
-								LOG.info("getopt() returned " + c);
-								break;
-							}
-						}
+                @Override
+                public void actionPerformed(ActionEvent event) {
 
-						// handle non option arguments - for ex starting using open-with menu command on
-						// windows. assume them as file names
-						for (int i = getopt.getOptind(); i < args.length; i++) {
-							String filename = args[i];
-							LOG.info("Non option arg element: " + filename + "\n");
-							fileNameList.add(filename);
-						}
+                    if (hotfixCatalogViewerFrame == null) {
 
-						if (isReport) {
-							generateReport(fileNameList);
-						} else {
-							LogViewer logViewer = new LogViewer();
-							logViewer.loadFile(fileNameList);
-						}
-					} else {
-						LogViewer logViewer = new LogViewer();
-						logViewer.setVisible(true);
-					}
+                        hotfixCatalogViewerFrame = catalogManagerWrapper.getPluginFrame(LogViewer.this);
 
-				} catch (Exception e) {
-					LOG.error("Error in LogViewer main.", e);
-				}
-			}
-		});
-	}
+                        hotfixCatalogViewerFrame.addWindowListener(new WindowAdapter() {
 
-	protected static void printUsageAndExit() {
-		String usageStr = "\t-f <space seperated list of file path> \n\t-r <true|false generate report, no UI \n\t-h <print command usage>";
-		LOG.info("Usage Arguments: \n" + usageStr);
-		System.exit(0);
-	}
+                            @Override
+                            public void windowClosed(WindowEvent windowEvent) {
+                                super.windowClosed(windowEvent);
+                                hotfixCatalogViewerFrame = null;
+                            }
+                        });
+
+                        hotfixCatalogViewerFrame.setVisible(true);
+
+                    } else {
+                        hotfixCatalogViewerFrame.toFront();
+                    }
+                }
+            });
+        }
+
+        return hotfixCatalogViewerMenuItem;
+    }
+
+    private JMenuItem getPatchReleaseCatalogViewerMenuItem() {
+
+        JMenuItem patchReleaseCatalogViewerMenuItem = null;
+
+        PatchReleaseCatalogWrapper patchReleaseCatalogWrapper = PatchReleaseCatalogWrapper.getInstance();
+
+        if (patchReleaseCatalogWrapper.isInitialised()) {
+
+            patchReleaseCatalogViewerMenuItem = new JMenuItem("Patch Release Catalog Viewer");
+
+            patchReleaseCatalogViewerMenuItem.setToolTipText("Patch Release Catalog Viewer");
+
+            patchReleaseCatalogViewerMenuItem.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent event) {
+
+                    if (patchReleaseCatalogViewerFrame == null) {
+
+                        patchReleaseCatalogViewerFrame = patchReleaseCatalogWrapper.getPluginFrame(LogViewer.this);
+
+                        patchReleaseCatalogViewerFrame.addWindowListener(new WindowAdapter() {
+
+                            @Override
+                            public void windowClosed(WindowEvent windowEvent) {
+                                super.windowClosed(windowEvent);
+                                patchReleaseCatalogViewerFrame = null;
+                            }
+                        });
+
+                        patchReleaseCatalogViewerFrame.setVisible(true);
+
+                    } else {
+                        patchReleaseCatalogViewerFrame.toFront();
+                    }
+                }
+            });
+        }
+
+        return patchReleaseCatalogViewerMenuItem;
+    }
+
+    private JMenuItem getSettingsMenuItem() {
+
+        JMenuItem settingsMenuItem = new JMenuItem("Settings");
+        settingsMenuItem.setToolTipText("Settings");
+
+        ImageIcon ii = FileUtilities.getImageIcon(getClass(), "settings.png");
+        settingsMenuItem.setIcon(ii);
+
+        settingsMenuItem.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent event) {
+
+                LogViewerSettingsDialog logViewerSettingsDialog = null;
+                logViewerSettingsDialog = new LogViewerSettingsDialog(getLogViewerSetting(), getAppIcon(),
+                        LogViewer.this);
+
+                logViewerSettingsDialog.setVisible(true);
+
+                if (logViewerSettingsDialog.isSettingUpdated()) {
+
+                    int recentItemsCount = logViewerSettingsDialog.getRecentItemsCount();
+                    String charset = logViewerSettingsDialog.getSelectedCharset();
+                    boolean tailLogFile = logViewerSettingsDialog.isTailLogFile();
+                    boolean reloadPreviousFiles = logViewerSettingsDialog.isReloadPreviousFiles();
+
+                    LogViewerSetting logViewerSetting = getLogViewerSetting();
+
+                    logViewerSetting.setRecentItemsCount(recentItemsCount);
+                    logViewerSetting.setCharset(charset);
+                    logViewerSetting.setTailLogFile(tailLogFile);
+                    logViewerSetting.setReloadPreviousFiles(reloadPreviousFiles);
+
+                    savePreferences();
+                }
+            }
+        });
+
+        return settingsMenuItem;
+    }
+
+    private void savePreferences() {
+        // save recent file container
+        recentFileContainer.saveRecentFilesPreferrence();
+
+        // save logViewerSetting
+        try {
+            byte[] byteArray = KryoSerializer.compress(logViewerSetting);
+
+            LOG.info("LogViewerSetting ByteSize: " + byteArray.length);
+
+            GeneralUtilities.setPreferenceByteArray(this.getClass(), PREF_SETTINGS, byteArray);
+        } catch (Exception e) {
+            LOG.error("Error compressing Log Viewer Setting.", e);
+        }
+
+        // save openFileList
+        saveOpenFileList();
+
+    }
+
+    private void saveOpenFileList() {
+
+        try {
+
+            boolean reloadPreviousFiles = logViewerSetting.isReloadPreviousFiles();
+
+            if (reloadPreviousFiles) {
+                LogTabbedPane logTabbedPane = getLogTabbedPane();
+                openFileList = logTabbedPane.getOpenFileList();
+            } else {
+                openFileList = new ArrayList<>();
+            }
+
+            byte[] byteArray = KryoSerializer.compress(openFileList);
+
+            LOG.info("Open File List ByteSize: " + byteArray.length);
+
+            GeneralUtilities.setPreferenceByteArray(this.getClass(), PREF_OPEN_FILE_LIST, byteArray);
+
+        } catch (Exception e) {
+            LOG.error("Error compressing open file list.", e);
+        }
+    }
+
+    private LogTabbedPane getLogTabbedPane() {
+
+        if (logTabbedPane == null) {
+            logTabbedPane = new LogTabbedPane(logViewerSetting, recentFileContainer);
+            logTabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
+        }
+
+        return logTabbedPane;
+    }
+
+    private void clearRecentPreferences() {
+        recentFileContainer.clearRecentFilesPreferrence();
+        openFileList = new ArrayList<>();
+    }
+
+    protected void loadFile(List<String> fileNameList) {
+
+        for (String filename : fileNameList) {
+
+            LOG.info("Processing file: " + filename);
+
+            File file = new File(filename);
+
+            if (file.exists() && file.isFile() && file.canRead()) {
+                loadFile(file);
+            } else {
+                LOG.info("\"" + filename + "\" is not a file.");
+            }
+        }
+    }
+
+    protected void loadFile(File file) {
+
+        this.selectedFile = file;
+
+        LogTabbedPane logTabbedPane = getLogTabbedPane();
+
+        try {
+
+            logTabbedPane.loadFile(selectedFile);
+
+            saveOpenFileList();
+
+        } catch (Exception e) {
+            LOG.error("Error loading file: " + selectedFile, e);
+
+            JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile), "Error loading file: ",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    protected void loadLogFile(File file) {
+
+        this.selectedFile = file;
+
+        LogTabbedPane logTabbedPane = getLogTabbedPane();
+
+        try {
+
+            logTabbedPane.loadLogFile(selectedFile);
+
+            saveOpenFileList();
+
+        } catch (Exception e) {
+            LOG.error("Error loading Log file: " + selectedFile, e);
+
+            JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile), "Error loading Log file: ",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void loadSocketReceiverLog(final int port, final LogFileType logFileType) {
+
+        this.selectedFile = null;
+
+        LogTabbedPane logTabbedPane = getLogTabbedPane();
+
+        try {
+
+            logTabbedPane.loadSocketReceiverLog(port, logFileType);
+
+            saveOpenFileList();
+
+        } catch (Exception e) {
+            LOG.error("Error loading Socket receiver: Port" + port + " LogFileType: " + logFileType, e);
+
+            JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile), "Error loading Log file: ",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    protected void loadSystemScanFile(File file) {
+
+        this.selectedFile = file;
+
+        LogTabbedPane logTabbedPane = getLogTabbedPane();
+
+        try {
+
+            logTabbedPane.loadSystemScanFile(selectedFile);
+
+            saveOpenFileList();
+
+        } catch (Exception e) {
+            LOG.error("Error loading Scan Result Zip file: " + selectedFile, e);
+
+            JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile),
+                    "Error loading Scan Result Zip file: ", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    protected void loadSystemStateFile(File file) {
+
+        this.selectedFile = file;
+
+        LogTabbedPane logTabbedPane = getLogTabbedPane();
+
+        try {
+
+            logTabbedPane.loadSystemStateFile(selectedFile);
+
+            saveOpenFileList();
+
+        } catch (Exception e) {
+            LOG.error("Error loading System State file: " + selectedFile, e);
+
+            JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile),
+                    "Error loading System State file: ", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    public static void generateReport(List<String> fileNameList) {
+
+        if (fileNameList.size() == 0) {
+            LOG.info("no files to process");
+        }
+
+        for (String filename : fileNameList) {
+
+            LOG.info("Processing file: " + filename);
+
+            File file = new File(filename);
+
+            if (file.exists() && file.isFile() && file.canRead()) {
+                generateReport(file);
+            } else {
+                LOG.info("\"" + filename + "\" is not a file.");
+            }
+        }
+    }
+
+    private static void generateReport(File logFile) {
+        // TODO - generate report
+        LOG.info("Generate Report - not implemented yet!!!.");
+    }
+
+    public static void main(final String[] args) {
+
+        LOG.info("Default Locale: " + Locale.getDefault() + " args length: " + args.length);
+
+        SwingUtilities.invokeLater(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+
+                    if (args.length > 0) {
+
+                        List<String> fileNameList = new ArrayList<String>();
+
+                        boolean isReport = false;
+
+                        Getopt getopt = new Getopt("LogViewer", args, "f:r:h:?;");
+
+                        int optChar;
+                        String arg;
+
+                        while ((optChar = getopt.getopt()) != -1) {
+
+                            switch (optChar) {
+
+                            case 'f':
+
+                                int index = getopt.getOptind() - 1;
+                                // LOG.info("index -> " + index);
+
+                                while (index < args.length) {
+
+                                    String next = args[index];
+                                    index++;
+
+                                    if (next.startsWith("-")) {
+                                        break;
+                                    } else {
+                                        fileNameList.add(next);
+                                    }
+                                }
+
+                                getopt.setOptind(index - 1);
+
+                                break;
+
+                            case 'r':
+                                arg = getopt.getOptarg();
+                                isReport = Boolean.parseBoolean(arg);
+
+                                break;
+
+                            case 'h':
+                                printUsageAndExit();
+                                break;
+
+                            case '?':
+                                printUsageAndExit();
+                                break;
+
+                            default:
+                                LOG.info("getopt() returned " + optChar);
+                                break;
+                            }
+                        }
+
+                        // handle non option arguments - for ex starting using open-with menu command on
+                        // windows. assume them as file names
+                        for (int i = getopt.getOptind(); i < args.length; i++) {
+                            String filename = args[i];
+                            LOG.info("Non option arg element: " + filename + "\n");
+                            fileNameList.add(filename);
+                        }
+
+                        if (isReport) {
+                            generateReport(fileNameList);
+                        } else {
+                            LogViewer logViewer = LogViewer.getInstance();
+                            logViewer.loadFile(fileNameList);
+                        }
+                    } else {
+                        LogViewer logViewer = LogViewer.getInstance();
+                        logViewer.setVisible(true);
+                    }
+
+                } catch (Exception e) {
+                    LOG.error("Error in LogViewer main.", e);
+                }
+            }
+        });
+    }
+
+    protected static void printUsageAndExit() {
+        String usageStr = "\t-f <space seperated list of file path> \n\t-r <true|false generate report, no UI> \n\t-h <print command usage>";
+        LOG.info("Usage Arguments: \n" + usageStr);
+        System.exit(0);
+    }
 
 }

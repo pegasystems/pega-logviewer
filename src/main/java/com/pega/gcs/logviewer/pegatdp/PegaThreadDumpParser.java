@@ -4,13 +4,19 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.pegatdp;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -19,158 +25,175 @@ import java.util.Map;
 import java.util.Properties;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.logviewer.PluginClassloader;
 
 public class PegaThreadDumpParser {
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(PegaThreadDumpParser.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(PegaThreadDumpParser.class);
 
-	private static final PegaThreadDumpParser _INSTANCE = new PegaThreadDumpParser();
+    private static final PegaThreadDumpParser _INSTANCE = new PegaThreadDumpParser();
 
-	private static String JSON_PARAM_TD_TIME = "JSON_PARAM_TD_TIME";
-	private static String JSON_PARAM_TD_LINE = "JSON_PARAM_TD_LINE";
-	private static String JSON_PARAM_TD_FILE = "JSON_PARAM_TD_FILE";
+    private static String JSON_PARAM_TD_TIME = "JSON_PARAM_TD_TIME";
+    private static String JSON_PARAM_TD_LINE = "JSON_PARAM_TD_LINE";
+    private static String JSON_PARAM_TD_FILE = "JSON_PARAM_TD_FILE";
 
-	private boolean initialised;
+    private boolean initialised;
 
-	// private static Class<?> threadDumpParserFactoryClass;
-	// private static Class<?> threadDumpParserClass;
-	// private static Class<? extends Enum> dumpFormatEnum;
+    // private static Class<?> threadDumpParserFactoryClass;
+    // private static Class<?> threadDumpParserClass;
+    // private static Class<? extends Enum> dumpFormatEnum;
 
-	private static Class<?> pegaThreadDumpParserClass;
+    private static Class<?> pegaThreadDumpParserClass;
 
-	private static Class<?> threadDumpClass;
+    private static Class<?> threadDumpClass;
 
-	private static Class<?> commandLineClientClass;
+    private static Class<?> commandLineClientClass;
 
-	private static Class<?> reportTemplateClass;
+    private static Class<?> reportTemplateClass;
 
-	private PegaThreadDumpParser() {
+    private String version;
 
-		try {
+    private PegaThreadDumpParser() {
 
-			initialised = false;
+        try {
 
-			String pwd = System.getProperty("user.dir");
-			Properties props = System.getProperties();
-			props.setProperty("tdp.home", pwd);
+            initialised = false;
 
-			// threadDumpParserFactoryClass =
-			// Class.forName("com.pega.gcs.logs.threaddumpparser.ThreadDumpParserFactory");
-			// threadDumpParserClass =
-			// Class.forName("com.pega.gcs.logs.threaddumpparser.ThreadDumpParser");
-			// dumpFormatEnum = (Class<? extends Enum>)
-			// Class.forName("com.pega.gcs.logs.threaddumpparser.ThreadDumpParser$DumpFormat");
+            String pwd = System.getProperty("user.dir");
+            Properties props = System.getProperties();
+            props.setProperty("tdp.home", pwd);
 
-			pegaThreadDumpParserClass = Class.forName("com.pega.gcs.logs.threaddumpparser.PegaThreadDumpParser");
-			threadDumpClass = Class.forName("com.pega.gcs.logs.threaddumpparser.ThreadDump");
-			commandLineClientClass = Class.forName("com.pega.gcs.logs.threaddumpparser.cli.CommandLineClient");
-			reportTemplateClass = Class.forName("com.pega.gcs.logs.threaddumpparser.report.ReportTemplate");
+            // threadDumpParserFactoryClass =
+            // Class.forName("com.pega.gcs.logs.threaddumpparser.ThreadDumpParserFactory");
+            // threadDumpParserClass =
+            // Class.forName("com.pega.gcs.logs.threaddumpparser.ThreadDumpParser");
+            // dumpFormatEnum = (Class<? extends Enum>)
+            // Class.forName("com.pega.gcs.logs.threaddumpparser.ThreadDumpParser$DumpFormat");
 
-			initialised = true;
-			// } catch (ClassNotFoundException cnfe) {
-			// LOG.info(cnfe.getMessage());
+            PluginClassloader pluginClassloader = PluginClassloader.getInstance();
 
-		} catch (Exception e) {
-			LOG.error("Error initialising PegaThreadDumpParser", e);
-		}
+            URLClassLoader urlClassLoader = pluginClassloader.getUrlClassLoader();
 
-	}
+            pegaThreadDumpParserClass = Class.forName("com.pega.gcs.logs.threaddumpparser.PegaThreadDumpParser", true,
+                    urlClassLoader);
+            threadDumpClass = Class.forName("com.pega.gcs.logs.threaddumpparser.ThreadDump", true, urlClassLoader);
+            commandLineClientClass = Class.forName("com.pega.gcs.logs.threaddumpparser.cli.CommandLineClient", true,
+                    urlClassLoader);
+            reportTemplateClass = Class.forName("com.pega.gcs.logs.threaddumpparser.report.ReportTemplate", true,
+                    urlClassLoader);
 
-	public static PegaThreadDumpParser getInstance() {
-		return _INSTANCE;
-	}
+            String version = pegaThreadDumpParserClass.getPackage().getImplementationVersion();
 
-	public boolean isInitialised() {
-		return initialised;
-	}
+            LOG.info("Using Thread dump Parser version: " + version);
 
-	public Object getThreadDumpObject(String threadDumpText) {
+            initialised = true;
+            // } catch (ClassNotFoundException cnfe) {
+            // LOG.info(cnfe.getMessage());
 
-		Object threadDump = null;
+        } catch (Exception e) {
+            LOG.error("Error initialising PegaThreadDumpParser", e);
+        }
 
-		if (isInitialised()) {
+    }
 
-			try {
+    public static PegaThreadDumpParser getInstance() {
+        return _INSTANCE;
+    }
 
-				Constructor<?> pegaThreadDumpParserConstructor = pegaThreadDumpParserClass
-						.getDeclaredConstructor(new Class[0]);
-				pegaThreadDumpParserConstructor.setAccessible(true);
+    public boolean isInitialised() {
+        return initialised;
+    }
 
-				Object pegaThreadDumpParser = pegaThreadDumpParserConstructor.newInstance();
+    public Object getThreadDumpObject(String threadDumpText) {
 
-				Method parseMethod = pegaThreadDumpParserClass.getDeclaredMethod("parse", String.class);
+        Object threadDump = null;
 
-				threadDump = parseMethod.invoke(pegaThreadDumpParser, threadDumpText);
+        if (isInitialised()) {
 
-			} catch (Exception e) {
-				LOG.error("Error getting ThreadDumpObject", e);
-			}
-		}
+            try {
 
-		return threadDump;
-	}
+                Constructor<?> pegaThreadDumpParserConstructor = pegaThreadDumpParserClass
+                        .getDeclaredConstructor(new Class[0]);
+                pegaThreadDumpParserConstructor.setAccessible(true);
 
-	public String getHTMLReport(Object threadDump, String filename, String line, String time) {
+                Object pegaThreadDumpParser = pegaThreadDumpParserConstructor.newInstance();
 
-		String htmlReport = null;
+                Method parseMethod = pegaThreadDumpParserClass.getDeclaredMethod("parse", String.class);
 
-		if (isInitialised()) {
+                threadDump = parseMethod.invoke(pegaThreadDumpParser, threadDumpText);
+            } catch (InvocationTargetException ite) {
+                LOG.error("InvocationTargetException Error getting ThreadDumpObject", ite.getTargetException());
+            } catch (Exception e) {
+                LOG.error("Error getting ThreadDumpObject", e);
+            }
+        }
 
-			try {
+        return threadDump;
+    }
 
-				Field m_TemplateField = commandLineClientClass.getDeclaredField("m_Template");
-				m_TemplateField.setAccessible(true);
+    public String getHtmlReport(Object threadDump, String filename, String line, String time) {
 
-				Object commandLineClient = commandLineClientClass.newInstance();
+        String htmlReport = null;
 
-				Object m_Template = m_TemplateField.get(commandLineClient);
+        if (isInitialised()) {
 
-				HashMap<String, String> params = new HashMap<>();
-				params.put(JSON_PARAM_TD_FILE, filename);
-				params.put(JSON_PARAM_TD_LINE, line);
-				params.put(JSON_PARAM_TD_TIME, time);
+            try {
 
-				StringWriter sw = new StringWriter();
+                Field templateField = commandLineClientClass.getDeclaredField("m_Template");
+                templateField.setAccessible(true);
 
-				// get the html report
-				Method generateReportMethod = threadDumpClass.getDeclaredMethod("generateReport", Map.class,
-						reportTemplateClass, Writer.class);
-				generateReportMethod.invoke(threadDump, params, m_Template, sw);
+                Object commandLineClient = commandLineClientClass.getDeclaredConstructor().newInstance();
 
-				htmlReport = sw.toString();
-			} catch (Exception e) {
-				LOG.error("Error getting html report", e);
-			}
-		}
+                Object template = templateField.get(commandLineClient);
 
-		return htmlReport;
-	}
+                HashMap<String, String> params = new HashMap<>();
+                params.put(JSON_PARAM_TD_FILE, filename);
+                params.put(JSON_PARAM_TD_LINE, line);
+                params.put(JSON_PARAM_TD_TIME, time);
 
-	public List<FindingAdapter> getFindingAdapterList(Object threadDump) {
+                StringWriter sw = new StringWriter();
 
-		List<FindingAdapter> findingAdapterList = new ArrayList<>();
+                // get the html report
+                Method generateReportMethod = threadDumpClass.getDeclaredMethod("generateReport", Map.class,
+                        reportTemplateClass, Writer.class);
+                generateReportMethod.invoke(threadDump, params, template, sw);
 
-		if ((isInitialised()) && (threadDump != null)) {
+                htmlReport = sw.toString();
+            } catch (InvocationTargetException ite) {
+                LOG.error("InvocationTargetException Error getting html report", ite.getTargetException());
+            } catch (Exception e) {
+                LOG.error("Error getting html report", e);
+            }
+        }
 
-			try {
+        return htmlReport;
+    }
 
-				Method getFindingsMethod = threadDumpClass.getDeclaredMethod("getFindings");
+    public List<FindingAdapter> getFindingAdapterList(Object threadDump) {
 
-				Collection<?> findings = (Collection<?>) getFindingsMethod.invoke(threadDump, (Object[]) null);
+        List<FindingAdapter> findingAdapterList = new ArrayList<>();
 
-				for (Object finding : findings) {
+        if ((isInitialised()) && (threadDump != null)) {
 
-					FindingAdapter findingAdapter = FindingAdapterFactory.getInstance().getFindingAdapter(finding);
-					findingAdapterList.add(findingAdapter);
+            try {
 
-				}
+                Method getFindingsMethod = threadDumpClass.getDeclaredMethod("getFindings");
 
-			} catch (Exception e) {
-				LOG.error("Error getting FindingAdapterList", e);
-			}
-		}
+                Collection<?> findings = (Collection<?>) getFindingsMethod.invoke(threadDump, (Object[]) null);
 
-		return findingAdapterList;
-	}
+                for (Object finding : findings) {
+
+                    FindingAdapter findingAdapter = FindingAdapterFactory.getInstance().getFindingAdapter(finding);
+                    findingAdapterList.add(findingAdapter);
+
+                }
+
+            } catch (Exception e) {
+                LOG.error("Error getting FindingAdapterList", e);
+            }
+        }
+
+        return findingAdapterList;
+    }
 
 }

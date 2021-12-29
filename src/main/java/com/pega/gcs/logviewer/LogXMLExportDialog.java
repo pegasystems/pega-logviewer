@@ -4,14 +4,15 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
-import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.LayoutManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -21,6 +22,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CancellationException;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -37,407 +40,382 @@ import com.pega.gcs.fringecommon.utilities.FileUtilities;
 
 public class LogXMLExportDialog extends JDialog {
 
-	private static final long serialVersionUID = 1563645482258326358L;
+    private static final long serialVersionUID = 1563645482258326358L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(LogXMLExportDialog.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(LogXMLExportDialog.class);
 
-	private LogTableModel logTableModel;
+    private LogTableModel logTableModel;
 
-	private JButton logExportJButton;
+    private JButton logExportButton;
 
-	private JButton logExportCancelJButton;
+    private JButton logExportCancelButton;
 
-	private JProgressBar logExportJProgressBar;
+    private JProgressBar logExportProgressBar;
 
-	private JFileChooser fileChooser;
+    private JFileChooser fileChooser;
 
-	private ClickableFilePathPanel clickableFilePathPanel;
+    private ClickableFilePathPanel clickableFilePathPanel;
 
-	private JLabel logExportJLabel;
+    private JLabel logExportLabel;
 
-	private LogXMLExportTask logXMLExportTask;
+    private LogXMLExportTask logXMLExportTask;
 
-	private File logFile;
+    private File logFile;
 
-	public LogXMLExportDialog(LogTableModel logTableModel, ImageIcon appIcon, Component parent) {
+    public LogXMLExportDialog(LogTableModel logTableModel, ImageIcon appIcon, Component parent) {
 
-		super();
+        super();
 
-		this.logTableModel = logTableModel;
+        this.logTableModel = logTableModel;
 
-		this.logXMLExportTask = null;
+        this.logXMLExportTask = null;
 
-		String filePath = logTableModel.getFilePath();
+        String filePath = logTableModel.getFilePath();
 
-		logFile = new File(filePath);
+        logFile = new File(filePath);
 
-		// check if the default output file is available
-		String fileName = getDefaultXMLFileName();
-		File currentDirectory = logFile.getParentFile();
+        // check if the default output file is available
+        String fileName = getDefaultXMLFileName();
+        File currentDirectory = logFile.getParentFile();
 
-		File proposedFile = new File(currentDirectory, fileName);
+        File proposedFile = new File(currentDirectory, fileName);
 
-		if (proposedFile.exists() && proposedFile.isFile()) {
-			populateGeneratedXMLPath(proposedFile);
-		}
+        if (proposedFile.exists() && proposedFile.isFile()) {
+            populateGeneratedXMLPath(proposedFile);
+        }
 
-		setTitle("Export to XML - " + logTableModel.getModelName());
+        setPreferredSize(new Dimension(500, 200));
 
-		setIconImage(appIcon.getImage());
+        setIconImage(appIcon.getImage());
 
-		setPreferredSize(new Dimension(500, 170));
+        setTitle("Export to XML - " + logTableModel.getModelName());
 
-		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setModalityType(ModalityType.APPLICATION_MODAL);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-		setContentPane(getMainJPanel());
+        setContentPane(getMainPanel());
 
-		pack();
+        pack();
 
-		setLocationRelativeTo(parent);
+        setLocationRelativeTo(parent);
 
-		addWindowListener(new WindowAdapter() {
+        addWindowListener(new WindowAdapter() {
 
-			@Override
-			public void windowClosed(WindowEvent e) {
-				super.windowClosed(e);
+            @Override
+            public void windowClosed(WindowEvent windowEvent) {
+                super.windowClosed(windowEvent);
 
-				cancelTask();
-			}
-		});
+                cancelTask();
+            }
+        });
 
-	}
+    }
 
-	private JButton getLogExportJButton() {
+    private JButton getLogExportButton() {
 
-		if (logExportJButton == null) {
-			logExportJButton = new JButton("Export as XML");
+        if (logExportButton == null) {
+            logExportButton = new JButton("Export as XML");
 
-			logExportJButton.addActionListener(new ActionListener() {
+            logExportButton.addActionListener(new ActionListener() {
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					performXMLExport();
-				}
-			});
-		}
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    performXMLExport();
+                }
+            });
+        }
 
-		return logExportJButton;
-	}
+        return logExportButton;
+    }
 
-	private JButton getLogExportCancelJButton() {
+    private JButton getLogExportCancelButton() {
 
-		if (logExportCancelJButton == null) {
-			logExportCancelJButton = new JButton("Cancel");
+        if (logExportCancelButton == null) {
+            logExportCancelButton = new JButton("Cancel");
 
-			logExportCancelJButton.setEnabled(false);
+            logExportCancelButton.setEnabled(false);
 
-			logExportCancelJButton.addActionListener(new ActionListener() {
+            logExportCancelButton.addActionListener(new ActionListener() {
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
 
-					cancelTask();
-				}
-			});
-		}
+                    cancelTask();
+                }
+            });
+        }
 
-		return logExportCancelJButton;
-	}
+        return logExportCancelButton;
+    }
 
-	private JProgressBar getLogExportJProgressBar() {
+    private JProgressBar getLogExportProgressBar() {
 
-		if (logExportJProgressBar == null) {
+        if (logExportProgressBar == null) {
 
-			logExportJProgressBar = new JProgressBar(0, 100);
-			logExportJProgressBar.setValue(0);
-			logExportJProgressBar.setStringPainted(true);
+            logExportProgressBar = new JProgressBar(0, 100);
+            logExportProgressBar.setValue(0);
+            logExportProgressBar.setStringPainted(true);
+        }
 
-			Dimension dim = new Dimension(Integer.MAX_VALUE, 17);
-			logExportJProgressBar.setPreferredSize(dim);
-			logExportJProgressBar.setMinimumSize(dim);
+        return logExportProgressBar;
+    }
 
-			logExportJProgressBar.setEnabled(false);
-			logExportJProgressBar.setVisible(false);
-		}
+    private JFileChooser getFileChooser() {
 
-		return logExportJProgressBar;
-	}
+        if (fileChooser == null) {
 
-	private JFileChooser getFileChooser() {
+            String fileName = getDefaultXMLFileName();
 
-		if (fileChooser == null) {
+            File currentDirectory = logFile.getParentFile();
 
-			String fileName = getDefaultXMLFileName();
+            File proposedFile = new File(currentDirectory, fileName);
 
-			File currentDirectory = logFile.getParentFile();
+            fileChooser = new JFileChooser(currentDirectory);
 
-			File proposedFile = new File(currentDirectory, fileName);
+            fileChooser.setDialogTitle("Save XML(.xml) File");
+            fileChooser.setSelectedFile(proposedFile);
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
-			fileChooser = new JFileChooser(currentDirectory);
+            FileNameExtensionFilter filter = new FileNameExtensionFilter("XML Format", "xml");
 
-			fileChooser.setDialogTitle("Save XML(.xml) File");
-			fileChooser.setSelectedFile(proposedFile);
-			fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            fileChooser.setFileFilter(filter);
+        }
 
-			FileNameExtensionFilter filter = new FileNameExtensionFilter("XML Format", "xml");
+        return fileChooser;
+    }
 
-			fileChooser.setFileFilter(filter);
-		}
+    private ClickableFilePathPanel getClickableFilePathPanel() {
 
-		return fileChooser;
-	}
+        if (clickableFilePathPanel == null) {
+            clickableFilePathPanel = new ClickableFilePathPanel(true);
+        }
 
-	private ClickableFilePathPanel getClickableFilePathPanel() {
+        return clickableFilePathPanel;
+    }
 
-		if (clickableFilePathPanel == null) {
-			clickableFilePathPanel = new ClickableFilePathPanel(true);
-		}
+    private JLabel getLogExportLabel() {
 
-		return clickableFilePathPanel;
-	}
+        if (logExportLabel == null) {
+            logExportLabel = new JLabel(" ");
+        }
 
-	private JLabel getLogExportJLabel() {
+        return logExportLabel;
+    }
 
-		if (logExportJLabel == null) {
+    private JPanel getMainPanel() {
 
-			logExportJLabel = new JLabel();
+        JPanel mainPanel = new JPanel();
 
-			Dimension dim = new Dimension(Integer.MAX_VALUE, 20);
-			logExportJLabel.setPreferredSize(dim);
-			logExportJLabel.setMinimumSize(dim);
+        mainPanel.setLayout(new GridBagLayout());
 
-			logExportJLabel.setAlignmentX(CENTER_ALIGNMENT);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(10, 5, 10, 5);
 
-			// logExportJLabel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY,
-			// 1));
-		}
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 0.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(5, 5, 5, 5);
 
-		return logExportJLabel;
-	}
+        GridBagConstraints gbc3 = new GridBagConstraints();
+        gbc3.gridx = 0;
+        gbc3.gridy = 2;
+        gbc3.weightx = 1.0D;
+        gbc3.weighty = 0.0D;
+        gbc3.fill = GridBagConstraints.BOTH;
+        gbc3.anchor = GridBagConstraints.NORTHWEST;
+        gbc3.insets = new Insets(5, 5, 5, 5);
 
-	private JPanel getMainJPanel() {
+        GridBagConstraints gbc4 = new GridBagConstraints();
+        gbc4.gridx = 0;
+        gbc4.gridy = 3;
+        gbc4.weightx = 1.0D;
+        gbc4.weighty = 0.0D;
+        gbc4.fill = GridBagConstraints.BOTH;
+        gbc4.anchor = GridBagConstraints.NORTHWEST;
+        gbc4.insets = new Insets(10, 5, 10, 5);
 
-		JPanel mainJPanel = new JPanel();
+        JPanel buttonsPanel = getButtonsPanel();
+        JProgressBar logExportJProgressBar = getLogExportProgressBar();
+        ClickableFilePathPanel clickableFilePathPanel = getClickableFilePathPanel();
+        JLabel logExportJLabel = getLogExportLabel();
 
-		mainJPanel.setLayout(new GridBagLayout());
+        mainPanel.add(buttonsPanel, gbc1);
+        mainPanel.add(logExportJProgressBar, gbc2);
+        mainPanel.add(clickableFilePathPanel, gbc3);
+        mainPanel.add(logExportJLabel, gbc4);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(10, 50, 5, 50);
+        return mainPanel;
+    }
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 1;
-		gbc2.gridy = 0;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 0.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(10, 50, 5, 50);
+    private JPanel getButtonsPanel() {
 
-		GridBagConstraints gbc3 = new GridBagConstraints();
-		gbc3.gridx = 0;
-		gbc3.gridy = 1;
-		gbc3.weightx = 1.0D;
-		gbc3.weighty = 1.0D;
-		gbc3.fill = GridBagConstraints.BOTH;
-		gbc3.anchor = GridBagConstraints.NORTHWEST;
-		gbc3.insets = new Insets(5, 10, 5, 10);
-		gbc3.gridwidth = GridBagConstraints.REMAINDER;
+        JPanel buttonsPanel = new JPanel();
 
-		GridBagConstraints gbc4 = new GridBagConstraints();
-		gbc4.gridx = 0;
-		gbc4.gridy = 2;
-		gbc4.weightx = 1.0D;
-		gbc4.weighty = 1.0D;
-		gbc4.fill = GridBagConstraints.BOTH;
-		gbc4.anchor = GridBagConstraints.NORTHWEST;
-		gbc4.insets = new Insets(5, 10, 5, 10);
-		gbc4.gridwidth = GridBagConstraints.REMAINDER;
+        LayoutManager layout = new BoxLayout(buttonsPanel, BoxLayout.X_AXIS);
+        buttonsPanel.setLayout(layout);
 
-		GridBagConstraints gbc5 = new GridBagConstraints();
-		gbc5.gridx = 0;
-		gbc5.gridy = 3;
-		gbc5.weightx = 1.0D;
-		gbc5.weighty = 1.0D;
-		gbc5.fill = GridBagConstraints.BOTH;
-		gbc5.anchor = GridBagConstraints.NORTHWEST;
-		gbc5.insets = new Insets(5, 10, 10, 10);
-		gbc5.gridwidth = GridBagConstraints.REMAINDER;
+        JButton logExportButton = getLogExportButton();
+        JButton logExporCancelJButton = getLogExportCancelButton();
 
-		JButton logExportJButton = getLogExportJButton();
-		JButton logExportCancelJButton = getLogExportCancelJButton();
-		JPanel progressBarJPanel = getProgressBarJPanel();
-		ClickableFilePathPanel clickableFilePathPanel = getClickableFilePathPanel();
-		JLabel logExportJLabel = getLogExportJLabel();
+        Dimension dim = new Dimension(40, 40);
+        buttonsPanel.add(Box.createHorizontalGlue());
+        buttonsPanel.add(Box.createRigidArea(dim));
+        buttonsPanel.add(logExportButton);
+        buttonsPanel.add(Box.createRigidArea(dim));
+        buttonsPanel.add(logExporCancelJButton);
+        buttonsPanel.add(Box.createRigidArea(dim));
+        buttonsPanel.add(Box.createHorizontalGlue());
 
-		mainJPanel.add(logExportJButton, gbc1);
-		mainJPanel.add(logExportCancelJButton, gbc2);
-		mainJPanel.add(progressBarJPanel, gbc3);
-		mainJPanel.add(clickableFilePathPanel, gbc4);
-		mainJPanel.add(logExportJLabel, gbc5);
+        return buttonsPanel;
+    }
 
-		return mainJPanel;
-	}
+    protected void performXMLExport() {
 
-	private JPanel getProgressBarJPanel() {
+        JFileChooser fileChooser = getFileChooser();
 
-		JPanel progressBarJPanel = new JPanel();
-		progressBarJPanel.setLayout(new BorderLayout());
+        int returnValue = fileChooser.showSaveDialog(this);
 
-		Dimension dim = new Dimension(Integer.MAX_VALUE, 25);
-		progressBarJPanel.setPreferredSize(dim);
-		progressBarJPanel.setMinimumSize(dim);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
 
-		JProgressBar logExportJProgressBar = getLogExportJProgressBar();
+            File exportFile = fileChooser.getSelectedFile();
 
-		progressBarJPanel.add(logExportJProgressBar, BorderLayout.CENTER);
+            returnValue = JOptionPane.YES_OPTION;
 
-		return progressBarJPanel;
-	}
+            if (exportFile.exists()) {
 
-	protected void performXMLExport() {
+                returnValue = JOptionPane.showConfirmDialog(this,
+                        "Replace existing file '" + exportFile.getAbsolutePath() + "' ?", "File Exists",
+                        JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            }
 
-		JFileChooser fileChooser = getFileChooser();
+            if (returnValue == JOptionPane.YES_OPTION) {
 
-		int returnValue = fileChooser.showSaveDialog(this);
+                populateGeneratedXMLPath(null);
 
-		if (returnValue == JFileChooser.APPROVE_OPTION) {
+                JButton logExportJButton = getLogExportButton();
+                logExportJButton.setEnabled(false);
 
-			File exportFile = fileChooser.getSelectedFile();
+                JButton logExportCancelJButton = getLogExportCancelButton();
+                logExportCancelJButton.setEnabled(true);
 
-			returnValue = JOptionPane.YES_OPTION;
+                JProgressBar logExportJProgressBar = getLogExportProgressBar();
+                logExportJProgressBar.setEnabled(true);
+                logExportJProgressBar.setVisible(true);
 
-			if (exportFile.exists()) {
+                final int rowCount = logTableModel.getLogEntryModel().getTotalRowCount();
 
-				returnValue = JOptionPane.showConfirmDialog(this, "Replace Existing File?", "File Exists",
-						JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-			}
+                logXMLExportTask = new LogXMLExportTask(logTableModel, exportFile) {
 
-			if (returnValue == JOptionPane.YES_OPTION) {
+                    @Override
+                    protected void process(List<Integer> chunks) {
 
-				populateGeneratedXMLPath(null);
+                        if ((isCancelled()) || (chunks == null) || (chunks.size() == 0)) {
+                            return;
+                        }
 
-				JButton logExportJButton = getLogExportJButton();
-				logExportJButton.setEnabled(false);
+                        Collections.sort(chunks);
 
-				JButton logExportCancelJButton = getLogExportCancelJButton();
-				logExportCancelJButton.setEnabled(true);
+                        int row = chunks.get(chunks.size() - 1);
 
-				JProgressBar logExportJProgressBar = getLogExportJProgressBar();
-				logExportJProgressBar.setEnabled(true);
-				logExportJProgressBar.setVisible(true);
+                        int progress = (int) ((row * 100) / rowCount);
 
-				final int rowCount = logTableModel.getLogEntryModel().getTotalRowCount();
+                        JProgressBar logExportJProgressBar = getLogExportProgressBar();
+                        logExportJProgressBar.setValue(progress);
 
-				logXMLExportTask = new LogXMLExportTask(logTableModel, exportFile) {
+                        String message = String.format("Exported %d log entries (%d%%)", row, progress);
 
-					@Override
-					protected void process(List<Integer> chunks) {
+                        JLabel logExportJLabel = getLogExportLabel();
 
-						if ((isCancelled()) || (chunks == null) || (chunks.size() == 0)) {
-							return;
-						}
+                        logExportJLabel.setText(message);
+                    }
 
-						Collections.sort(chunks);
+                    @Override
+                    protected void done() {
+                        try {
+                            get();
 
-						int row = chunks.get(chunks.size() - 1);
+                            String message = String.format("Exported %d log entries (%d%%)", rowCount, 100);
+                            JLabel logExportJLabel = getLogExportLabel();
+                            logExportJLabel.setText(message);
 
-						int progress = (int) ((row * 100) / rowCount);
+                        } catch (CancellationException ce) {
+                            JLabel logExportJLabel = getLogExportLabel();
+                            logExportJLabel.setText("Export cancelled.");
+                            LOG.error("LogXMLExportTask cancelled.", ce);
+                        } catch (Exception e) {
+                            LOG.error("Error in LogXMLExportTask.", e);
+                        } finally {
 
-						JProgressBar logExportJProgressBar = getLogExportJProgressBar();
-						logExportJProgressBar.setValue(progress);
+                            populateGeneratedXMLPath(exportFile);
 
-						String message = String.format("Exported %d log entries (%d%%)", row, progress);
+                            JButton logExportJButton = getLogExportButton();
+                            logExportJButton.setEnabled(true);
 
-						JLabel logExportJLabel = getLogExportJLabel();
+                            JButton logExportCancelJButton = getLogExportCancelButton();
+                            logExportCancelJButton.setEnabled(false);
 
-						logExportJLabel.setText(message);
-					}
+                            JProgressBar logExportJProgressBar = getLogExportProgressBar();
+                            logExportJProgressBar.setEnabled(false);
+                        }
+                    }
+                };
 
-					@Override
-					protected void done() {
-						try {
-							get();
+                logXMLExportTask.execute();
 
-							String message = String.format("Exported %d log entries (%d%%)", rowCount, 100);
-							JLabel logExportJLabel = getLogExportJLabel();
-							logExportJLabel.setText(message);
+            } else {
 
-						} catch (CancellationException ce) {
-							JLabel logExportJLabel = getLogExportJLabel();
-							logExportJLabel.setText("Export cancelled.");
-							LOG.error("LogXMLExportTask cancelled.", ce);
-						} catch (Exception e) {
-							LOG.error("Error in LogXMLExportTask.", e);
-						} finally {
+                JLabel logExportJLabel = getLogExportLabel();
+                logExportJLabel.setText("Export cancelled.");
 
-							populateGeneratedXMLPath(exportFile);
+                JProgressBar logExportJProgressBar = getLogExportProgressBar();
+                logExportJProgressBar.setEnabled(false);
+                logExportJProgressBar.setVisible(false);
+            }
+        } else {
 
-							JButton logExportJButton = getLogExportJButton();
-							logExportJButton.setEnabled(true);
+            JLabel logExportJLabel = getLogExportLabel();
+            logExportJLabel.setText("Export cancelled.");
 
-							JButton logExportCancelJButton = getLogExportCancelJButton();
-							logExportCancelJButton.setEnabled(false);
+            JProgressBar logExportJProgressBar = getLogExportProgressBar();
+            logExportJProgressBar.setEnabled(false);
+            logExportJProgressBar.setVisible(false);
+        }
+    }
 
-							JProgressBar logExportJProgressBar = getLogExportJProgressBar();
-							logExportJProgressBar.setEnabled(false);
-						}
-					}
-				};
+    private void populateGeneratedXMLPath(File xmlFile) {
 
-				logXMLExportTask.execute();
+        ClickableFilePathPanel clickableFilePathPanel = getClickableFilePathPanel();
 
-			} else {
+        clickableFilePathPanel.setFile(xmlFile);
+    }
 
-				JLabel logExportJLabel = getLogExportJLabel();
-				logExportJLabel.setText("Export cancelled.");
+    private String getDefaultXMLFileName() {
 
-				JProgressBar logExportJProgressBar = getLogExportJProgressBar();
-				logExportJProgressBar.setEnabled(false);
-				logExportJProgressBar.setVisible(false);
-			}
-		} else {
+        String fileName = FileUtilities.getNameWithoutExtension(logFile);
 
-			JLabel logExportJLabel = getLogExportJLabel();
-			logExportJLabel.setText("Export cancelled.");
+        StringBuilder sb = new StringBuilder();
+        sb.append(fileName);
+        sb.append(".xml");
 
-			JProgressBar logExportJProgressBar = getLogExportJProgressBar();
-			logExportJProgressBar.setEnabled(false);
-			logExportJProgressBar.setVisible(false);
-		}
-	}
+        String defaultXMLFileName = sb.toString();
 
-	private void populateGeneratedXMLPath(File xmlFile) {
+        return defaultXMLFileName;
+    }
 
-		ClickableFilePathPanel clickableFilePathPanel = getClickableFilePathPanel();
+    private void cancelTask() {
 
-		clickableFilePathPanel.setFile(xmlFile);
-	}
-
-	private String getDefaultXMLFileName() {
-
-		String fileName = FileUtilities.getNameWithoutExtension(logFile);
-
-		// String outputFile =
-		// filename.concat("-").concat(line).concat(".html");
-		StringBuffer sb = new StringBuffer();
-		sb.append(fileName);
-		sb.append(".xml");
-
-		String defaultXMLFileName = sb.toString();
-
-		return defaultXMLFileName;
-	}
-
-	private void cancelTask() {
-
-		if ((logXMLExportTask != null) && ((!logXMLExportTask.isCancelled()) || (!logXMLExportTask.isDone()))) {
-			logXMLExportTask.cancel(true);
-		}
-	}
+        if ((logXMLExportTask != null) && ((!logXMLExportTask.isCancelled()) || (!logXMLExportTask.isDone()))) {
+            logXMLExportTask.cancel(true);
+        }
+    }
 }

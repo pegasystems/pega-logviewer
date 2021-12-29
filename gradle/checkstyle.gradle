@@ -1,0 +1,14 @@
+apply plugin: 'checkstyle'
+
+checkstyle {
+    toolVersion = '8.14'
+    configFile = rootProject.file("gradle/config/checkstyle/checkstyle.xml")
+    configDir = rootProject.file("gradle/config/checkstyle")
+}
+
+tasks.withType(Checkstyle) {
+    reports {
+        xml.enabled false
+        html.enabled true
+    }
+}

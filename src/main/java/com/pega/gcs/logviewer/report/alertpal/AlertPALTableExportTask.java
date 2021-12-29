@@ -4,9 +4,11 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alertpal;
 
 import java.io.File;
+import java.nio.charset.Charset;
 
 import javax.swing.SwingWorker;
 
@@ -16,92 +18,102 @@ import com.pega.gcs.logviewer.model.AlertLogEntry;
 
 public class AlertPALTableExportTask extends SwingWorker<Void, Integer> {
 
-	private AlertPALTableModel alertPALTableModel;
-	private File tsvFile;
+    private AlertPALTableModel alertPALTableModel;
+    private File tsvFile;
 
-	public AlertPALTableExportTask(AlertPALTableModel alertPALTableModel, File tsvFile) {
+    public AlertPALTableExportTask(AlertPALTableModel alertPALTableModel, File tsvFile) {
 
-		this.alertPALTableModel = alertPALTableModel;
-		this.tsvFile = tsvFile;
-	}
+        this.alertPALTableModel = alertPALTableModel;
+        this.tsvFile = tsvFile;
+    }
 
-	@Override
-	protected Void doInBackground() throws Exception {
+    @Override
+    protected Void doInBackground() throws Exception {
 
-		int rowCount = alertPALTableModel.getRowCount();
-		int colCount = alertPALTableModel.getColumnCount();
+        int rowCount = alertPALTableModel.getRowCount();
+        int colCount = alertPALTableModel.getColumnCount();
 
-		int batchSize = 50;
-		int row = 0;
+        int batchSize = 4194304; // 4096KB
+        StringBuilder outputStrBatch = new StringBuilder();
+        boolean append = false;
+        Charset charset = alertPALTableModel.getCharset();
 
-		publish(row);
+        int row = 0;
 
-		StringBuffer dataRecordBuffer = new StringBuffer();
-		boolean firstColumn = true;
+        publish(row);
 
-		// write headers
-		for (int col = 0; col < colCount; col++) {
+        // StringBuilder dataRecordBuffer = new StringBuilder();
+        boolean firstColumn = true;
 
-			String columnName = alertPALTableModel.getColumnName(col);
+        // write headers
+        for (int col = 0; col < colCount; col++) {
 
-			if (firstColumn) {
-				firstColumn = false;
-			} else {
-				dataRecordBuffer.append("\t");
-			}
+            String columnName = alertPALTableModel.getColumnName(col);
 
-			dataRecordBuffer.append(columnName);
-		}
+            if (firstColumn) {
+                firstColumn = false;
+            } else {
+                outputStrBatch.append("\t");
+            }
 
-		dataRecordBuffer.append(System.getProperty("line.separator"));
+            outputStrBatch.append(columnName);
+        }
 
-		String dataRecord = dataRecordBuffer.toString();
+        outputStrBatch.append(System.getProperty("line.separator"));
 
-		FileUtils.writeStringToFile(tsvFile, dataRecord, alertPALTableModel.getCharset());
+        for (row = 0; row < rowCount; row++) {
 
-		dataRecordBuffer = new StringBuffer();
+            if (!isCancelled()) {
 
-		for (row = 0; row < rowCount; row++) {
+                firstColumn = true;
 
-			if (!isCancelled()) {
+                AlertLogEntry alertLogEntry = (AlertLogEntry) alertPALTableModel.getValueAt(row, 0);
 
-				firstColumn = true;
+                for (int col = 0; col < colCount; col++) {
 
-				AlertLogEntry alertLogEntry = (AlertLogEntry) alertPALTableModel.getValueAt(row, 0);
+                    String columnValue = alertPALTableModel.getColumnValue(alertLogEntry, col);
 
-				for (int col = 0; col < colCount; col++) {
+                    if (firstColumn) {
+                        firstColumn = false;
+                    } else {
+                        outputStrBatch.append("\t");
+                    }
 
-					String columnValue = alertPALTableModel.getColumnValueFromModel(alertLogEntry, col);
+                    if (columnValue != null) {
+                        outputStrBatch.append(columnValue);
+                    }
+                }
 
-					if (firstColumn) {
-						firstColumn = false;
-					} else {
-						dataRecordBuffer.append("\t");
-					}
+                outputStrBatch.append(System.getProperty("line.separator"));
 
-					if (columnValue != null) {
-						dataRecordBuffer.append(columnValue);
-					}
-				}
+                int accumulatedSize = outputStrBatch.length();
 
-				dataRecordBuffer.append(System.getProperty("line.separator"));
+                if (accumulatedSize > batchSize) {
 
-				if (row == batchSize) {
-					dataRecord = dataRecordBuffer.toString();
-					FileUtils.writeStringToFile(tsvFile, dataRecord, alertPALTableModel.getCharset(), true);
-					dataRecordBuffer = new StringBuffer();
-					publish(row);
-				}
-			}
-		}
+                    FileUtils.writeStringToFile(tsvFile, outputStrBatch.toString(), charset, append);
 
-		if (!isCancelled()) {
-			dataRecord = dataRecordBuffer.toString();
-			FileUtils.writeStringToFile(tsvFile, dataRecord, alertPALTableModel.getCharset(), true);
+                    outputStrBatch = new StringBuilder();
 
-			publish(row);
-		}
+                    if (!append) {
+                        append = true;
+                    }
 
-		return null;
-	}
+                    publish(row);
+                }
+            }
+        }
+
+        if (!isCancelled()) {
+
+            int accumulatedSize = outputStrBatch.length();
+
+            if (accumulatedSize > 0) {
+                FileUtils.writeStringToFile(tsvFile, outputStrBatch.toString(), charset, append);
+            }
+
+            publish(row);
+        }
+
+        return null;
+    }
 }

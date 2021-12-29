@@ -4,10 +4,14 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.parser;
 
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -20,290 +24,343 @@ import com.pega.gcs.fringecommon.utilities.DateTimeUtilities;
 import com.pega.gcs.logviewer.logfile.LogFileType;
 import com.pega.gcs.logviewer.logfile.LogFileType.LogType;
 import com.pega.gcs.logviewer.logfile.LogPattern;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 
 public abstract class LogParser {
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(LogParser.class);
-
-	private LogFileType logFileType;
-
-	private DateFormat dateFormat;
-
-	private Locale locale;
-
-	public abstract void parse(String line);
-
-	public abstract void parseFinal();
-
-	public abstract LogEntryModel getLogEntryModel();
-
-	private AtomicInteger processedCount;
-
-	private boolean resetProcessedCount;
-
-	public LogParser(LogFileType logFileType, Locale locale) {
-		this.dateFormat = null;
-		this.logFileType = logFileType;
-		this.locale = locale;
-		this.processedCount = new AtomicInteger(0);
-		this.resetProcessedCount = false;
-	}
-
-	public LogFileType getLogFileType() {
-		return logFileType;
-	}
-
-	/**
-	 * @return the dateFormat
-	 */
-	public DateFormat getDateFormat() {
-		return dateFormat;
-	}
+    private static final Log4j2Helper LOG = new Log4j2Helper(LogParser.class);
 
-	/**
-	 * @param dateFormat
-	 *            the dateFormat to set
-	 */
-	protected void setDateFormat(DateFormat dateFormat) {
-		this.dateFormat = dateFormat;
-	}
+    private LogFileType logFileType;
 
-	public Locale getLocale() {
-		return locale;
-	}
+    private Charset charset;
 
-	public void setLocale(Locale locale) {
-		this.locale = locale;
-	}
-
-	protected String quoteTimeStampChars(String input) {
-		// put single quotes around text that isn't a supported dateformat char
-		StringBuffer result = new StringBuffer();
-		// ok to default to false because we also check for index zero below
-		boolean lastCharIsDateFormat = false;
-
-		for (int i = 0; i < input.length(); i++) {
-
-			String thisVal = input.substring(i, i + 1);
-			boolean thisCharIsDateFormat = DateTimeUtilities.VALID_DATEFORMAT_CHARS.contains(thisVal);
-			// we have encountered a non-dateformat char
-			if (!thisCharIsDateFormat && (i == 0 || lastCharIsDateFormat)) {
-				result.append("'");
-			}
-			// we have encountered a dateformat char after previously
-			// encountering a non-dateformat char
-			if (thisCharIsDateFormat && i > 0 && !lastCharIsDateFormat) {
-				result.append("'");
-			}
-			lastCharIsDateFormat = thisCharIsDateFormat;
-			result.append(thisVal);
-		}
-		// append an end single-quote if we ended with non-dateformat char
-		if (!lastCharIsDateFormat) {
-			result.append("'");
-		}
-		return result.toString();
-	}
-
-	protected String getTimeStampFormat(String log4jPattern) {
+    private Locale locale;
 
-		String timeStampFormat = null;
-		String timeZoneStr = null;
-
-		int index = log4jPattern.indexOf("%d");
-
-		if (index != -1) {
-
-			index = log4jPattern.indexOf("%d{");
+    private DateFormat dateFormat;
 
-			// use ISO8601 format
-			if (index == -1) {
-				timeStampFormat = DateTimeUtilities.DATEFORMAT_ISO8601;
-			} else {
-				// identify format
-				int formatIndex = log4jPattern.substring(index).indexOf("}");
+    public abstract void parse(String line);
 
-				timeStampFormat = log4jPattern.substring(index + "%d{".length(), index + formatIndex);
+    public abstract void parseFinalInternal();
 
-				if (timeStampFormat.equals("ABSOLUTE")) {
-					timeStampFormat = DateTimeUtilities.DATEFORMAT_ABSOLUTE;
-				} else if ("".equals(timeStampFormat) || timeStampFormat.equals("ISO8601")) {
-					timeStampFormat = DateTimeUtilities.DATEFORMAT_ISO8601;
-				} else if (timeStampFormat.equals("DATE")) {
-					timeStampFormat = DateTimeUtilities.DATEFORMAT_DATE;
-				}
+    public abstract LogEntryModel getLogEntryModel();
 
-				// identify time zone-Optional
-				// if the adjoining character is a curly brace
-				int tzIndex = log4jPattern.substring(index + formatIndex + 1).indexOf("{");
+    private AtomicInteger processedCount;
 
-				if (tzIndex == 0) {
-					tzIndex = index + formatIndex + 1;
-					timeZoneStr = log4jPattern.substring(tzIndex + "{".length(), log4jPattern.indexOf("}", tzIndex));
-					timeStampFormat = timeStampFormat + " z";
-				}
-			}
+    private boolean resetProcessedCount;
 
-			String quoteTimeStamp = quoteTimeStampChars(timeStampFormat);
+    public LogParser(LogFileType logFileType, Charset charset, Locale locale) {
+        this.dateFormat = null;
+        this.logFileType = logFileType;
+        this.charset = charset;
+        this.locale = locale;
+        this.processedCount = new AtomicInteger(0);
+        this.resetProcessedCount = false;
+    }
 
-			LOG.info("Using Timestamp format: " + quoteTimeStamp);
+    public LogFileType getLogFileType() {
+        return logFileType;
+    }
 
-			DateFormat dateFormat = new SimpleDateFormat(quoteTimeStamp);
+    protected Charset getCharset() {
+        return charset;
+    }
 
-			if (timeZoneStr != null) {
+    protected Locale getLocale() {
+        return locale;
+    }
 
-				TimeZone tz = TimeZone.getTimeZone(timeZoneStr);
-				dateFormat.setTimeZone(tz);
-			}
+    public DateFormat getDateFormat() {
+        return dateFormat;
+    }
 
-			setDateFormat(dateFormat);
+    protected void setDateFormat(DateFormat dateFormat) {
+        this.dateFormat = dateFormat;
+    }
 
-		}
+    public void parseFinal() {
 
-		return timeStampFormat;
-	}
+        parseFinalInternal();
 
-	protected String escapeRegexChars(String input) {
-		String escapedStr = input;
+        resetProcessedCount();
 
-		escapedStr = escapedStr.replaceAll("\\\\", "\\\\\\");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("*"), "\\\\*");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("]"), "\\\\]");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("["), "\\\\[");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("^"), "\\\\^");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("$"), "\\\\$");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("."), "\\\\.");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("|"), "\\\\|");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("?"), "\\\\?");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("+"), "\\\\+");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("("), "\\\\(");
-		escapedStr = escapedStr.replaceAll(Pattern.quote(")"), "\\\\)");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("-"), "\\\\-");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("{"), "\\\\{");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("}"), "\\\\}");
-		escapedStr = escapedStr.replaceAll(Pattern.quote("#"), "\\\\#");
-		escapedStr = escapedStr.replaceAll(Pattern.quote(" "), "\\\\s");
+        // sort entries with timestamp.
+        LogEntryModel logEntryModel = getLogEntryModel();
+        List<LogEntryKey> logEntryKeyList = logEntryModel.getLogEntryKeyList();
 
-		return escapedStr;
-	}
+        Collections.sort(logEntryKeyList);
 
-	public static LogParser getLogParser(String filename, List<String> readLineList, Set<LogPattern> logPatternSet,
-			Locale locale, TimeZone displayTimezone) {
+        // moved from LogEntryModel.addLogEntry()
+        HashMap<LogEntryKey, Integer> keyIndexMap = logEntryModel.getKeyIndexMap();
 
-		LogParser logParser = null;
+        if (keyIndexMap != null) {
 
-		// check if an Alert log file
-		if (filename.toUpperCase().contains("ALERT")) {
+            keyIndexMap.clear();
 
-			LogFileType logFileType = new LogFileType(LogType.PEGA_ALERT, null);
+            for (int index = 0; index < logEntryKeyList.size(); index++) {
 
-			AlertLogParser alertLogParser = new AlertLogParser(logFileType, locale);
+                LogEntryKey key = logEntryKeyList.get(index);
 
-			for (String readLine : readLineList) {
-				alertLogParser.parse(readLine);
-			}
+                keyIndexMap.put(key, index);
+            }
+        }
+    }
 
-			LogEntryModel lem = alertLogParser.getLogEntryModel();
+    protected String quoteTimeStampChars(String input) {
+        // put single quotes around text that isn't a supported dateformat char
+        StringBuilder result = new StringBuilder();
+        // ok to default to false because we also check for index zero below
+        boolean lastCharIsDateFormat = false;
 
-			if (lem.getTotalRowCount() > 0) {
-				// success
-				LOG.info("creating AlertLogParser for " + filename);
-				logParser = alertLogParser;
-			}
-		}
+        for (int i = 0; i < input.length(); i++) {
 
-		// check if a PegaRules log file
-		if (logParser == null) {
+            String thisVal = input.substring(i, i + 1);
+            boolean thisCharIsDateFormat = DateTimeUtilities.VALID_DATEFORMAT_CHARS.contains(thisVal);
+            // we have encountered a non-dateformat char
+            if (!thisCharIsDateFormat && (i == 0 || lastCharIsDateFormat)) {
+                result.append("'");
+            }
+            // we have encountered a dateformat char after previously
+            // encountering a non-dateformat char
+            if (thisCharIsDateFormat && i > 0 && !lastCharIsDateFormat) {
+                result.append("'");
+            }
+            lastCharIsDateFormat = thisCharIsDateFormat;
+            result.append(thisVal);
+        }
+        // append an end single-quote if we ended with non-dateformat char
+        if (!lastCharIsDateFormat) {
+            result.append("'");
+        }
+        return result.toString();
+    }
 
-			for (LogPattern logPattern : logPatternSet) {
+    protected String getTimeStampFormat(String log4jPattern) {
 
-				LOG.info("Applying LogPattern: " + logPattern);
+        String timeStampFormat = null;
+        String timeZoneStr = null;
 
-				logParser = getLogParser(readLineList, logPattern, locale, displayTimezone);
+        int index = log4jPattern.indexOf("%d");
 
-				if (logParser != null) {
-					break;
-				}
-			}
-		}
+        if (index != -1) {
 
-		// TODO other log file types
+            index = log4jPattern.indexOf("%d{");
 
-		return logParser;
-	}
+            // use ISO8601 format
+            if (index == -1) {
+                timeStampFormat = DateTimeUtilities.DATEFORMAT_ISO8601;
+            } else {
+                // identify format
+                int formatIndex = log4jPattern.substring(index).indexOf("}");
 
-	// currently assuming all pattern as of type pegarules. change when
-	// implementing other types like WAS, WLS
-	public static LogParser getLogParser(List<String> readLineList, LogPattern logPattern, Locale locale,
-			TimeZone displayTimezone) {
+                timeStampFormat = log4jPattern.substring(index + "%d{".length(), index + formatIndex);
 
-		LogParser logParser = null;
+                if (timeStampFormat.equals("ABSOLUTE")) {
+                    timeStampFormat = DateTimeUtilities.DATEFORMAT_ABSOLUTE;
+                } else if ("".equals(timeStampFormat) || timeStampFormat.equals("ISO8601")) {
+                    timeStampFormat = DateTimeUtilities.DATEFORMAT_ISO8601;
+                } else if (timeStampFormat.equals("DATE")) {
+                    timeStampFormat = DateTimeUtilities.DATEFORMAT_DATE;
+                }
 
-		LOG.info("Trying log Pattern " + logPattern);
+                // identify time zone-Optional
+                // if the adjoining character is a curly brace
+                int tzIndex = log4jPattern.substring(index + formatIndex + 1).indexOf("{");
 
-		LogFileType logFileType = new LogFileType(LogType.PEGA_RULES, logPattern);
+                if (tzIndex == 0) {
+                    tzIndex = index + formatIndex + 1;
+                    timeZoneStr = log4jPattern.substring(tzIndex + "{".length(), log4jPattern.indexOf("}", tzIndex));
+                    timeStampFormat = timeStampFormat + " z";
+                }
+            }
 
-		Log4jPatternParser log4jPatternParser = new Log4jPatternParser(logFileType, locale, displayTimezone);
+            String quoteTimeStamp = quoteTimeStampChars(timeStampFormat);
 
-		for (String readLine : readLineList) {
-			log4jPatternParser.parse(readLine);
-		}
+            LOG.info("Using Timestamp format: " + quoteTimeStamp);
 
-		log4jPatternParser.parseFinal();
+            DateFormat dateFormat = new SimpleDateFormat(quoteTimeStamp);
 
-		LogEntryModel lem = log4jPatternParser.getLogEntryModel();
+            if (timeZoneStr != null) {
 
-		if (lem.getTotalRowCount() > 0) {
-			// success
-			LOG.info("Creating Log4jPatternParser using " + logPattern);
-			logParser = log4jPatternParser;
-		}
+                TimeZone tz = TimeZone.getTimeZone(timeZoneStr);
+                dateFormat.setTimeZone(tz);
+            }
 
-		return logParser;
-	}
+            setDateFormat(dateFormat);
 
-	public static LogParser getLogParser(LogFileType logFileType, Locale locale, TimeZone displayTimezone) {
-		LogParser logParser = null;
+        }
 
-		LogType logType = logFileType.getLogType();
+        return timeStampFormat;
+    }
 
-		switch (logType) {
+    protected String escapeRegexChars(String input) {
+        String escapedStr = input;
 
-		case PEGA_ALERT:
-			logParser = new AlertLogParser(logFileType, locale);
-			break;
-		case PEGA_RULES:
-			logParser = new Log4jPatternParser(logFileType, locale, displayTimezone);
-			// TODO implement other types as well
-		case JBOSS:
-			break;
-		case WAS:
-			break;
-		case WLS:
-			break;
-		default:
-			break;
-		}
+        escapedStr = escapedStr.replaceAll("\\\\", "\\\\\\");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("*"), "\\\\*");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("]"), "\\\\]");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("["), "\\\\[");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("^"), "\\\\^");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("$"), "\\\\$");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("."), "\\\\.");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("|"), "\\\\|");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("?"), "\\\\?");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("+"), "\\\\+");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("("), "\\\\(");
+        escapedStr = escapedStr.replaceAll(Pattern.quote(")"), "\\\\)");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("-"), "\\\\-");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("{"), "\\\\{");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("}"), "\\\\}");
+        escapedStr = escapedStr.replaceAll(Pattern.quote("#"), "\\\\#");
+        escapedStr = escapedStr.replaceAll(Pattern.quote(" "), "\\\\s");
 
-		return logParser;
-	}
+        return escapedStr;
+    }
 
-	protected int incrementAndGetProcessedCount() {
+    public static LogParser getLogParser(String filename, List<String> readLineList,
+            Set<LogPattern> pegaRulesLog4jPatternSet, Set<LogPattern> pegaClusterLog4jPatternSet, Charset charset,
+            Locale locale, TimeZone displayTimezone) {
 
-		if (resetProcessedCount) {
-			processedCount.set(0);
-			resetProcessedCount = false;
-		}
+        LogParser logParser = null;
 
-		return processedCount.incrementAndGet();
-	}
+        // check if an Alert log file
+        if (filename.toUpperCase().contains("ALERT")) {
 
-	protected void resetProcessedCount() {
-		resetProcessedCount = true;
-	}
+            LogFileType logFileType = new LogFileType(LogType.PEGA_ALERT, null);
 
-	public int getProcessedCount() {
-		return processedCount.get();
-	}
+            AlertLogParser alertLogParser = new AlertLogParser(logFileType, charset, locale);
+
+            for (String readLine : readLineList) {
+                alertLogParser.parse(readLine);
+            }
+
+            alertLogParser.parseFinal();
+
+            LogEntryModel lem = alertLogParser.getLogEntryModel();
+
+            if (lem.getTotalRowCount() > 0) {
+                // success
+                LOG.info("creating AlertLogParser for " + filename);
+                logParser = alertLogParser;
+            }
+        } else if ((filename.toUpperCase().contains("CLUSTER")) || (filename.toUpperCase().contains("HAZELCAST"))
+                || (filename.toUpperCase().contains("BIX"))) {
+            logParser = getLogParser(readLineList, pegaClusterLog4jPatternSet, charset, locale, displayTimezone);
+        }
+
+        // check if a PegaRules log file
+        if (logParser == null) {
+            logParser = getLogParser(readLineList, pegaRulesLog4jPatternSet, charset, locale, displayTimezone);
+        }
+
+        // TODO other log file types
+
+        return logParser;
+    }
+
+    // currently assuming all pattern as of type pegarules. change when
+    // implementing other types like WAS, WLS
+    // with 8.6 changes, multiple patterns are now matching , hence selecting a pattern that returns the max nos of rows.
+    public static LogParser getLogParser(List<String> readLineList, Set<LogPattern> logPatternSet, Charset charset,
+            Locale locale, TimeZone displayTimezone) {
+
+        LogParser logParser = null;
+
+        for (LogPattern logPattern : logPatternSet) {
+
+            LogParser log4jPatternParser = getLogParser(readLineList, logPattern, charset, locale, displayTimezone);
+
+            int log4jPatternParserRowCount = (log4jPatternParser != null)
+                    ? log4jPatternParser.getLogEntryModel().getTotalRowCount()
+                    : 0;
+
+            int logParserRowCount = (logParser != null) ? logParser.getLogEntryModel().getTotalRowCount() : 0;
+
+            if (log4jPatternParserRowCount > logParserRowCount) {
+                logParser = log4jPatternParser;
+            }
+        }
+
+        if (logParser != null) {
+            // success
+            LogEntryModel lem = logParser.getLogEntryModel();
+            int logParserRowCount = lem.getTotalRowCount();
+
+            LOG.info("Creating Log4jPatternParser: *rowCount: " + logParserRowCount + " Type: "
+                    + logParser.getLogFileType());
+        }
+
+        return logParser;
+    }
+
+    // currently assuming all pattern as of type pegarules. change when
+    // implementing other types like WAS, WLS
+    public static LogParser getLogParser(List<String> readLineList, LogPattern logPattern, Charset charset,
+            Locale locale, TimeZone displayTimezone) {
+
+        LogParser logParser = null;
+
+        LOG.info("Trying log Pattern " + logPattern);
+
+        LogFileType logFileType = new LogFileType(LogType.PEGA_RULES, logPattern);
+
+        Log4jPatternParser log4jPatternParser = new Log4jPatternParser(logFileType, charset, locale, displayTimezone);
+
+        for (String readLine : readLineList) {
+            log4jPatternParser.parse(readLine);
+        }
+
+        log4jPatternParser.parseFinal();
+
+        LogEntryModel lem = log4jPatternParser.getLogEntryModel();
+
+        if (lem.getTotalRowCount() > 0) {
+            // success
+            LOG.info("Creating Log4jPatternParser using " + logPattern);
+            logParser = log4jPatternParser;
+        }
+
+        return logParser;
+    }
+
+    public static LogParser getLogParser(LogFileType logFileType, Charset charset, Locale locale,
+            TimeZone displayTimezone) {
+
+        LogParser logParser = null;
+
+        LogType logType = logFileType.getLogType();
+
+        // TODO implement other types as well
+        switch (logType) {
+
+        case PEGA_ALERT:
+            logParser = new AlertLogParser(logFileType, charset, locale);
+            break;
+        case PEGA_RULES:
+            logParser = new Log4jPatternParser(logFileType, charset, locale, displayTimezone);
+            break;
+        default:
+            break;
+        }
+
+        return logParser;
+    }
+
+    protected int incrementAndGetProcessedCount() {
+
+        if (resetProcessedCount) {
+            processedCount.set(0);
+            resetProcessedCount = false;
+        }
+
+        return processedCount.incrementAndGet();
+    }
+
+    protected void resetProcessedCount() {
+        resetProcessedCount = true;
+    }
+
+    public int getProcessedCount() {
+        return processedCount.get();
+    }
 }

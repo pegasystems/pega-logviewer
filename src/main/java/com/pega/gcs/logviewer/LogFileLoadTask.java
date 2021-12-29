@@ -4,13 +4,14 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.Component;
 import java.io.File;
-import java.text.DateFormat;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -36,576 +37,579 @@ import com.pega.gcs.fringecommon.guiutilities.ModalProgressMonitor;
 import com.pega.gcs.fringecommon.guiutilities.ReadCounterTaskInfo;
 import com.pega.gcs.fringecommon.guiutilities.RecentFile;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
 import com.pega.gcs.fringecommon.utilities.KnuthMorrisPrattAlgorithm;
 import com.pega.gcs.logviewer.logfile.LogFileType;
 import com.pega.gcs.logviewer.logfile.LogPattern;
 import com.pega.gcs.logviewer.model.LogEntryModel;
+import com.pega.gcs.logviewer.model.LogViewerSetting;
 import com.pega.gcs.logviewer.parser.LogParser;
 
 /**
- * show progress monitor at the beginning for the first load, in case of tail,
- * for subsequent load, only update the progressbar.
+ * Show progress monitor at the beginning for the first load, in case of tail, for subsequent load, only update the progressbar.
  */
 public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo> {
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(LogFileLoadTask.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(LogFileLoadTask.class);
 
-	private Component parent;
+    private Component parent;
 
-	private ModalProgressMonitor mProgressMonitor;
+    private ModalProgressMonitor modalProgressMonitor;
 
-	private JProgressBar progressBar;
+    private JProgressBar progressBar;
 
-	private JLabel progressText;
+    private JLabel progressText;
 
-	private JLabel errorText;
+    private LogTableModel logTableModel;
 
-	private LogTableModel logTableModel;
+    private LogViewerSetting logViewerSetting;
 
-	private Set<LogPattern> pegaRuleslog4jPatternSet;
+    private FileReaderThread fileReaderThread;
 
-	private FileReaderThread fileReaderThread;
+    private boolean tailLogFile;
 
-	private boolean tailLogFile;
+    private LogParser logParser;
 
-	private LogParser logParser;
+    private AtomicLong totalLineCount;
 
-	private AtomicLong totalLineCount;
+    private int processedCount;
 
-	private int processedCount;
+    private int errorCount;
 
-	private int errorCount;
+    private boolean initialLoad;
 
-	private boolean initialLoad;
+    public LogFileLoadTask(Component parent, LogTableModel logTableModel, LogViewerSetting logViewerSetting,
+            ModalProgressMonitor modalProgressMonitor, JProgressBar progressBar, JLabel progressText) {
 
-	public LogFileLoadTask(Component parent, LogTableModel logTableModel, Set<LogPattern> pegaRuleslog4jPatternSet,
-			boolean tailLogFile, ModalProgressMonitor mProgressMonitor, JProgressBar progressBar, JLabel progressText,
-			JLabel errorText) {
+        this.parent = parent;
+        this.logTableModel = logTableModel;
+        this.logViewerSetting = logViewerSetting;
+        this.fileReaderThread = null;
 
-		this.parent = parent;
-		this.logTableModel = logTableModel;
-		this.pegaRuleslog4jPatternSet = pegaRuleslog4jPatternSet;
-		this.fileReaderThread = null;
-		this.tailLogFile = tailLogFile;
+        this.modalProgressMonitor = modalProgressMonitor;
+        this.progressBar = progressBar;
+        this.progressText = progressText;
+        this.initialLoad = true;
 
-		this.mProgressMonitor = mProgressMonitor;
-		this.progressBar = progressBar;
-		this.progressText = progressText;
-		this.errorText = errorText;
-		this.initialLoad = true;
+        this.totalLineCount = new AtomicLong(0);
+        this.processedCount = 0;
+        this.errorCount = 0;
 
-		this.totalLineCount = new AtomicLong(0);
-		this.processedCount = 0;
-		this.errorCount = 0;
+        this.tailLogFile = logViewerSetting.isTailLogFile();
+        this.logParser = getLogParserFromRecentFile();
 
-		this.logParser = getLogParser();
+        // in case of alert file, there is no log pattern and we need to parse
+        // the file anyways to get the column list
+        if (logParser != null) {
 
-		// in case of alert file, there is no log pattern and we need to parse
-		// the file anyways to get the column list
-		if (logParser != null) {
+            LogFileType logFileType = logParser.getLogFileType();
 
-			LogFileType logFileType = logParser.getLogFileType();
+            if ((logFileType != null) && (logFileType.getLogPattern() != null)) {
+                LOG.info("Using Log Pattern: " + logFileType.getLogPattern().getPatternString());
+                LogEntryModel logEntryModel;
+                logEntryModel = logParser.getLogEntryModel();
+                logTableModel.setLogEntryModel(logEntryModel);
+            } else {
+                logParser = null;
+            }
+        }
+    }
 
-			if ((logFileType != null) && (logFileType.getLogPattern() != null)) {
-				LOG.info("Using Log Pattern: " + logFileType.getLogPattern().getLogPatternString());
-				LogEntryModel logEntryModel;
-				logEntryModel = logParser.getLogEntryModel();
-				logTableModel.setLogEntryModel(logEntryModel);
-			} else {
-				logParser = null;
-			}
-		}
-	}
+    public long getTotalLineCount() {
+        return totalLineCount.get();
+    }
 
-	public long getTotalLinrCount() {
-		return totalLineCount.get();
-	}
+    public int getProcessedCount() {
+        return processedCount;
+    }
 
-	public int getProcessedCount() {
-		return processedCount;
-	}
+    public int getErrorCount() {
+        return errorCount;
+    }
 
-	public int getErrorCount() {
-		return errorCount;
-	}
+    /*
+     * (non-Javadoc)
+     * 
+     * @see javax.swing.SwingWorker#doInBackground()
+     */
+    @Override
+    protected LogParser doInBackground() throws Exception {
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see javax.swing.SwingWorker#doInBackground()
-	 */
-	@Override
-	protected LogParser doInBackground() throws Exception {
+        long before = System.currentTimeMillis();
+        int readCounter = 0;
 
-		long before = System.currentTimeMillis();
-		int readCounter = 0;
+        Charset charset = logTableModel.getCharset();
+        Locale locale = logTableModel.getLocale();
+        TimeZone displayTimezone = logTableModel.getLogTimeZone();
 
-		String charset = logTableModel.getCharset();
-		Locale locale = logTableModel.getLocale();
-		TimeZone displayTimezone = logTableModel.getLogTimeZone();
+        String filePath = logTableModel.getFilePath();
 
-		String filePath = logTableModel.getFilePath();
+        File logFile = new File(filePath);
 
-		File logFile = new File(filePath);
+        LOG.info("LogFileLoadTask - Using Charset: " + charset + " Locale: " + locale + " Display Timezone: "
+                + displayTimezone);
+        LOG.info("LogFileLoadTask - Loading file: " + logFile);
 
-		LOG.info("LogFileLoadTask - Using Charset: " + charset + " Locale: " + locale + " Display Timezone: "
-				+ displayTimezone);
-		LOG.info("LogFileLoadTask - Loading file: " + logFile);
+        FileReadTaskInfo fileReadTaskInfo = new FileReadTaskInfo(0, 0);
+        EventReadTaskInfo eventReadTaskInfo = new EventReadTaskInfo(0, 0);
 
-		FileReadTaskInfo fileReadTaskInfo = new FileReadTaskInfo(0, 0);
-		EventReadTaskInfo eventReadTaskInfo = new EventReadTaskInfo(0, 0);
+        ReadCounterTaskInfo readCounterTaskInfo = new ReadCounterTaskInfo(fileReadTaskInfo);
+        readCounterTaskInfo.setEventReadTaskInfo(eventReadTaskInfo);
 
-		ReadCounterTaskInfo readCounterTaskInfo = new ReadCounterTaskInfo(fileReadTaskInfo);
-		readCounterTaskInfo.setEventReadTaskInfo(eventReadTaskInfo);
+        publish(readCounterTaskInfo);
 
-		publish(readCounterTaskInfo);
+        AtomicBoolean cancel = new AtomicBoolean(false);
 
-		AtomicBoolean cancel = new AtomicBoolean(false);
+        int fileReadQueueCapacity = 5;
 
-		int fileReadQueueCapacity = 5;
+        LinkedBlockingQueue<FileReadByteArray> fileReadQueue;
+        fileReadQueue = new LinkedBlockingQueue<FileReadByteArray>(fileReadQueueCapacity);
 
-		LinkedBlockingQueue<FileReadByteArray> fileReadQueue;
-		fileReadQueue = new LinkedBlockingQueue<FileReadByteArray>(fileReadQueueCapacity);
+        AtomicLong fileSize = new AtomicLong(-1);
 
-		AtomicLong fileSize = new AtomicLong(-1);
+        try {
 
-		try {
+            // use the tail mode for file read
+            fileReaderThread = new FileReaderThread(logFile, fileSize, fileReadQueue, tailLogFile, cancel);
+            Thread frtThread = new Thread(fileReaderThread);
+            frtThread.start();
 
-			// use the tail mode for file read
-			fileReaderThread = new FileReaderThread(logFile, fileSize, fileReadQueue, tailLogFile, cancel);
-			Thread frtThread = new Thread(fileReaderThread);
-			frtThread.start();
+            byte[] newLine = "\n".getBytes(charset);
 
-			byte[] newLine = "\n".getBytes();
+            long totalread = 0;
+            byte[] balanceByteArray = new byte[0];
+            List<String> readLineList = new ArrayList<String>();
 
-			long startSeek = 0;
-			long endSeek = 0;
-			long totalread = 0;
-			byte[] balanceByteArray = new byte[0];
-			List<String> readLineList = new LinkedList<String>();
+            while (!isCancelled()) {
 
-			while (!isCancelled()) {
+                if (initialLoad && modalProgressMonitor.isCanceled()) {
+                    cancel.set(true);
+                    cancel(true);
+                    break;
+                }
 
-				if (initialLoad && mProgressMonitor.isCanceled()) {
-					cancel.set(true);
-					cancel(true);
-					break;
-				}
+                FileReadByteArray frba = null;
 
-				FileReadByteArray frba = null;
+                try {
+                    frba = fileReadQueue.poll(1, TimeUnit.SECONDS);
+                } catch (InterruptedException ie) {
+                    LOG.error("fileReadQueue InterruptedException ", ie);
+                }
 
-				try {
-					frba = fileReadQueue.poll(1, TimeUnit.SECONDS);
-				} catch (InterruptedException ie) {
-					// ignore InterruptedException
-				}
+                if (frba != null) {
 
-				if (frba != null) {
+                    byte[] byteBuffer = frba.getBytes();
+                    int readLen = byteBuffer.length;
 
-					byte[] byteBuffer = frba.getBytes();
-					int readLen = byteBuffer.length;
+                    LOG.trace("FileReadByteArray recieved bytes - readLen: " + readLen);
 
-					if (readLen > 0) {
+                    if (readLen > 0) {
 
-						progressBar.setIndeterminate(false);
+                        progressBar.setIndeterminate(false);
 
-						readCounter++;
+                        readCounter++;
 
-						int startidx = 0;
-						int index = -1;
+                        int startidx = 0;
+                        int index = -1;
 
-						index = KnuthMorrisPrattAlgorithm.indexOfWithPatternLength(byteBuffer, newLine, startidx);
+                        // copy the balance byte array
+                        int balanceByteArrayLength = balanceByteArray.length;
 
-						if (index != -1) {
+                        if (balanceByteArrayLength > 0) {
 
-							while ((!isCancelled()) && (index != -1)) {
+                            int newSize = readLen + balanceByteArrayLength;
 
-								endSeek = totalread + index;
+                            byte[] byteBufferNew = new byte[newSize];
 
-								long teseRead = endSeek - startSeek;
+                            // copy the balance to the beginning of new array.
+                            System.arraycopy(balanceByteArray, 0, byteBufferNew, 0, balanceByteArrayLength);
 
-								if (teseRead > Integer.MAX_VALUE) {
-									teseRead = Integer.MAX_VALUE;
-								}
+                            // copy the newly read byteBuffer to the remaining space
+                            System.arraycopy(byteBuffer, 0, byteBufferNew, balanceByteArrayLength, readLen);
 
-								byte[] teseByteBuffer = new byte[(int) teseRead];
+                            byteBuffer = byteBufferNew;
 
-								// copy the balance byte array
-								int balanceLength = balanceByteArray.length;
-								System.arraycopy(balanceByteArray, 0, teseByteBuffer, 0, balanceLength);
+                            // once copied, reset the balance array
+                            balanceByteArray = new byte[0];
 
-								// copy the remaining bytes
-								int remaininglength = ((int) teseRead - balanceByteArray.length);
-								System.arraycopy(byteBuffer, startidx, teseByteBuffer, balanceLength, remaininglength);
+                        }
 
-								// once copied, reset the balance array
-								balanceByteArray = new byte[0];
+                        index = KnuthMorrisPrattAlgorithm.indexOfWithPatternLength(byteBuffer, newLine, startidx);
 
-								String logEntryStr = new String(teseByteBuffer, charset);
+                        if (index != -1) {
 
-								// logEntryStr =
-								// logEntryStr.replaceAll("[\r\n]",
-								// "");
+                            while ((!isCancelled()) && (index != -1)) {
 
-								// replacing special characters at the eol.
-								// however keeping space intact
-								int origLength = logEntryStr.length();
-								int length = origLength;
+                                int teseRead = index - startidx;
 
-								while ((length > 0) && (logEntryStr.charAt(length - 1) < ' ')) {
-									length--;
-								}
+                                byte[] teseByteBuffer = new byte[teseRead];
 
-								if (length < origLength) {
-									logEntryStr = logEntryStr.substring(0, length);
-								}
+                                System.arraycopy(byteBuffer, startidx, teseByteBuffer, 0, teseRead);
 
-								totalLineCount.incrementAndGet();
+                                String logEntryStr = new String(teseByteBuffer, charset);
 
-								// adding intelligent parsing. accumulate 100
-								// lines
-								// and attempt to get a parser for these lines.
-								// in case of alert file, there is no log
-								// pattern and we need to parse the file anyways
-								// to get the column list
+                                logEntryStr = GeneralUtilities.specialTrim(logEntryStr);
 
-								if ((!isCancelled()) && (logParser == null)) {
+                                totalLineCount.incrementAndGet();
 
-									readLineList.add(logEntryStr);
+                                // adding intelligent parsing. accumulate 100 lines and attempt to get a parser for these lines.
+                                // in case of alert file, there is no log pattern and we need to parse the file anyways to get the column list
 
-									if (readLineList.size() >= 100) {
-										logParser = getLogParser(logFile.getName(), readLineList, locale,
-												displayTimezone);
+                                if ((!isCancelled()) && (logParser == null)) {
 
-										if (logParser == null) {
-											cancel(true);
-										} else {
-											updateLogTableModel(logParser);
-										}
-									}
-								} else {
-									logParser.parse(logEntryStr);
-								}
+                                    readLineList.add(logEntryStr);
 
-								startSeek = endSeek;
+                                    if (readLineList.size() >= 200) {
+                                        logParser = getLogParser(logFile.getName(), readLineList, charset, locale,
+                                                displayTimezone);
 
-								startidx = index;
+                                        if (logParser == null) {
+                                            cancel(true);
+                                        } else {
+                                            updateLogTableModel(logParser);
+                                        }
+                                    }
+                                } else {
+                                    logParser.parse(logEntryStr);
+                                }
 
-								index = KnuthMorrisPrattAlgorithm.indexOfWithPatternLength(byteBuffer, newLine,
-										startidx);
+                                startidx = index;
 
-							}
-						}
+                                index = KnuthMorrisPrattAlgorithm.indexOfWithPatternLength(byteBuffer, newLine,
+                                        startidx);
 
-						// in case the terminator string is not found in the
-						// current
-						// iterator, we need to accumulate the previously read
-						// balanceByteArray in the balanceByteArray
-						int existingBalanceByteArrayLength = balanceByteArray.length;
+                            }
+                        }
 
-						int balance = readLen - startidx;
+                        int byteBufferlen = byteBuffer.length;
+                        int balance = byteBufferlen - startidx;
 
-						byte[] newBalanceByteArray = new byte[balance + existingBalanceByteArrayLength];
+                        balanceByteArray = new byte[balance];
 
-						// first copy the existing balance array,
-						if (existingBalanceByteArrayLength > 0) {
-							System.arraycopy(balanceByteArray, 0, newBalanceByteArray, 0,
-									existingBalanceByteArrayLength);
-						}
+                        System.arraycopy(byteBuffer, startidx, balanceByteArray, 0, balance);
 
-						System.arraycopy(byteBuffer, startidx, newBalanceByteArray, existingBalanceByteArrayLength,
-								balance);
+                        totalread = totalread + readLen;
 
-						balanceByteArray = newBalanceByteArray;
+                        LOG.trace("No more new lines - totalread: " + totalread + " totalLineCount: " + totalLineCount
+                                + " balanceByteArray.length: " + balanceByteArray.length);
 
-						totalread = totalread + readLen;
+                        // in case the number of line in the file is less than 100, the logParser would not have initialised.
+                        if ((!isCancelled()) && (logParser == null)) {
 
-						if ((!isCancelled()) && (logParser == null)) {
+                            logParser = getLogParser(logFile.getName(), readLineList, charset, locale, displayTimezone);
 
-							logParser = getLogParser(logFile.getName(), readLineList, locale, displayTimezone);
+                            if (logParser == null) {
+                                cancel(true);
+                            } else {
+                                updateLogTableModel(logParser);
+                            }
+                        }
 
-							updateLogTableModel(logParser);
-						}
+                        int rowCount = (logParser != null) ? logParser.getLogEntryModel().getTotalRowCount() : 0;
 
-						// // set progress bar value
-						// int progress = (int) ((totalread * 100) / totalSize);
+                        fileReadTaskInfo = new FileReadTaskInfo(fileSize.get(), totalread);
+                        eventReadTaskInfo = new EventReadTaskInfo(rowCount, totalLineCount.get());
 
-						int rowCount = (logParser != null) ? logParser.getLogEntryModel().getTotalRowCount() : 0;
+                        readCounterTaskInfo = new ReadCounterTaskInfo(fileReadTaskInfo);
+                        readCounterTaskInfo.setEventReadTaskInfo(eventReadTaskInfo);
 
-						fileReadTaskInfo = new FileReadTaskInfo(fileSize.get(), totalread);
-						eventReadTaskInfo = new EventReadTaskInfo(rowCount, totalLineCount.get());
+                        publish(readCounterTaskInfo);
 
-						readCounterTaskInfo = new ReadCounterTaskInfo(fileReadTaskInfo);
-						readCounterTaskInfo.setEventReadTaskInfo(eventReadTaskInfo);
+                    } else {
+                        // empty bytebuffer is placed at the end of every file
+                        // read iteration.
+                        LOG.info("Received poison pill - reset counters");
 
-						publish(readCounterTaskInfo);
+                        if (logParser != null) {
 
-					} else {
-						// empty bytebuffer is placed at the end of every file
-						// read iteration.
+                            if (balanceByteArray.length > 0) {
 
-						logParser.parseFinal();
+                                String logEntryStr = new String(balanceByteArray, charset);
 
-						int rowCount = (logParser != null) ? logParser.getLogEntryModel().getTotalRowCount() : 0;
+                                logEntryStr = GeneralUtilities.specialTrim(logEntryStr);
 
-						fileReadTaskInfo = new FileReadTaskInfo(fileSize.get(), totalread);
-						eventReadTaskInfo = new EventReadTaskInfo(rowCount, totalLineCount.get());
+                                logParser.parse(logEntryStr);
+                            }
 
-						readCounterTaskInfo = new ReadCounterTaskInfo(fileReadTaskInfo);
-						readCounterTaskInfo.setEventReadTaskInfo(eventReadTaskInfo);
+                            logParser.parseFinal();
 
-						publish(readCounterTaskInfo);
+                            int rowCount = (logParser != null) ? logParser.getLogEntryModel().getTotalRowCount() : 0;
 
-						// reset counters
-						startSeek = 0;
-						endSeek = 0;
-						totalread = 0;
+                            fileReadTaskInfo = new FileReadTaskInfo(fileSize.get(), totalread);
+                            eventReadTaskInfo = new EventReadTaskInfo(rowCount, totalLineCount.get());
 
-						processedCount = logParser.getProcessedCount();
+                            readCounterTaskInfo = new ReadCounterTaskInfo(fileReadTaskInfo);
+                            readCounterTaskInfo.setEventReadTaskInfo(eventReadTaskInfo);
 
-						if (tailLogFile) {
-							progressBar.setValue(0);
-							progressBar.setIndeterminate(true);
-							progressBar.setString("Waiting...");
-						}
+                            publish(readCounterTaskInfo);
 
-						RecentFile recentFile = logTableModel.getRecentFile();
-						recentFile.setAttribute(RecentFile.KEY_SIZE, fileSize.get());
+                            processedCount = logParser.getProcessedCount();
+                        }
 
-						Message.MessageType messageType = MessageType.INFO;
+                        // reset counters
 
-						StringBuffer messageB = new StringBuffer();
-						messageB.append(logFile.getAbsolutePath());
-						messageB.append(" (");
-						messageB.append(totalLineCount.get());
-						messageB.append(" lines). ");
+                        totalread = 0;
 
-						messageB.append("Processed ");
-						messageB.append(processedCount);
-						messageB.append(" new log events.");
+                        if (tailLogFile) {
+                            progressBar.setValue(0);
+                            progressBar.setIndeterminate(true);
+                            progressBar.setString("Waiting...");
+                        }
 
-						if (errorCount > 0) {
+                        RecentFile recentFile = logTableModel.getRecentFile();
+                        recentFile.setAttribute(RecentFile.KEY_SIZE, fileSize.get());
 
-							messageType = MessageType.ERROR;
+                        String fileSHA = fileReaderThread.getSHA();
+                        recentFile.setAttribute(RecentFile.KEY_SHA, fileSHA);
 
-							messageB.append(" ");
-							messageB.append(errorCount);
-							messageB.append(" Error");
-							messageB.append((errorCount > 1 ? "s" : ""));
-							messageB.append(" while loading log file");
+                        Message.MessageType messageType = MessageType.INFO;
 
-						}
+                        StringBuilder messageB = new StringBuilder();
+                        messageB.append(logFile.getAbsolutePath());
+                        messageB.append(" (");
+                        messageB.append(totalLineCount.get());
+                        messageB.append(" lines). ");
 
-						// remove progress monitor dialog after initial load
-						if (initialLoad) {
+                        messageB.append("Processed ");
+                        messageB.append(processedCount);
+                        messageB.append(" new log events.");
 
-							// fixing the issue where the progress monitor hangs
-							// when close() is called.
-							try {
-								SwingUtilities.invokeLater(new Runnable() {
+                        if (errorCount > 0) {
 
-									@Override
-									public void run() {
-										LOG.info("Closing Monitor");
-										mProgressMonitor.close();
-									}
-								});
-							} catch (Throwable t) {
-								LOG.info("Got error " + t.getMessage());
-							}
+                            messageType = MessageType.ERROR;
 
-							// after initial load, update the recent file to set
-							// timezone etc.
-							updateRecentFile();
+                            messageB.append(" ");
+                            messageB.append(errorCount);
+                            messageB.append(" Error");
+                            messageB.append((errorCount > 1 ? "s" : ""));
+                            messageB.append(" while loading log file");
 
-							initialLoad = false;
-						}
+                        }
 
-						Message message = new Message(messageType, messageB.toString());
+                        // remove progress monitor dialog after initial load
+                        if (initialLoad) {
 
-						logTableModel.setMessage(message);
+                            // fixing the issue where the progress monitor hangs
+                            // when close() is called.
+                            try {
+                                SwingUtilities.invokeLater(new Runnable() {
 
-						LOG.info("Calling fireTableDataChanged");
-						// this should be last step.
-						logTableModel.fireTableDataChanged();
+                                    @Override
+                                    public void run() {
+                                        LOG.info("Closing Monitor");
+                                        modalProgressMonitor.close();
+                                    }
+                                });
+                            } catch (Throwable t) {
+                                LOG.info("Got error " + t.getMessage());
+                            }
 
-					}
-				} else {
-					if (!frtThread.isAlive()) {
+                            // after initial load, update the recent file to set
+                            // timezone etc.
+                            updateRecentFile();
 
-						LOG.info("File reader Thread finished. Breaking LogFileTask");
+                            initialLoad = false;
+                        }
 
-						// file reader finished. exit this.
-						break;
-					}
-				}
-			}
+                        Message message = new Message(messageType, messageB.toString());
 
-			if (isCancelled() || (!frtThread.isAlive())) {
-				// handle cancel operation
-				cancel.set(true);
-			}
+                        logTableModel.setMessage(message);
 
-		} finally {
-			cancel.set(true);
+                        LOG.debug("Calling fireTableDataChanged");
+                        // this should be last step.
+                        logTableModel.fireTableDataChanged();
 
-			long diff = System.currentTimeMillis() - before;
+                    }
+                } else {
+                    if (!frtThread.isAlive()) {
 
-			int secs = (int) Math.ceil((double) diff / 1E3);
+                        LOG.info("File reader Thread finished. Breaking LogFileTask");
 
-			int count = (logParser != null) ? logParser.getLogEntryModel().getTotalRowCount() : 0;
+                        stopTailing();
 
-			LOG.info("Loaded " + count + " log events in " + secs + " secs " + " readCounter: " + readCounter);
-		}
+                        // file reader finished. exit this.
+                        break;
+                    }
+                }
+            } // outer while
 
-		return logParser;
-	}
+            if (isCancelled() || (!frtThread.isAlive())) {
+                // handle cancel operation
+                cancel.set(true);
+            }
 
-	private void updateLogTableModel(LogParser logParser) {
+        } finally {
+            cancel.set(true);
 
-		LOG.info("Using parser " + logParser);
+            long diff = System.currentTimeMillis() - before;
 
-		LogEntryModel logEntryModel = logParser.getLogEntryModel();
+            int secs = (int) Math.ceil((double) diff / 1E3);
 
-		logTableModel.setLogEntryModel(logEntryModel);
+            int count = (logParser != null) ? logParser.getLogEntryModel().getTotalRowCount() : 0;
 
-	}
+            LOG.info("Loaded " + count + " log events in " + secs + " secs " + " readCounter: " + readCounter);
+        }
 
-	private void updateRecentFile() {
+        return logParser;
+    }
 
-		if (logParser != null) {
+    private void updateLogTableModel(LogParser logParser) {
 
-			LOG.info("Updating recent file");
+        LOG.info("Using parser " + logParser);
 
-			RecentFile recentFile = logTableModel.getRecentFile();
+        LogEntryModel logEntryModel = logParser.getLogEntryModel();
 
-			LogFileType logFileType = logParser.getLogFileType();
+        logTableModel.setLogEntryModel(logEntryModel);
 
-			recentFile.setAttribute(RecentFile.KEY_LOGFILETYPE, logFileType);
+    }
 
-			LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
+    private void updateRecentFile() {
 
-			DateFormat displayDateFormat = logEntryModel.getDisplayDateFormat();
-			TimeZone dispTimeZone = displayDateFormat.getTimeZone();
+        if (logParser != null) {
 
-			recentFile.setAttribute(RecentFile.KEY_TIMEZONE, dispTimeZone);
-		}
-	}
+            LOG.info("Updating recent file");
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see javax.swing.SwingWorker#process(java.util.List)
-	 */
-	@Override
-	protected void process(List<ReadCounterTaskInfo> chunks) {
+            RecentFile recentFile = logTableModel.getRecentFile();
 
-		if ((isDone()) || (isCancelled()) || (chunks == null) || (chunks.size() == 0)) {
-			return;
-		}
+            LogFileType logFileType = logParser.getLogFileType();
 
-		Collections.sort(chunks);
+            recentFile.setAttribute(RecentFile.KEY_LOGFILETYPE, logFileType);
 
-		ReadCounterTaskInfo readCounterTaskInfo = chunks.get(chunks.size() - 1);
+            LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-		FileReadTaskInfo fileReadTaskInfo = readCounterTaskInfo.getFileReadTaskInfo();
-		EventReadTaskInfo eventReadTaskInfo = readCounterTaskInfo.getEventReadTaskInfo();
+            TimeZone displayDateFormatTimeZone = logEntryModel.getDisplayDateFormatTimeZone();
 
-		long fileSize = fileReadTaskInfo.getFileSize();
-		long fileRead = fileReadTaskInfo.getFileRead();
+            recentFile.setAttribute(RecentFile.KEY_TIMEZONE, displayDateFormatTimeZone);
+        }
+    }
 
-		long eventCount = eventReadTaskInfo.getEventCount();
-		long linesRead = eventReadTaskInfo.getLinesRead();
+    /*
+     * (non-Javadoc)
+     * 
+     * @see javax.swing.SwingWorker#process(java.util.List)
+     */
+    @Override
+    protected void process(List<ReadCounterTaskInfo> chunks) {
 
-		int progress = 0;
+        if ((isDone()) || (isCancelled()) || (chunks == null) || (chunks.size() == 0)) {
+            return;
+        }
 
-		if (fileSize > 0) {
-			progress = (int) ((fileRead * 100) / fileSize);
-		}
+        Collections.sort(chunks);
 
-		// because the process() happen asynchronous to doInBackground().
-		// This flag is to make sure changes in doInBackground() doesn't get
-		// overridden in process().
-		boolean progressBarIndeterminate = progressBar.isIndeterminate();
+        ReadCounterTaskInfo readCounterTaskInfo = chunks.get(chunks.size() - 1);
 
-		if (!progressBarIndeterminate) {
-			progressBar.setString(null);
-			progressBar.setValue(progress);
-		}
+        FileReadTaskInfo fileReadTaskInfo = readCounterTaskInfo.getFileReadTaskInfo();
+        EventReadTaskInfo eventReadTaskInfo = readCounterTaskInfo.getEventReadTaskInfo();
 
-		if (initialLoad) {
+        long fileSize = fileReadTaskInfo.getFileSize();
+        long fileRead = fileReadTaskInfo.getFileRead();
 
-			String message = String.format("Loaded %d log events (%d lines) (%d%%)", eventCount, linesRead, progress);
+        long eventCount = eventReadTaskInfo.getEventCount();
+        long linesRead = eventReadTaskInfo.getLinesRead();
 
-			progressText.setText(message);
+        int progress = 0;
 
-			mProgressMonitor.setProgress(progress);
-			mProgressMonitor.setNote(message);
+        if (fileSize > 0) {
+            progress = (int) ((fileRead * 100) / fileSize);
+        }
 
-		} else {
+        boolean progressBarIndeterminate = progressBar.isIndeterminate();
 
-			String message = String.format("Loaded %d log events (%d lines)", eventCount, linesRead);
+        if (!progressBarIndeterminate) {
+            progressBar.setString(null);
+            progressBar.setValue(progress);
+        }
 
-			progressText.setText(message);
-		}
-	}
+        if (initialLoad) {
 
-	public LogParser getLogParser() {
+            String message = String.format("Loaded %d log events (%d lines) (%d%%)", eventCount, linesRead, progress);
 
-		LogParser logParser = null;
+            progressText.setText(message);
 
-		LogFileType logFileType = logTableModel.getLogFileType();
+            modalProgressMonitor.setProgress(progress);
+            modalProgressMonitor.setNote(message);
 
-		if (logFileType != null) {
-			// get values from saved pref data
-			Locale locale = logTableModel.getLocale();
-			TimeZone displayTimezone = logTableModel.getLogTimeZone();
+        } else {
 
-			logParser = LogParser.getLogParser(logFileType, locale, displayTimezone);
-		}
+            String message = String.format("Loaded %d log events (%d lines)", eventCount, linesRead);
 
-		return logParser;
+            progressText.setText(message);
+        }
+    }
 
-	}
+    private LogParser getLogParserFromRecentFile() {
 
-	private LogParser getLogParser(String fileName, List<String> readLineList, Locale locale,
-			TimeZone displayTimezone) {
+        LogParser logParser = null;
 
-		LogParser aiLogParser = null;
+        LogFileType logFileType = logTableModel.getLogFileType();
 
-		aiLogParser = LogParser.getLogParser(fileName, readLineList, pegaRuleslog4jPatternSet, locale, displayTimezone);
+        if (logFileType != null) {
+            // get values from saved pref data
+            Charset charset = logTableModel.getCharset();
+            Locale locale = logTableModel.getLocale();
+            TimeZone displayTimezone = logTableModel.getLogTimeZone();
 
-		if (aiLogParser == null) {
-			// ask user for pattern
-			// open dialog to user
-			LogPatternSelectionDialog lpsd = new LogPatternSelectionDialog(readLineList, pegaRuleslog4jPatternSet,
-					locale, displayTimezone, BaseFrame.getAppIcon(), parent);
+            logParser = LogParser.getLogParser(logFileType, charset, locale, displayTimezone);
+        }
 
-			lpsd.setVisible(true);
+        return logParser;
 
-			aiLogParser = lpsd.getLogParser();
+    }
 
-		}
+    private LogParser getLogParser(String fileName, List<String> readLineList, Charset charset, Locale locale,
+            TimeZone displayTimezone) {
 
-		// if its still empty cancel out
-		if (aiLogParser == null) {
-			cancel(true);
-		}
+        LogParser aiLogParser = null;
 
-		return aiLogParser;
-	}
+        Set<LogPattern> pegaRulesLog4jPatternSet = logViewerSetting.getPegaRuleslog4jPatternSet();
+        Set<LogPattern> pegaClusterLog4jPatternSet = logViewerSetting.getPegaClusterlog4jPatternSet();
 
-	public void stopTailing() {
+        aiLogParser = LogParser.getLogParser(fileName, readLineList, pegaRulesLog4jPatternSet,
+                pegaClusterLog4jPatternSet, charset, locale, displayTimezone);
 
-		if (fileReaderThread != null) {
-			fileReaderThread.stopTailing();
-		}
+        if (aiLogParser == null) {
+            // ask user for pattern
+            // open dialog to user
+            LogPatternSelectionDialog lpsd = new LogPatternSelectionDialog(readLineList, pegaRulesLog4jPatternSet,
+                    charset, locale, displayTimezone, BaseFrame.getAppIcon(), parent);
 
-		tailLogFile = false;
+            lpsd.setVisible(true);
 
-		progressBar.setIndeterminate(false);
-		progressBar.setString(null);
-		progressBar.setValue(100);
+            aiLogParser = lpsd.getLogParser();
 
-	}
+        }
+
+        // if its still empty cancel out
+        if (aiLogParser == null) {
+            cancel(true);
+        }
+
+        return aiLogParser;
+    }
+
+    public void stopTailing() {
+
+        if (fileReaderThread != null) {
+            fileReaderThread.stopTailing();
+        }
+
+        tailLogFile = false;
+
+        progressBar.setIndeterminate(false);
+        progressBar.setString(null);
+        progressBar.setValue(100);
+
+    }
+
+    public String getFileSHA() {
+
+        String fileSHA = null;
+
+        if (fileReaderThread != null) {
+            fileSHA = fileReaderThread.getSHA();
+        }
+
+        return fileSHA;
+    }
 }

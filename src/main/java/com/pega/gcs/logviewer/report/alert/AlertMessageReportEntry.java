@@ -7,119 +7,130 @@
 /**
  * 
  */
+
 package com.pega.gcs.logviewer.report.alert;
 
+import java.awt.Color;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.TimeZone;
 
-import com.pega.gcs.logviewer.model.AlertBoxAndWhiskerCalculator;
+import org.jfree.data.time.Millisecond;
+import org.jfree.data.time.RegularTimePeriod;
+import org.jfree.data.time.TimeSeriesDataItem;
+
 import com.pega.gcs.logviewer.model.AlertBoxAndWhiskerItem;
+import com.pega.gcs.logviewer.model.AlertLogEntry;
+import com.pega.gcs.logviewer.model.AlertLogTimeSeries;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 
 public class AlertMessageReportEntry implements Comparable<AlertMessageReportEntry> {
 
-	private long thresholdKPI;
+    private String alertMessageReportEntryKey;
 
-	private String kpiUnit;
+    private LinkedHashMap<LogEntryKey, Double> alertLogEntryAlertKeyValueMap;
 
-	private String alertMessageReportEntryKey;
+    private AlertLogTimeSeries alertLogTimeSeries;
 
-	private LinkedHashMap<Integer, Double> alertLogEntryAlertKeyValueMap;
+    public AlertMessageReportEntry(long thresholdKPI, String kpiUnit, String alertMessageReportEntryKey, Color color) {
+        super();
 
-	private boolean dirty;
+        this.alertMessageReportEntryKey = alertMessageReportEntryKey;
 
-	private AlertBoxAndWhiskerItem alertBoxAndWhiskerItem;
+        this.alertLogEntryAlertKeyValueMap = new LinkedHashMap<>();
+        this.alertLogTimeSeries = new AlertLogTimeSeries("", color, null, false, false, thresholdKPI, kpiUnit);
 
-	public AlertMessageReportEntry(long thresholdKPI, String kpiUnit, String alertMessageReportEntryKey) {
-		super();
+    }
 
-		this.thresholdKPI = thresholdKPI;
-		this.kpiUnit = kpiUnit;
-		this.alertMessageReportEntryKey = alertMessageReportEntryKey;
+    public List<LogEntryKey> getAlertLogEntryKeyList() {
+        ArrayList<LogEntryKey> alertLogEntryKeyList = new ArrayList<>(alertLogEntryAlertKeyValueMap.keySet());
+        return Collections.unmodifiableList(alertLogEntryKeyList);
+    }
 
-		this.alertLogEntryAlertKeyValueMap = new LinkedHashMap<>();
-	}
+    public String getAlertMessageReportEntryKey() {
+        return alertMessageReportEntryKey;
+    }
 
-	public List<Integer> getAlertLogEntryKeyList() {
-		ArrayList<Integer> alertLogEntryKeyList = new ArrayList<>(alertLogEntryAlertKeyValueMap.keySet());
-		return Collections.unmodifiableList(alertLogEntryKeyList);
-	}
+    public Double getAlertMessageReportEntryKeyValue(LogEntryKey alertLogEntryKey) {
+        return alertLogEntryAlertKeyValueMap.get(alertLogEntryKey);
+    }
 
-	public String getAlertMessageReportEntryKey() {
-		return alertMessageReportEntryKey;
-	}
+    public void addAlertLogEntry(AlertLogEntry alertLogEntry, TimeZone timezone, Locale locale) {
 
-	public Double getAlertMessageReportEntryKeyValue(Integer alertLogEntryKey) {
-		return alertLogEntryAlertKeyValueMap.get(alertLogEntryKey);
-	}
+        LogEntryKey logEntryKey = alertLogEntry.getKey();
+        double alertLogEntryValue = alertLogEntry.getObservedKPI();
 
-	public void addAlertLogEntryKey(Integer alertLogEntryKey, Double alertLogEntryValue) {
-		alertLogEntryAlertKeyValueMap.put(alertLogEntryKey, alertLogEntryValue);
-		dirty = true;
-	}
+        alertLogEntryAlertKeyValueMap.put(logEntryKey, alertLogEntryValue);
 
-	public AlertBoxAndWhiskerItem getAlertBoxAndWhiskerItem() {
+        long logEntryTime = logEntryKey.getTimestamp();
 
-		if ((alertBoxAndWhiskerItem == null) || dirty) {
+        RegularTimePeriod regularTimePeriod;
+        regularTimePeriod = new Millisecond(new Date(logEntryTime), timezone, locale);
 
-			ArrayList<Double> alertLogEntryAlertValueList = new ArrayList<>(alertLogEntryAlertKeyValueMap.values());
+        TimeSeriesDataItem timeSeriesDataItem;
+        timeSeriesDataItem = new TimeSeriesDataItem(regularTimePeriod, alertLogEntryValue);
 
-			Collections.sort(alertLogEntryAlertValueList);
+        alertLogTimeSeries.addTimeSeriesDataItem(timeSeriesDataItem);
+    }
 
-			alertBoxAndWhiskerItem = AlertBoxAndWhiskerCalculator.calculateStatistics(alertLogEntryAlertValueList,
-					thresholdKPI, kpiUnit);
+    public AlertBoxAndWhiskerItem getAlertBoxAndWhiskerItem() {
+        return alertLogTimeSeries.getBoxAndWhiskerItem();
+    }
 
-			dirty = false;
-		}
+    public Object getColumnValue(AlertBoxAndWhiskerReportColumn alertBoxAndWhiskerReportColumn, NumberFormat nf) {
 
-		return alertBoxAndWhiskerItem;
-	}
+        Object columnValue = null;
 
-	public Object getColumnValue(AlertBoxAndWhiskerReportColumn alertBoxAndWhiskerReportColumn, NumberFormat nf) {
+        AlertBoxAndWhiskerItem alertBoxAndWhiskerItem = getAlertBoxAndWhiskerItem();
 
-		Object columnValue = null;
+        if (AlertBoxAndWhiskerReportColumn.KEY.equals(alertBoxAndWhiskerReportColumn.getColumnId())) {
+            columnValue = getAlertMessageReportEntryKey();
+        } else if (AlertBoxAndWhiskerReportColumn.COUNT.equals(alertBoxAndWhiskerReportColumn)) {
+            columnValue = alertBoxAndWhiskerItem.getCount();
+        } else if (AlertBoxAndWhiskerReportColumn.TOTAL.equals(alertBoxAndWhiskerReportColumn)) {
+            columnValue = nf.format(alertBoxAndWhiskerItem.getTotal());
+        } else if (AlertBoxAndWhiskerReportColumn.MEAN.equals(alertBoxAndWhiskerReportColumn)) {
+            columnValue = nf.format(alertBoxAndWhiskerItem.getMean());
+        } else if (AlertBoxAndWhiskerReportColumn.MEDIAN.equals(alertBoxAndWhiskerReportColumn)) {
+            columnValue = nf.format(alertBoxAndWhiskerItem.getMedian());
+        } else if (AlertBoxAndWhiskerReportColumn.Q1.equals(alertBoxAndWhiskerReportColumn)) {
+            columnValue = nf.format(alertBoxAndWhiskerItem.getQ1());
+        } else if (AlertBoxAndWhiskerReportColumn.Q3.equals(alertBoxAndWhiskerReportColumn)) {
+            columnValue = nf.format(alertBoxAndWhiskerItem.getQ3());
+        } else if (AlertBoxAndWhiskerReportColumn.MINREGULARVALUE.equals(alertBoxAndWhiskerReportColumn)) {
+            columnValue = nf.format(alertBoxAndWhiskerItem.getMinRegularValue());
+        } else if (AlertBoxAndWhiskerReportColumn.MAXREGULARVALUE.equals(alertBoxAndWhiskerReportColumn)) {
+            columnValue = nf.format(alertBoxAndWhiskerItem.getMaxRegularValue());
+        } else if (AlertBoxAndWhiskerReportColumn.MINOUTLIER.equals(alertBoxAndWhiskerReportColumn)) {
+            columnValue = nf.format(alertBoxAndWhiskerItem.getMinOutlier());
+        } else if (AlertBoxAndWhiskerReportColumn.MAXOUTLIER.equals(alertBoxAndWhiskerReportColumn)) {
+            columnValue = nf.format(alertBoxAndWhiskerItem.getMaxOutlier());
+        } else if (AlertBoxAndWhiskerReportColumn.IQR.equals(alertBoxAndWhiskerReportColumn)) {
+            columnValue = nf.format(alertBoxAndWhiskerItem.getIQR());
+        } else if (AlertBoxAndWhiskerReportColumn.OUTLIERS.equals(alertBoxAndWhiskerReportColumn)) {
+            columnValue = nf.format(alertBoxAndWhiskerItem.getOutliers().size());
+        }
 
-		AlertBoxAndWhiskerItem alertBoxAndWhiskerItem = getAlertBoxAndWhiskerItem();
+        return columnValue;
+    }
 
-		if (AlertBoxAndWhiskerReportColumn.KEY.equals(alertBoxAndWhiskerReportColumn.getColumnId())) {
-			columnValue = getAlertMessageReportEntryKey();
-		} else if (AlertBoxAndWhiskerReportColumn.COUNT.equals(alertBoxAndWhiskerReportColumn)) {
-			columnValue = alertBoxAndWhiskerItem.getCount();
-		} else if (AlertBoxAndWhiskerReportColumn.TOTAL.equals(alertBoxAndWhiskerReportColumn)) {
-			columnValue = nf.format(alertBoxAndWhiskerItem.getTotal());
-		} else if (AlertBoxAndWhiskerReportColumn.MEAN.equals(alertBoxAndWhiskerReportColumn)) {
-			columnValue = nf.format(alertBoxAndWhiskerItem.getMean());
-		} else if (AlertBoxAndWhiskerReportColumn.MEDIAN.equals(alertBoxAndWhiskerReportColumn)) {
-			columnValue = nf.format(alertBoxAndWhiskerItem.getMedian());
-		} else if (AlertBoxAndWhiskerReportColumn.Q1.equals(alertBoxAndWhiskerReportColumn)) {
-			columnValue = nf.format(alertBoxAndWhiskerItem.getQ1());
-		} else if (AlertBoxAndWhiskerReportColumn.Q3.equals(alertBoxAndWhiskerReportColumn)) {
-			columnValue = nf.format(alertBoxAndWhiskerItem.getQ3());
-		} else if (AlertBoxAndWhiskerReportColumn.MINREGULARVALUE.equals(alertBoxAndWhiskerReportColumn)) {
-			columnValue = nf.format(alertBoxAndWhiskerItem.getMinRegularValue());
-		} else if (AlertBoxAndWhiskerReportColumn.MAXREGULARVALUE.equals(alertBoxAndWhiskerReportColumn)) {
-			columnValue = nf.format(alertBoxAndWhiskerItem.getMaxRegularValue());
-		} else if (AlertBoxAndWhiskerReportColumn.MINOUTLIER.equals(alertBoxAndWhiskerReportColumn)) {
-			columnValue = nf.format(alertBoxAndWhiskerItem.getMinOutlier());
-		} else if (AlertBoxAndWhiskerReportColumn.MAXOUTLIER.equals(alertBoxAndWhiskerReportColumn)) {
-			columnValue = nf.format(alertBoxAndWhiskerItem.getMaxOutlier());
-		} else if (AlertBoxAndWhiskerReportColumn.IQR.equals(alertBoxAndWhiskerReportColumn)) {
-			columnValue = nf.format(alertBoxAndWhiskerItem.getIQR());
-		} else if (AlertBoxAndWhiskerReportColumn.OUTLIERS.equals(alertBoxAndWhiskerReportColumn)) {
-			columnValue = nf.format(alertBoxAndWhiskerItem.getOutliers().size());
-		}
+    @Override
+    public int compareTo(AlertMessageReportEntry other) {
 
-		return columnValue;
-	}
+        AlertBoxAndWhiskerItem thisAlertBoxAndWhiskerItem = getAlertBoxAndWhiskerItem();
+        AlertBoxAndWhiskerItem otherAlertBoxAndWhiskerItem = other.getAlertBoxAndWhiskerItem();
 
-	@Override
-	public int compareTo(AlertMessageReportEntry o) {
+        // sort in decending order
+        return otherAlertBoxAndWhiskerItem.compareTo(thisAlertBoxAndWhiskerItem);
+    }
 
-		AlertBoxAndWhiskerItem thisAlertBoxAndWhiskerItem = getAlertBoxAndWhiskerItem();
-		AlertBoxAndWhiskerItem otherAlertBoxAndWhiskerItem = o.getAlertBoxAndWhiskerItem();
+    public AlertLogTimeSeries getAlertLogTimeSeries() {
+        return alertLogTimeSeries;
+    }
 
-		return otherAlertBoxAndWhiskerItem.compareTo(thisAlertBoxAndWhiskerItem);
-	}
 }

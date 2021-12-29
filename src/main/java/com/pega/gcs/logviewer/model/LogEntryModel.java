@@ -4,13 +4,15 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.model;
 
 import java.awt.Font;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -31,457 +33,638 @@ import com.pega.gcs.fringecommon.utilities.DateTimeUtilities;
 
 public abstract class LogEntryModel {
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(LogEntryModel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(LogEntryModel.class);
 
-	private static final int TABLE_DATA_LENGTH = 800;
+    private static final int TABLE_DATA_LENGTH = 800;
 
-	private DateFormat modelDateFormat;
+    private DateFormat modelDateFormat;
 
-	private DateFormat displayDateFormat;
+    private DateFormat displayDateFormat;
 
-	private Locale locale;
+    private ArrayList<String> logEntryColumnList;
 
-	private NumberFormat numberFormat;
+    private List<LogEntryKey> logEntryKeyList;
 
-	private ArrayList<String> logEntryColumnList;
+    // large files cause hanging during search, because of getIndex call, hence building a map to store these
+    private HashMap<LogEntryKey, Integer> keyIndexMap;
 
-	private List<Integer> logEntryIndexList;
+    private Map<LogEntryKey, LogEntry> logEntryMap;
 
-	private Map<Integer, LogEntry> logEntryMap;
+    private Map<LogEntryColumn, Integer> logEntryColumnIndexMap;
 
-	private Map<LogEntryColumn, Integer> logEntryColumnIndexMap;
+    private Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<LogEntryKey>>> columnFilterMap;
 
-	private Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<Integer>>> columnFilterMap;
+    private ArrayList<Integer> visibleColumnIndexList;
 
-	private ArrayList<Integer> visibleColumnIndexList;
+    private LogEntryKey lastQueriedLogEntryKey;
 
-	private int lastQueriedLogEntryIndex;
+    private ArrayList<String> lastQueriedLogEntryValueList;
 
-	private ArrayList<String> lastQueriedLogEntryValueList;
+    private Map<Long, LogEntryKey> timeLogEntryKeyMap;
 
-	private Map<Long, Integer> timeLogEntryKeyMap;
+    private Map<Integer, LogEntryKey> lineNoLogEntryKeyMap;
 
-	private int timestampColumnIndex;
+    private int timestampColumnIndex;
 
-	private DateAxis domainAxis;
+    private DateAxis domainAxis;
 
-	private long lowerDomainRange;
+    private long lowerDomainRange;
 
-	private long upperDomainRange;
+    private long upperDomainRange;
 
-	public abstract Set<LogSeriesCollection> getLogTimeSeriesCollectionSet(boolean filtered) throws Exception;
+    private boolean rebuildLogTimeSeriesCollectionSet;
 
-	public abstract Set<LogIntervalMarker> getLogIntervalMarkerSet();
+    public abstract void rebuildLogTimeSeriesCollectionSet(Locale locale) throws Exception;
 
-	public abstract LogEntryColumn[] getReportTableColumns();
+    public abstract Set<LogSeriesCollection> getLogTimeSeriesCollectionSet(boolean filtered, Locale locale)
+            throws Exception;
 
-	public abstract String getTypeName();
+    public abstract Set<LogIntervalMarker> getLogIntervalMarkerSet();
 
-	protected abstract void postProcess(LogEntry logEntry, ArrayList<String> logEntryValueList);
+    public abstract LogEntryColumn[] getReportTableColumns();
 
-	public LogEntryModel(DateFormat dateFormat, Locale locale) {
+    public abstract String getTypeName();
 
-		this.modelDateFormat = dateFormat;
-		this.lowerDomainRange = -1;
-		this.upperDomainRange = -1;
+    protected abstract void postProcess(LogEntry logEntry, ArrayList<String> logEntryValueList, Charset charset,
+            Locale locale);
 
-		TimeZone tz = dateFormat.getTimeZone();
+    public LogEntryModel(DateFormat dateFormat) {
+        this(dateFormat, dateFormat.getTimeZone());
+    }
 
-		displayDateFormat = new SimpleDateFormat(DateTimeUtilities.DATEFORMAT_ISO8601);
-		displayDateFormat.setTimeZone(tz);
+    public LogEntryModel(DateFormat dateFormat, TimeZone displayTimezone) {
 
-		setLocale(locale);
+        this.modelDateFormat = dateFormat;
+        this.lowerDomainRange = -1;
+        this.upperDomainRange = -1;
+        this.rebuildLogTimeSeriesCollectionSet = false;
 
-		resetModel();
+        displayDateFormat = new SimpleDateFormat(DateTimeUtilities.DATEFORMAT_ISO8601);
 
-	}
+        if (displayTimezone == null) {
+            displayTimezone = dateFormat.getTimeZone();
+        }
 
-	public DateFormat getModelDateFormat() {
-		return modelDateFormat;
-	}
+        displayDateFormat.setTimeZone(displayTimezone);
 
-	public void setModelDateFormatTimeZone(TimeZone modelTimeZone) {
+        updateDomainAxis(displayTimezone, null);
 
-		DateFormat modelDateFormat = getModelDateFormat();
+        resetModel();
 
-		modelDateFormat.setTimeZone(modelTimeZone);
+    }
 
-	}
+    public DateFormat getModelDateFormat() {
+        return modelDateFormat;
+    }
 
-	public DateFormat getDisplayDateFormat() {
-		return displayDateFormat;
-	}
+    public void setModelDateFormatTimeZone(TimeZone modelTimeZone) {
 
-	public void setDisplayDateFormatTimeZone(TimeZone displayTimeZone) {
+        DateFormat modelDateFormat = getModelDateFormat();
 
-		DateFormat displayDateFormat = getDisplayDateFormat();
+        modelDateFormat.setTimeZone(modelTimeZone);
 
-		displayDateFormat.setTimeZone(displayTimeZone);
+    }
 
-		updateDomainAxis(displayTimeZone, null);
-	}
+    public DateFormat getDisplayDateFormat() {
+        return displayDateFormat;
+    }
 
-	public Locale getLocale() {
-		return locale;
-	}
+    public TimeZone getDisplayDateFormatTimeZone() {
 
-	public void setLocale(Locale locale) {
-		this.locale = locale;
-		numberFormat = NumberFormat.getInstance(locale);
+        DateFormat displayDateFormat = getDisplayDateFormat();
 
-		updateDomainAxis(null, locale);
+        TimeZone displayDateFormatTimeZone = displayDateFormat.getTimeZone();
 
-	}
+        return displayDateFormatTimeZone;
+    }
 
-	public NumberFormat getNumberFormat() {
-		return numberFormat;
-	}
+    public void setDisplayDateFormatTimeZone(TimeZone displayTimeZone) {
 
-	public ArrayList<String> getLogEntryColumnList() {
+        DateFormat displayDateFormat = getDisplayDateFormat();
 
-		if (logEntryColumnList == null) {
-			logEntryColumnList = new ArrayList<String>();
-		}
+        displayDateFormat.setTimeZone(displayTimeZone);
 
-		return logEntryColumnList;
-	}
+        updateDomainAxis(displayTimeZone, null);
 
-	public void setLogEntryColumnList(ArrayList<String> logEntryColumnList) {
+        // rebuild graphs
+        setRebuildLogTimeSeriesCollectionSet(true);
+    }
 
-		ArrayList<String> leColumnList = getLogEntryColumnList();
-		leColumnList.clear();
-		leColumnList.addAll(logEntryColumnList);
-		initialiseVisibleFilterableColumnIndexList();
-	}
+    public ArrayList<String> getLogEntryColumnList() {
 
-	public List<Integer> getLogEntryIndexList() {
+        if (logEntryColumnList == null) {
+            logEntryColumnList = new ArrayList<String>();
+        }
 
-		if (logEntryIndexList == null) {
-			logEntryIndexList = new ArrayList<Integer>();
-		}
+        return logEntryColumnList;
+    }
 
-		return logEntryIndexList;
-	}
+    public void setLogEntryColumnList(ArrayList<String> logEntryColumnList) {
 
-	public Map<Integer, LogEntry> getLogEntryMap() {
+        ArrayList<String> leColumnList = getLogEntryColumnList();
+        leColumnList.clear();
+        leColumnList.addAll(logEntryColumnList);
+        initialiseVisibleFilterableColumnIndexList();
+    }
 
-		if (logEntryMap == null) {
-			logEntryMap = new HashMap<Integer, LogEntry>();
-		}
+    public List<LogEntryKey> getLogEntryKeyList() {
 
-		return logEntryMap;
-	}
+        if (logEntryKeyList == null) {
+            logEntryKeyList = new ArrayList<LogEntryKey>();
+        }
 
-	public ArrayList<Integer> getVisibleColumnIndexList() {
+        return logEntryKeyList;
+    }
 
-		if (visibleColumnIndexList == null) {
-			visibleColumnIndexList = new ArrayList<Integer>();
-		}
+    public HashMap<LogEntryKey, Integer> getKeyIndexMap() {
 
-		return visibleColumnIndexList;
-	}
+        if (keyIndexMap == null) {
+            keyIndexMap = new HashMap<>();
+        }
 
-	public Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<Integer>>> getColumnFilterMap() {
+        return keyIndexMap;
+    }
 
-		if (columnFilterMap == null) {
-			columnFilterMap = new TreeMap<FilterColumn, List<CheckBoxMenuItemPopupEntry<Integer>>>();
-		}
+    public Map<LogEntryKey, LogEntry> getLogEntryMap() {
 
-		return columnFilterMap;
-	}
+        if (logEntryMap == null) {
+            logEntryMap = new HashMap<LogEntryKey, LogEntry>();
+        }
 
-	public Map<Long, Integer> getTimeLogEntryKeyMap() {
+        return logEntryMap;
+    }
 
-		if (timeLogEntryKeyMap == null) {
-			timeLogEntryKeyMap = new HashMap<Long, Integer>();
-		}
+    public ArrayList<Integer> getVisibleColumnIndexList() {
 
-		return timeLogEntryKeyMap;
-	}
+        if (visibleColumnIndexList == null) {
+            visibleColumnIndexList = new ArrayList<Integer>();
+        }
 
-	public Map<LogEntryColumn, Integer> getLogEntryColumnIndexMap() {
+        return visibleColumnIndexList;
+    }
 
-		if (logEntryColumnIndexMap == null) {
-			logEntryColumnIndexMap = new HashMap<LogEntryColumn, Integer>();
-		}
+    public Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<LogEntryKey>>> getColumnFilterMap() {
 
-		return logEntryColumnIndexMap;
-	}
+        if (columnFilterMap == null) {
+            columnFilterMap = new TreeMap<FilterColumn, List<CheckBoxMenuItemPopupEntry<LogEntryKey>>>();
+        }
 
-	public DateAxis getDomainAxis() {
+        return columnFilterMap;
+    }
 
-		if (domainAxis == null) {
+    private Map<Long, LogEntryKey> getTimeLogEntryKeyMap() {
 
-			domainAxis = new DateAxis();
-			domainAxis.setLowerMargin(0.02);
-			domainAxis.setUpperMargin(0.02);
+        if (timeLogEntryKeyMap == null) {
+            timeLogEntryKeyMap = new HashMap<>();
+        }
 
-			Font labelFont = new Font("Arial", Font.PLAIN, 10);
-			domainAxis.setLabelFont(labelFont);
-		}
+        return timeLogEntryKeyMap;
+    }
 
-		return domainAxis;
-	}
+    private Map<Integer, LogEntryKey> getLineNoLogEntryKeyMap() {
 
-	public void resetModel() {
+        if (lineNoLogEntryKeyMap == null) {
+            lineNoLogEntryKeyMap = new HashMap<>();
+        }
 
-		timestampColumnIndex = -1;
-		getLogEntryColumnList().clear();
-		getLogEntryIndexList().clear();
-		getLogEntryMap().clear();
-		getVisibleColumnIndexList().clear();
-		getColumnFilterMap().clear();
-		getTimeLogEntryKeyMap().clear();
-		getLogEntryColumnIndexMap().clear();
+        return lineNoLogEntryKeyMap;
+    }
 
-		TimeZone displayTimeZone = displayDateFormat.getTimeZone();
-		Locale locale = getLocale();
-		updateDomainAxis(displayTimeZone, locale);
-	}
+    public Map<LogEntryColumn, Integer> getLogEntryColumnIndexMap() {
 
-	public void addLogEntry(LogEntry logEntry, ArrayList<String> logEntryValueList) {
+        if (logEntryColumnIndexMap == null) {
+            logEntryColumnIndexMap = new HashMap<LogEntryColumn, Integer>();
+        }
 
-		Integer logEntryKey = logEntry.getKey();
-		Date logEntryDate = logEntry.getLogEntryDate();
-		long logEntryTime = logEntryDate.getTime();
+        return logEntryColumnIndexMap;
+    }
 
-		List<Integer> logEntryIndexList = getLogEntryIndexList();
-		logEntryIndexList.add(logEntry.getKey());
+    public DateAxis getDomainAxis() {
 
-		Map<Integer, LogEntry> logEntryMap = getLogEntryMap();
-		logEntryMap.put(logEntryKey, logEntry);
+        if (domainAxis == null) {
 
-		Map<Long, Integer> timeLogEntryKeyMap = getTimeLogEntryKeyMap();
-		timeLogEntryKeyMap.put(logEntryTime, logEntryKey);
+            domainAxis = new DateAxis();
+            domainAxis.setLowerMargin(0.02);
+            domainAxis.setUpperMargin(0.02);
 
-		updateColumnFilterMap(logEntry.getKey(), logEntryValueList);
+            Font labelFont = new Font("Arial", Font.PLAIN, 10);
+            domainAxis.setLabelFont(labelFont);
+        }
 
-		long lowerDomainRange = getLowerDomainRange();
-		long upperDomainRange = getUpperDomainRange();
+        return domainAxis;
+    }
 
-		if (lowerDomainRange == -1) {
-			lowerDomainRange = logEntryTime - 1;
-		} else {
-			lowerDomainRange = Math.min(lowerDomainRange, logEntryTime);
-		}
+    public void resetModel() {
 
-		if (upperDomainRange == -1) {
-			upperDomainRange = logEntryTime;
-		} else {
-			upperDomainRange = Math.max(upperDomainRange, logEntryTime);
-		}
+        timestampColumnIndex = -1;
+        getLogEntryColumnList().clear();
+        getKeyIndexMap().clear();
+        getLogEntryKeyList().clear();
+        getLogEntryMap().clear();
+        getVisibleColumnIndexList().clear();
+        getColumnFilterMap().clear();
+        getTimeLogEntryKeyMap().clear();
+        getLineNoLogEntryKeyMap().clear();
+        getLogEntryColumnIndexMap().clear();
 
-		setLowerDomainRange(lowerDomainRange);
-		setUpperDomainRange(upperDomainRange);
+        // TimeZone displayDateFormatTimeZone = getDisplayDateFormatTimeZone();
+        // Locale locale = getLocale();
+        // updateDomainAxis(displayDateFormatTimeZone, locale);
+    }
 
-		postProcess(logEntry, logEntryValueList);
-	}
+    public void addLogEntry(LogEntry logEntry, ArrayList<String> logEntryValueList, Charset charset, Locale locale) {
 
-	public long getLowerDomainRange() {
-		return lowerDomainRange;
-	}
+        LogEntryKey logEntryKey = logEntry.getKey();
+        int lineNo = logEntryKey.getLineNo();
+        long logEntryTime = logEntryKey.getTimestamp();
 
-	protected void setLowerDomainRange(long lowerDomainRange) {
-		this.lowerDomainRange = lowerDomainRange;
-	}
+        List<LogEntryKey> logEntryKeyList = getLogEntryKeyList();
+        logEntryKeyList.add(logEntryKey);
 
-	public long getUpperDomainRange() {
-		return upperDomainRange;
-	}
+        // removing because timestamp sorting changes the key order.
+        // HashMap<LogEntryKey, Integer> keyIndexMap = getKeyIndexMap();
+        // keyIndexMap.put(logEntryKey, logEntryKeyList.size() - 1);
 
-	protected void setUpperDomainRange(long upperDomainRange) {
-		this.upperDomainRange = upperDomainRange;
-	}
+        Map<LogEntryKey, LogEntry> logEntryMap = getLogEntryMap();
+        logEntryMap.put(logEntryKey, logEntry);
 
-	private void initialiseVisibleFilterableColumnIndexList() {
+        Map<Long, LogEntryKey> timeLogEntryKeyMap = getTimeLogEntryKeyMap();
+        timeLogEntryKeyMap.put(logEntryTime, logEntryKey);
 
-		Map<LogEntryColumn, Integer> logEntryColumnIndexMap = getLogEntryColumnIndexMap();
-		logEntryColumnIndexMap.clear();
+        Map<Integer, LogEntryKey> lineNoLogEntryKeyMap = getLineNoLogEntryKeyMap();
+        lineNoLogEntryKeyMap.put(lineNo, logEntryKey);
 
-		ArrayList<Integer> visibleColumnIndexList = getVisibleColumnIndexList();
-		visibleColumnIndexList.clear();
+        updateColumnFilterMap(logEntry.getKey(), logEntryValueList);
 
-		Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<Integer>>> columnFilterMap = getColumnFilterMap();
-		columnFilterMap.clear();
+        long lowerDomainRange = getLowerDomainRange();
+        long upperDomainRange = getUpperDomainRange();
 
-		ArrayList<String> logEntryColumnList = getLogEntryColumnList();
+        if (lowerDomainRange == -1) {
+            lowerDomainRange = logEntryTime - 1;
+        } else {
+            lowerDomainRange = Math.min(lowerDomainRange, logEntryTime);
+        }
 
-		int size = logEntryColumnList.size();
+        if (upperDomainRange == -1) {
+            upperDomainRange = logEntryTime;
+        } else {
+            upperDomainRange = Math.max(upperDomainRange, logEntryTime);
+        }
 
-		for (int columnIndex = 0; columnIndex < size; columnIndex++) {
+        setLowerDomainRange(lowerDomainRange);
+        setUpperDomainRange(upperDomainRange);
 
-			String column = logEntryColumnList.get(columnIndex);
+        postProcess(logEntry, logEntryValueList, charset, locale);
+    }
 
-			LogEntryColumn logEntryColumn = null;
+    public long getLowerDomainRange() {
+        return lowerDomainRange;
+    }
 
-			logEntryColumn = LogEntryColumn.getTableColumnById(column);
+    protected void setLowerDomainRange(long lowerDomainRange) {
+        this.lowerDomainRange = lowerDomainRange;
+    }
 
-			if (logEntryColumn != null) {
+    public long getUpperDomainRange() {
+        return upperDomainRange;
+    }
 
-				logEntryColumnIndexMap.put(logEntryColumn, columnIndex);
+    protected void setUpperDomainRange(long upperDomainRange) {
+        this.upperDomainRange = upperDomainRange;
+    }
 
-				if (logEntryColumn.isVisibleColumn()) {
-					visibleColumnIndexList.add(columnIndex);
+    protected boolean isRebuildLogTimeSeriesCollectionSet() {
+        return rebuildLogTimeSeriesCollectionSet;
+    }
 
-					// preventing unnecessary buildup of filter map
-					if (logEntryColumn.isFilterable()) {
+    public void setRebuildLogTimeSeriesCollectionSet(boolean rebuildLogTimeSeriesCollectionSet) {
+        this.rebuildLogTimeSeriesCollectionSet = rebuildLogTimeSeriesCollectionSet;
+    }
 
-						FilterColumn fc = new FilterColumn(columnIndex);
+    private void initialiseVisibleFilterableColumnIndexList() {
 
-						fc.setColumnFilterEnabled(true);
+        Map<LogEntryColumn, Integer> logEntryColumnIndexMap = getLogEntryColumnIndexMap();
+        logEntryColumnIndexMap.clear();
 
-						columnFilterMap.put(fc, null);
-					}
-				}
+        ArrayList<Integer> visibleColumnIndexList = getVisibleColumnIndexList();
+        visibleColumnIndexList.clear();
 
-			} else {
-				// unknown column name, default is show it
-				visibleColumnIndexList.add(columnIndex);
-			}
-		}
+        Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<LogEntryKey>>> columnFilterMap = getColumnFilterMap();
+        columnFilterMap.clear();
 
-		timestampColumnIndex = logEntryColumnIndexMap.get(LogEntryColumn.TIMESTAMP);
-	}
+        ArrayList<String> logEntryColumnList = getLogEntryColumnList();
 
-	private void updateColumnFilterMap(Integer logEntryIndex, ArrayList<String> logEntryValueList) {
+        int size = logEntryColumnList.size();
 
-		if (logEntryValueList != null) {
+        for (int columnIndex = 0; columnIndex < size; columnIndex++) {
 
-			Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<Integer>>> columnFilterMap = getColumnFilterMap();
+            String column = logEntryColumnList.get(columnIndex);
 
-			Iterator<FilterColumn> fcIterator = columnFilterMap.keySet().iterator();
+            LogEntryColumn logEntryColumn = null;
 
-			while (fcIterator.hasNext()) {
+            logEntryColumn = LogEntryColumn.getTableColumnById(column);
 
-				FilterColumn filterColumn = fcIterator.next();
-				List<CheckBoxMenuItemPopupEntry<Integer>> columnFilterEntryList = columnFilterMap.get(filterColumn);
+            if (logEntryColumn != null) {
 
-				if (columnFilterEntryList == null) {
-					columnFilterEntryList = new ArrayList<CheckBoxMenuItemPopupEntry<Integer>>();
-					columnFilterMap.put(filterColumn, columnFilterEntryList);
-				}
+                logEntryColumnIndexMap.put(logEntryColumn, columnIndex);
 
-				int columnIndex = filterColumn.getIndex();
+                if (logEntryColumn.isVisibleColumn()) {
+                    visibleColumnIndexList.add(columnIndex);
 
-				String logEntryValue = logEntryValueList.get(columnIndex);
+                    // preventing unnecessary buildup of filter map
+                    if (logEntryColumn.isFilterable()) {
 
-				if (logEntryValue == null) {
-					logEntryValue = FilterTableModel.NULL_STR;
-				} else if ("".equals(logEntryValue)) {
-					logEntryValue = FilterTableModel.EMPTY_STR;
-				}
+                        FilterColumn fc = new FilterColumn(columnIndex);
 
-				CheckBoxMenuItemPopupEntry<Integer> columnFilterEntry;
+                        fc.setColumnFilterEnabled(true);
 
-				CheckBoxMenuItemPopupEntry<Integer> searchKey = new CheckBoxMenuItemPopupEntry<Integer>(logEntryValue);
+                        columnFilterMap.put(fc, null);
+                    }
+                }
 
-				int index = columnFilterEntryList.indexOf(searchKey);
+            } else {
+                // unknown column name, default is show it
+                visibleColumnIndexList.add(columnIndex);
+            }
+        }
 
-				if (index == -1) {
-					columnFilterEntry = new CheckBoxMenuItemPopupEntry<Integer>(logEntryValue);
-					columnFilterEntryList.add(columnFilterEntry);
-				} else {
-					columnFilterEntry = columnFilterEntryList.get(index);
-				}
+        timestampColumnIndex = logEntryColumnIndexMap.get(LogEntryColumn.TIMESTAMP);
+    }
 
-				columnFilterEntry.addRowIndex(logEntryIndex);
-			}
-		}
-	}
+    private void updateColumnFilterMap(LogEntryKey logEntryKey, ArrayList<String> logEntryValueList) {
 
-	public int getTotalRowCount() {
-		return logEntryMap.size();
-	}
+        if (logEntryValueList != null) {
 
-	public LogEntry getLogEntry(Integer logEntryIndex) {
-		return logEntryMap.get(logEntryIndex);
-	}
+            Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<LogEntryKey>>> columnFilterMap = getColumnFilterMap();
 
-	public String getLogEntryColumn(int columnIndex) {
-		return logEntryColumnList.get(columnIndex);
-	}
+            Iterator<FilterColumn> fcIterator = columnFilterMap.keySet().iterator();
 
-	public String getFormattedLogEntryValue(LogEntry logEntry, LogEntryColumn logEntryColumn) {
+            while (fcIterator.hasNext()) {
 
-		Map<LogEntryColumn, Integer> logEntryColumnIndexMap = getLogEntryColumnIndexMap();
+                FilterColumn filterColumn = fcIterator.next();
+                List<CheckBoxMenuItemPopupEntry<LogEntryKey>> columnFilterEntryList = columnFilterMap.get(filterColumn);
 
-		int columnIndex = -1;
+                if (columnFilterEntryList == null) {
+                    columnFilterEntryList = new ArrayList<CheckBoxMenuItemPopupEntry<LogEntryKey>>();
+                    columnFilterMap.put(filterColumn, columnFilterEntryList);
+                }
 
-		Integer logEntryColumnIndex = logEntryColumnIndexMap.get(logEntryColumn);
+                int columnIndex = filterColumn.getIndex();
 
-		if (logEntryColumnIndex != null) {
-			columnIndex = logEntryColumnIndex.intValue();
-		}
+                String logEntryValue = logEntryValueList.get(columnIndex);
 
-		return getFormattedLogEntryValue(logEntry, columnIndex);
+                if (logEntryValue == null) {
+                    logEntryValue = FilterTableModel.NULL_STR;
+                } else if ("".equals(logEntryValue)) {
+                    logEntryValue = FilterTableModel.EMPTY_STR;
+                }
 
-	}
+                CheckBoxMenuItemPopupEntry<LogEntryKey> columnFilterEntry;
 
-	public String getFormattedLogEntryValue(LogEntry logEntry, int column) {
+                CheckBoxMenuItemPopupEntry<LogEntryKey> searchKey = new CheckBoxMenuItemPopupEntry<LogEntryKey>(
+                        logEntryValue);
 
-		int logEntryIndex = logEntry.getKey();
+                int index = columnFilterEntryList.indexOf(searchKey);
 
-		String text = null;
+                if (index == -1) {
+                    columnFilterEntry = new CheckBoxMenuItemPopupEntry<LogEntryKey>(logEntryValue);
+                    columnFilterEntryList.add(columnFilterEntry);
+                } else {
+                    columnFilterEntry = columnFilterEntryList.get(index);
+                }
 
-		if (column >= 0) {
+                columnFilterEntry.addRowIndex(logEntryKey);
+            }
+        }
+    }
 
-			try {
+    public int getTotalRowCount() {
+        return logEntryMap.size();
+    }
 
-				if (column == timestampColumnIndex) {
+    public LogEntry getLogEntry(LogEntryKey logEntryKey) {
+        return logEntryMap.get(logEntryKey);
+    }
 
-					Date logEntryDate = logEntry.getLogEntryDate();
+    public String getLogEntryColumn(int columnIndex) {
+        return logEntryColumnList.get(columnIndex);
+    }
 
-					if (logEntryDate != null) {
-						text = displayDateFormat.format(logEntryDate);
-					}
-				} else {
+    public String getFormattedLogEntryValue(LogEntry logEntry, LogEntryColumn logEntryColumn) {
 
-					ArrayList<String> logEntryValueList = null;
+        Map<LogEntryColumn, Integer> logEntryColumnIndexMap = getLogEntryColumnIndexMap();
 
-					if ((lastQueriedLogEntryIndex != logEntryIndex) || (lastQueriedLogEntryValueList == null)) {
+        int columnIndex = -1;
 
-						logEntryValueList = logEntry.getLogEntryValueList();
+        Integer logEntryColumnIndex = logEntryColumnIndexMap.get(logEntryColumn);
 
-					} else {
+        if (logEntryColumnIndex != null) {
+            columnIndex = logEntryColumnIndex.intValue();
+        }
 
-						logEntryValueList = lastQueriedLogEntryValueList;
-					}
+        return getFormattedLogEntryValue(logEntry, columnIndex);
 
-					lastQueriedLogEntryIndex = logEntryIndex;
-					lastQueriedLogEntryValueList = logEntryValueList;
+    }
 
-					text = logEntryValueList.get(column);
-				}
-			} catch (Exception e) {
-				LOG.error("Error in getting formatted log entry value for index: " + logEntryIndex, e);
-			}
+    public String getFormattedLogEntryValue(LogEntry logEntry, int column) {
 
-			// only show data of limited length in the table column
-			if ((text != null) && (text.length() > TABLE_DATA_LENGTH)) {
-				text = text.substring(0, TABLE_DATA_LENGTH);
-				text = text + "...";
-			}
-		}
+        LogEntryKey logEntryKey = logEntry.getKey();
 
-		return text;
-	}
+        String text = null;
 
-	private void updateDomainAxis(TimeZone displayTimeZone, Locale locale) {
+        if (column >= 0) {
 
-		DateAxis domainAxis = getDomainAxis();
+            try {
 
-		if (displayTimeZone != null) {
-			String abbrTimeZoneStr = displayTimeZone.getDisplayName(displayTimeZone.useDaylightTime(), TimeZone.SHORT);
+                if (column == timestampColumnIndex) {
 
-			String label = "Time (" + abbrTimeZoneStr + ")";
+                    long logEntryTime = logEntryKey.getTimestamp();
 
-			domainAxis.setLabel(label);
-			domainAxis.setTimeZone(displayTimeZone);
-		}
+                    if (logEntryTime != -1) {
 
-		if (locale != null) {
-			domainAxis.setLocale(locale);
-		}
+                        DateFormat displayDateFormat = getDisplayDateFormat();
 
-	}
+                        text = displayDateFormat.format(new Date(logEntryTime));
+                    }
+                } else {
+
+                    ArrayList<String> logEntryValueList = null;
+
+                    if ((lastQueriedLogEntryKey != logEntryKey) || (lastQueriedLogEntryValueList == null)) {
+
+                        logEntryValueList = logEntry.getLogEntryValueList();
+
+                    } else {
+
+                        logEntryValueList = lastQueriedLogEntryValueList;
+                    }
+
+                    lastQueriedLogEntryKey = logEntryKey;
+                    lastQueriedLogEntryValueList = logEntryValueList;
+
+                    text = logEntryValueList.get(column);
+                }
+            } catch (Exception e) {
+                LOG.error("Error in getting formatted log entry value for index: " + logEntryKey, e);
+            }
+
+            // only show data of limited length in the table column
+            if ((text != null) && (text.length() > TABLE_DATA_LENGTH)) {
+                text = text.substring(0, TABLE_DATA_LENGTH);
+                text = text + "...";
+            }
+        }
+
+        return text;
+    }
+
+    private void updateDomainAxis(TimeZone displayTimeZone, Locale locale) {
+
+        DateAxis domainAxis = getDomainAxis();
+
+        if (displayTimeZone != null) {
+            String abbrTimeZoneStr = displayTimeZone.getDisplayName(displayTimeZone.useDaylightTime(), TimeZone.SHORT);
+
+            String label = "Time (" + abbrTimeZoneStr + ")";
+
+            domainAxis.setLabel(label);
+            domainAxis.setTimeZone(displayTimeZone);
+        }
+
+        if (locale != null) {
+            domainAxis.setLocale(locale);
+        }
+
+    }
+
+    public String getLogEntryTimeDisplayString(LogEntryKey logEntryKey) {
+
+        String logEntryTimeDisplayString = null;
+
+        long logEntryTime = logEntryKey.getTimestamp();
+
+        if (logEntryTime != -1) {
+
+            DateFormat displayDateFormat = getDisplayDateFormat();
+
+            logEntryTimeDisplayString = displayDateFormat.format(new Date(logEntryTime));
+        }
+
+        return logEntryTimeDisplayString;
+    }
+
+    public void clearLogEntrySearchResults() {
+
+        Map<LogEntryKey, LogEntry> logEntryMap = getLogEntryMap();
+
+        if (logEntryMap != null) {
+
+            for (Map.Entry<LogEntryKey, LogEntry> entry : logEntryMap.entrySet()) {
+                LogEntry logEntry = entry.getValue();
+                logEntry.setSearchFound(false);
+            }
+        }
+    }
+
+    public LogEntryKey getClosestLogEntryKeyForTime(long time) {
+
+        LogEntryKey logEntryKey = null;
+
+        Map<Long, LogEntryKey> timeLogEntryKeyMap = getTimeLogEntryKeyMap();
+
+        List<Long> timeKeyList = new ArrayList<>(timeLogEntryKeyMap.keySet());
+
+        Collections.sort(timeKeyList);
+
+        long firstTime = timeKeyList.get(0);
+
+        long lastTime = timeKeyList.get(timeKeyList.size() - 1);
+
+        if ((time >= firstTime) && (time <= lastTime)) {
+
+            int index = Collections.binarySearch(timeKeyList, time);
+            Long timeKey = null;
+
+            if (index < 0) {
+                index = (index * -1) - 1;
+
+                // find closest index
+                if (index > 0) {
+
+                    int prevIndex = index - 1;
+                    long prevtimeKey = timeKeyList.get(prevIndex);
+                    timeKey = timeKeyList.get(index);
+
+                    long diff1 = time - prevtimeKey;
+                    long diff2 = timeKey - time;
+
+                    if (diff1 < diff2) {
+                        timeKey = prevtimeKey;
+                    }
+
+                } else {
+                    timeKey = timeKeyList.get(index);
+                }
+            } else {
+                // exact match
+                timeKey = timeKeyList.get(index);
+            }
+
+            logEntryKey = timeLogEntryKeyMap.get(timeKey);
+
+        }
+
+        return logEntryKey;
+    }
+
+    public LogEntryKey getClosestLogEntryKeyForLineNo(int lineNo) {
+
+        LogEntryKey logEntryKey = null;
+
+        Map<Integer, LogEntryKey> lineNoLogEntryKeyMap = getLineNoLogEntryKeyMap();
+
+        List<Integer> lineNoKeyList = new ArrayList<>(lineNoLogEntryKeyMap.keySet());
+
+        Collections.sort(lineNoKeyList);
+
+        int firstLineNo = lineNoKeyList.get(0);
+
+        int lastLineNo = lineNoKeyList.get(lineNoKeyList.size() - 1);
+
+        if ((lineNo >= firstLineNo) && (lineNo <= lastLineNo)) {
+
+            int index = Collections.binarySearch(lineNoKeyList, lineNo);
+            Integer lineNoKey = null;
+
+            if (index < 0) {
+                index = (index * -1) - 1;
+
+                // find closest index
+                if (index > 0) {
+
+                    int prevIndex = index - 1;
+                    int prevLineNoKey = lineNoKeyList.get(prevIndex);
+                    lineNoKey = lineNoKeyList.get(index);
+
+                    int diff1 = lineNo - prevLineNoKey;
+                    int diff2 = lineNoKey - lineNo;
+
+                    if (diff1 < diff2) {
+                        lineNoKey = prevLineNoKey;
+                    }
+
+                } else {
+                    lineNoKey = lineNoKeyList.get(index);
+                }
+            } else {
+                // exact match
+                lineNoKey = lineNoKeyList.get(index);
+            }
+
+            logEntryKey = lineNoLogEntryKeyMap.get(lineNoKey);
+
+        }
+
+        return logEntryKey;
+    }
 }

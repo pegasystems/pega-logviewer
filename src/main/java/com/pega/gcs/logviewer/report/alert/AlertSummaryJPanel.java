@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alert;
 
 import java.awt.BasicStroke;
@@ -13,13 +14,13 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.io.File;
 import java.text.DateFormat;
-import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.swing.BorderFactory;
@@ -39,25 +40,30 @@ import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.CategoryAxis;
 import org.jfree.chart.axis.DateAxis;
-import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.CombinedDomainXYPlot;
 import org.jfree.chart.plot.IntervalMarker;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.title.TextTitle;
 import org.jfree.data.statistics.BoxAndWhiskerItem;
 
 import com.pega.gcs.fringecommon.guiutilities.ClickablePathPanel;
 import com.pega.gcs.fringecommon.guiutilities.NavigationTableController;
 import com.pega.gcs.fringecommon.guiutilities.NoteJPanel;
+import com.pega.gcs.fringecommon.guiutilities.RecentFile;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.logviewer.CombinedDomainXYPlotMouseListener;
+import com.pega.gcs.logviewer.CustomChartPanel;
 import com.pega.gcs.logviewer.LogTable;
 import com.pega.gcs.logviewer.LogTableModel;
 import com.pega.gcs.logviewer.LogViewerUtil;
 import com.pega.gcs.logviewer.model.AlertBoxAndWhiskerItem;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
+import com.pega.gcs.logviewer.model.AlertLogTimeSeries;
 import com.pega.gcs.logviewer.model.LogEntry;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.LogSeries;
 import com.pega.gcs.logviewer.model.LogSeriesCollection;
@@ -67,749 +73,793 @@ import com.pega.gcs.logviewer.model.alert.AlertMessageListProvider;
 
 public class AlertSummaryJPanel extends JPanel implements ListSelectionListener {
 
-	private static final long serialVersionUID = -8110603275329775468L;
+    private static final long serialVersionUID = -8110603275329775468L;
+
+    private static final Log4j2Helper LOG = new Log4j2Helper(AlertSummaryJPanel.class);
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(AlertSummaryJPanel.class);
+    private String alertMessageId;
 
-	private CombinedDomainXYPlot combinedDomainXYPlot;
+    private CombinedDomainXYPlot combinedDomainXYPlot;
 
-	private LogTable logTable;
+    private LogTable logTable;
 
-	private NavigationTableController<Integer> navigationTableController;
+    private NavigationTableController<LogEntryKey> navigationTableController;
 
-	private List<IntervalMarker> manualIntervalMarkerList;
+    private List<IntervalMarker> manualIntervalMarkerList;
 
-	public AlertSummaryJPanel(LogSeriesCollection logTimeSeriesCollection, LogTable logTable,
-			NavigationTableController<Integer> navigationTableController) {
+    public AlertSummaryJPanel(LogSeriesCollection logTimeSeriesCollection, LogTable logTable,
+            NavigationTableController<LogEntryKey> navigationTableController) {
 
-		super();
+        super();
 
-		this.logTable = logTable;
-		this.navigationTableController = navigationTableController;
-		this.manualIntervalMarkerList = new LinkedList<IntervalMarker>();
+        this.alertMessageId = logTimeSeriesCollection.getName();
+        this.logTable = logTable;
+        this.navigationTableController = navigationTableController;
+        this.manualIntervalMarkerList = new ArrayList<IntervalMarker>();
 
-		ListSelectionModel lsm = logTable.getSelectionModel();
-		lsm.addListSelectionListener(this);
+        ListSelectionModel lsm = logTable.getSelectionModel();
+        lsm.addListSelectionListener(this);
 
-		setLayout(new GridBagLayout());
+        setLayout(new GridBagLayout());
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = 1;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 0.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 0.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		GridBagConstraints gbc3 = new GridBagConstraints();
-		gbc3.gridx = 0;
-		gbc3.gridy = 2;
-		gbc3.weightx = 1.0D;
-		gbc3.weighty = 1.0D;
-		gbc3.fill = GridBagConstraints.BOTH;
-		gbc3.anchor = GridBagConstraints.NORTHWEST;
-		gbc3.insets = new Insets(0, 0, 0, 0);
+        GridBagConstraints gbc3 = new GridBagConstraints();
+        gbc3.gridx = 0;
+        gbc3.gridy = 2;
+        gbc3.weightx = 1.0D;
+        gbc3.weighty = 1.0D;
+        gbc3.fill = GridBagConstraints.BOTH;
+        gbc3.anchor = GridBagConstraints.NORTHWEST;
+        gbc3.insets = new Insets(0, 0, 0, 0);
 
-		String title = logTimeSeriesCollection.getName();
+        JPanel generalJPanel = getGeneralJPanel(alertMessageId);
+        JPanel boxAndWhiskerStatisticsJPanel = getMainBoxAndWhiskerStatisticsJPanel(logTimeSeriesCollection);
 
-		JPanel generalJPanel = getGeneralJPanel(title);
-		JPanel boxAndWhiskerStatisticsJPanel = getMainBoxAndWhiskerStatisticsJPanel(logTimeSeriesCollection);
+        JSplitPane alertChartAndTableSplitPane = getAlertChartAndTableSplitPane(logTimeSeriesCollection);
 
-		JSplitPane alertChartAndTableSplitPane = getAlertChartAndTableSplitPane(logTimeSeriesCollection);
+        add(generalJPanel, gbc1);
+        add(boxAndWhiskerStatisticsJPanel, gbc2);
+        add(alertChartAndTableSplitPane, gbc3);
+    }
 
-		add(generalJPanel, gbc1);
-		add(boxAndWhiskerStatisticsJPanel, gbc2);
-		add(alertChartAndTableSplitPane, gbc3);
-	}
+    private JPanel getGeneralJPanel(String alertMessageId) {
 
-	private JPanel getGeneralJPanel(String alertMessageId) {
+        JPanel generalJPanel = new JPanel();
 
-		JPanel generalJPanel = new JPanel();
+        generalJPanel.setLayout(new GridBagLayout());
 
-		generalJPanel.setLayout(new GridBagLayout());
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(8, 0, 8, 0);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(8, 0, 8, 0);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = 1;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+        JLabel titleJLabel = new JLabel(alertMessageId);
+        Font labelFont = titleJLabel.getFont();
+        Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
+        titleJLabel.setFont(tabFont);
+        titleJLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		JLabel titleJLabel = new JLabel(alertMessageId);
-		Font labelFont = titleJLabel.getFont();
-		Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
-		titleJLabel.setFont(tabFont);
-		titleJLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
+        Map<Integer, AlertMessage> alertMessageMap = alertMessageListProvider.getAlertMessageMap();
+        Map<String, Integer> messageIdAlertIdMap = alertMessageListProvider.getMessageIdAlertIdMap();
 
-		AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
-		Map<Integer, AlertMessage> alertMessageMap = alertMessageListProvider.getAlertMessageMap();
-		Map<String, Integer> messageIdAlertIdMap = alertMessageListProvider.getMessageIdAlertIdMap();
+        Integer alertId = messageIdAlertIdMap.get(alertMessageId);
 
-		Integer alertId = messageIdAlertIdMap.get(alertMessageId);
+        AlertMessage alertMessage = alertMessageMap.get(alertId);
 
-		AlertMessage alertMessage = alertMessageMap.get(alertId);
+        JPanel alertMessageJPanel = getAlertMessageJPanel(alertMessage);
 
-		JPanel alertMessageJPanel = getAlertMessageJPanel(alertMessage);
+        generalJPanel.add(titleJLabel, gbc1);
+        generalJPanel.add(alertMessageJPanel, gbc2);
 
-		generalJPanel.add(titleJLabel, gbc1);
-		generalJPanel.add(alertMessageJPanel, gbc2);
+        return generalJPanel;
+    }
 
-		return generalJPanel;
-	}
+    private JPanel getMainBoxAndWhiskerStatisticsJPanel(LogSeriesCollection logTimeSeriesCollection) {
 
-	private JPanel getMainBoxAndWhiskerStatisticsJPanel(LogSeriesCollection logTimeSeriesCollection) {
+        JPanel mainMoxAndWhiskerStatisticsJPanel = new JPanel();
 
-		JPanel mainMoxAndWhiskerStatisticsJPanel = new JPanel();
+        mainMoxAndWhiskerStatisticsJPanel.setLayout(new GridBagLayout());
 
-		mainMoxAndWhiskerStatisticsJPanel.setLayout(new GridBagLayout());
+        LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-		LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+        Locale locale = logTableModel.getLocale();
 
-		NumberFormat numberFormat = logTableModel.getLogEntryModel().getNumberFormat();
+        int yindex = 0;
 
-		int yIndex = 0;
+        Collection<LogSeries> logSeriesList = logTimeSeriesCollection.getLogSeriesList();
 
-		List<LogSeries> logSeriesList = logTimeSeriesCollection.getLogSeriesList();
+        for (LogSeries logSeries : logSeriesList) {
 
-		for (LogSeries logSeries : logSeriesList) {
+            AlertLogTimeSeries alertLogTimeSeries = (AlertLogTimeSeries) logSeries;
 
-			LogTimeSeries logTimeSeries = (LogTimeSeries) logSeries;
+            AlertBoxAndWhiskerItem alertBoxAndWhiskerItem = alertLogTimeSeries.getBoxAndWhiskerItem();
 
-			AlertBoxAndWhiskerItem alertBoxAndWhiskerItem;
-			alertBoxAndWhiskerItem = (AlertBoxAndWhiskerItem) logTimeSeries.getBoxAndWhiskerItem();
+            if (alertBoxAndWhiskerItem != null) {
 
-			if (alertBoxAndWhiskerItem != null) {
+                GridBagConstraints gbc1 = new GridBagConstraints();
+                gbc1.gridx = 0;
+                gbc1.gridy = yindex;
+                gbc1.weightx = 1.0D;
+                gbc1.weighty = 1.0D;
+                gbc1.fill = GridBagConstraints.BOTH;
+                gbc1.anchor = GridBagConstraints.NORTHWEST;
+                gbc1.insets = new Insets(0, 0, 0, 0);
 
-				GridBagConstraints gbc1 = new GridBagConstraints();
-				gbc1.gridx = 0;
-				gbc1.gridy = yIndex;
-				gbc1.weightx = 1.0D;
-				gbc1.weighty = 1.0D;
-				gbc1.fill = GridBagConstraints.BOTH;
-				gbc1.anchor = GridBagConstraints.NORTHWEST;
-				gbc1.insets = new Insets(0, 0, 0, 0);
+                JPanel alertBoxAndWhiskerStatisticsJPanel = new AlertBoxAndWhiskerStatisticsJPanel(
+                        alertBoxAndWhiskerItem, locale);
 
-				JPanel alertBoxAndWhiskerStatisticsJPanel = new AlertBoxAndWhiskerStatisticsJPanel(
-						alertBoxAndWhiskerItem, numberFormat);
+                mainMoxAndWhiskerStatisticsJPanel.add(alertBoxAndWhiskerStatisticsJPanel, gbc1);
 
-				mainMoxAndWhiskerStatisticsJPanel.add(alertBoxAndWhiskerStatisticsJPanel, gbc1);
+                yindex++;
 
-				yIndex++;
+            }
+        }
 
-			}
-		}
+        return mainMoxAndWhiskerStatisticsJPanel;
+    }
 
-		return mainMoxAndWhiskerStatisticsJPanel;
-	}
+    private JPanel getNameJPanel(String name, int horizontalAlignment, Insets insets, Dimension preferredSize) {
 
-	private JPanel getNameJPanel(String name, int hAlignment, Insets insets, Dimension preferredSize) {
+        JPanel statisticsNameJPanel = new JPanel();
 
-		JPanel statisticsNameJPanel = new JPanel();
+        statisticsNameJPanel.setLayout(new GridBagLayout());
 
-		statisticsNameJPanel.setLayout(new GridBagLayout());
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = insets;
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = insets;
+        JLabel nameJLabel = new JLabel(name);
 
-		JLabel nameJLabel = new JLabel(name);
+        Font labelFont = nameJLabel.getFont();
+        Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
 
-		Font labelFont = nameJLabel.getFont();
-		Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
+        nameJLabel.setFont(tabFont);
 
-		nameJLabel.setFont(tabFont);
+        nameJLabel.setHorizontalAlignment(horizontalAlignment);
 
-		nameJLabel.setHorizontalAlignment(hAlignment);
+        if (preferredSize != null) {
+            nameJLabel.setPreferredSize(preferredSize);
+        }
 
-		if (preferredSize != null) {
-			nameJLabel.setPreferredSize(preferredSize);
-		}
+        statisticsNameJPanel.add(nameJLabel, gbc1);
 
-		statisticsNameJPanel.add(nameJLabel, gbc1);
+        statisticsNameJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		statisticsNameJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        return statisticsNameJPanel;
+    }
 
-		return statisticsNameJPanel;
-	}
+    private JPanel getValueJPanel(String value, int horizontalAlignment, Insets insets, boolean isUrl) {
 
-	private JPanel getValueJPanel(String value, int hAlignment, Insets insets, boolean isUrl) {
+        JPanel statisticsValueJPanel = new JPanel();
 
-		JPanel statisticsValueJPanel = new JPanel();
+        statisticsValueJPanel.setLayout(new GridBagLayout());
 
-		statisticsValueJPanel.setLayout(new GridBagLayout());
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = insets;
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = insets;
+        JComponent valueComponent = null;
 
-		JComponent valueComponent = null;
+        if (isUrl) {
 
-		if (isUrl) {
+            ClickablePathPanel clickablePathPanel = new ClickablePathPanel();
+            clickablePathPanel.setUrl(value);
+            valueComponent = clickablePathPanel;
 
-			ClickablePathPanel clickablePathPanel = new ClickablePathPanel();
-			clickablePathPanel.setUrl(value);
-			valueComponent = clickablePathPanel;
+        } else {
+            JTextField valueJTextField = new JTextField(value);
+            valueJTextField.setEditable(false);
+            valueJTextField.setBackground(null);
+            valueJTextField.setBorder(null);
 
-		} else {
-			JTextField valueJTextField = new JTextField(value);
-			valueJTextField.setEditable(false);
-			valueJTextField.setBackground(null);
-			valueJTextField.setBorder(null);
+            valueJTextField.setHorizontalAlignment(horizontalAlignment);
+            valueComponent = valueJTextField;
+        }
 
-			valueJTextField.setHorizontalAlignment(hAlignment);
-			valueComponent = valueJTextField;
-		}
+        statisticsValueJPanel.add(valueComponent, gbc1);
 
-		statisticsValueJPanel.add(valueComponent, gbc1);
+        statisticsValueJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		statisticsValueJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        return statisticsValueJPanel;
+    }
 
-		return statisticsValueJPanel;
-	}
+    private JSplitPane getAlertChartAndTableSplitPane(LogSeriesCollection logTimeSeriesCollection) {
 
-	protected JSplitPane getAlertChartAndTableSplitPane(LogSeriesCollection logTimeSeriesCollection) {
+        JPanel chartAndWiskerJPanel = getChartAndWhiskerJPanel(logTimeSeriesCollection);
+        JPanel alertMessageReportJPanel = getAlertMessageReportJPanel(logTimeSeriesCollection);
 
-		JPanel chartAndWiskerJPanel = getChartAndWhiskerJPanel(logTimeSeriesCollection);
-		JPanel alertMessageReportJPanel = getAlertMessageReportJPanel(logTimeSeriesCollection);
+        JSplitPane alertChartAndTableSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, chartAndWiskerJPanel,
+                alertMessageReportJPanel);
 
-		JSplitPane alertChartAndTableSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, chartAndWiskerJPanel,
-				alertMessageReportJPanel);
+        alertChartAndTableSplitPane.setContinuousLayout(true);
+        alertChartAndTableSplitPane.setDividerLocation(150);
+        alertChartAndTableSplitPane.setResizeWeight(0.5);
 
-		alertChartAndTableSplitPane.setContinuousLayout(true);
-		alertChartAndTableSplitPane.setDividerLocation(150);
-		alertChartAndTableSplitPane.setResizeWeight(0.5);
+        return alertChartAndTableSplitPane;
+    }
 
-		return alertChartAndTableSplitPane;
-	}
+    private JPanel getChartAndWhiskerJPanel(LogSeriesCollection logSeriesCollection) {
 
-	private JPanel getChartAndWhiskerJPanel(LogSeriesCollection logSeriesCollection) {
+        JPanel chartAndWiskerJPanel = new JPanel();
 
-		JPanel chartAndWiskerJPanel = new JPanel();
+        chartAndWiskerJPanel.setLayout(new GridBagLayout());
 
-		chartAndWiskerJPanel.setLayout(new GridBagLayout());
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(10, 0, 10, 0);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(10, 0, 10, 0);
+        LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+        LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-		LogTableModel logTableModel = (LogTableModel) logTable.getModel();
-		LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
+        DateFormat modelDateFormat = logEntryModel.getModelDateFormat();
 
-		DateFormat modelDateFormat = logEntryModel.getModelDateFormat();
-		NumberFormat numberFormat = logEntryModel.getNumberFormat();
+        CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
+        DateAxis domainAxis = logEntryModel.getDomainAxis();
 
-		CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
-		DateAxis domainAxis = logEntryModel.getDomainAxis();
+        try {
+            combinedDomainXYPlot.setDomainAxis((DateAxis) domainAxis.clone());
+        } catch (CloneNotSupportedException e) {
+            LOG.error("Error setting domain axis.", e);
+        }
 
-		try {
-			combinedDomainXYPlot.setDomainAxis((DateAxis) domainAxis.clone());
-		} catch (CloneNotSupportedException e) {
-			LOG.error("Error setting domain axis.", e);
-		}
+        XYPlot lscXYPlot = new XYPlot();
+        lscXYPlot.setDomainCrosshairVisible(false);
+        lscXYPlot.setDomainCrosshairLockedOnData(false);
+        lscXYPlot.setRangeCrosshairVisible(false);
+        lscXYPlot.setRangeCrosshairLockedOnData(false);
 
-		XYPlot lscXYPlot = new XYPlot();
-		lscXYPlot.setDomainCrosshairVisible(false);
-		lscXYPlot.setDomainCrosshairLockedOnData(false);
-		lscXYPlot.setRangeCrosshairVisible(false);
-		lscXYPlot.setRangeCrosshairLockedOnData(false);
+        combinedDomainXYPlot.add(lscXYPlot);
 
-		combinedDomainXYPlot.add(lscXYPlot);
+        long lowerDomainRange = logEntryModel.getLowerDomainRange();
+        long upperDomainRange = logEntryModel.getUpperDomainRange();
+        Locale locale = logTableModel.getLocale();
 
-		XYPlot logXYPlot = LogViewerUtil.getLogXYPlot(logEntryModel);
+        // empty plot to re-adjust time domain
+        XYPlot logXYPlot = LogViewerUtil.getLogXYPlot(lowerDomainRange, upperDomainRange, modelDateFormat, locale);
 
-		combinedDomainXYPlot.add(logXYPlot);
-		logXYPlot.setWeight(0);
+        combinedDomainXYPlot.add(logXYPlot);
+        logXYPlot.setWeight(0);
 
-		CategoryPlot categoryPlot = new CategoryPlot();
-		categoryPlot.setDomainCrosshairVisible(false);
-		categoryPlot.setRangeCrosshairVisible(false);
-		categoryPlot.setRangeCrosshairLockedOnData(false);
+        CategoryPlot categoryPlot = new CategoryPlot();
+        categoryPlot.setDomainCrosshairVisible(false);
+        categoryPlot.setRangeCrosshairVisible(false);
+        categoryPlot.setRangeCrosshairLockedOnData(false);
 
-		LogViewerUtil.updatePlots(lscXYPlot, categoryPlot, logSeriesCollection, modelDateFormat, numberFormat, false);
+        LogViewerUtil.updatePlots(lscXYPlot, categoryPlot, logSeriesCollection, modelDateFormat, locale, false);
 
-		JPanel chartPanel = getChartPanel();
+        JPanel chartPanel = getChartPanel();
 
-		chartAndWiskerJPanel.add(chartPanel, gbc1);
+        chartAndWiskerJPanel.add(chartPanel, gbc1);
 
-		int xIndex = 1;
+        int xindex = 1;
 
-		List<LogSeries> logSeriesList = logSeriesCollection.getLogSeriesList();
+        Collection<LogSeries> logSeriesList = logSeriesCollection.getLogSeriesList();
 
-		for (LogSeries logSeries : logSeriesList) {
+        for (LogSeries logSeries : logSeriesList) {
 
-			LogTimeSeries logTimeSeries = (LogTimeSeries) logSeries;
+            LogTimeSeries logTimeSeries = (LogTimeSeries) logSeries;
 
-			BoxAndWhiskerItem boxAndWhiskerItem;
-			boxAndWhiskerItem = logTimeSeries.getBoxAndWhiskerItem();
+            BoxAndWhiskerItem boxAndWhiskerItem;
+            boxAndWhiskerItem = logTimeSeries.getBoxAndWhiskerItem();
 
-			if (boxAndWhiskerItem != null) {
+            if (boxAndWhiskerItem != null) {
 
-				GridBagConstraints gbc2 = new GridBagConstraints();
-				gbc2.gridx = xIndex;
-				gbc2.gridy = 0;
-				gbc2.weightx = 0.0D;
-				gbc2.weighty = 1.0D;
-				gbc2.fill = GridBagConstraints.BOTH;
-				gbc2.anchor = GridBagConstraints.NORTHWEST;
-				gbc2.insets = new Insets(10, 0, 10, 0);
+                GridBagConstraints gbc2 = new GridBagConstraints();
+                gbc2.gridx = xindex;
+                gbc2.gridy = 0;
+                gbc2.weightx = 0.0D;
+                gbc2.weighty = 1.0D;
+                gbc2.fill = GridBagConstraints.BOTH;
+                gbc2.anchor = GridBagConstraints.NORTHWEST;
+                gbc2.insets = new Insets(10, 0, 10, 0);
 
-				JPanel boxAndWiskerPanel = getBoxAndWiskerPanel(categoryPlot);
+                JPanel boxAndWiskerPanel = getBoxAndWiskerPanel(categoryPlot);
 
-				chartAndWiskerJPanel.add(boxAndWiskerPanel, gbc2);
+                chartAndWiskerJPanel.add(boxAndWiskerPanel, gbc2);
 
-				xIndex++;
-			}
-		}
+                xindex++;
+            }
+        }
 
-		chartAndWiskerJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        chartAndWiskerJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		return chartAndWiskerJPanel;
-	}
+        return chartAndWiskerJPanel;
+    }
 
-	private CombinedDomainXYPlot getCombinedDomainXYPlot() {
+    private CombinedDomainXYPlot getCombinedDomainXYPlot() {
 
-		if (combinedDomainXYPlot == null) {
-			DateAxis domainAxis = new DateAxis("Time (-NA-)");
-			domainAxis.setLowerMargin(0.02);
-			domainAxis.setUpperMargin(0.02);
+        if (combinedDomainXYPlot == null) {
+            DateAxis domainAxis = new DateAxis("Time (-NA-)");
+            domainAxis.setLowerMargin(0.02);
+            domainAxis.setUpperMargin(0.02);
 
-			Font labelFont = new Font("Arial", Font.PLAIN, 10);
-			domainAxis.setLabelFont(labelFont);
+            Font labelFont = new Font("Arial", Font.PLAIN, 10);
+            domainAxis.setLabelFont(labelFont);
 
-			combinedDomainXYPlot = new CombinedDomainXYPlot(domainAxis);
-			combinedDomainXYPlot.setGap(5.0);
-			combinedDomainXYPlot.setOrientation(PlotOrientation.VERTICAL);
-		}
+            combinedDomainXYPlot = new CombinedDomainXYPlot(domainAxis);
+            combinedDomainXYPlot.setGap(5.0);
+            combinedDomainXYPlot.setOrientation(PlotOrientation.VERTICAL);
+        }
 
-		return combinedDomainXYPlot;
-	}
+        return combinedDomainXYPlot;
+    }
 
-	private ChartPanel getChartPanel() {
+    private ChartPanel getChartPanel() {
 
-		LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+        LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+        LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-		CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
+        RecentFile recentFile = logTableModel.getRecentFile();
 
-		JFreeChart jFreeChart = new JFreeChart(null, JFreeChart.DEFAULT_TITLE_FONT, combinedDomainXYPlot, false);
+        String filePath = recentFile.getPath();
+        File file = new File(filePath);
+        File parentDir = file.getParentFile();
+        String name = FileUtilities.getNameWithoutExtension(file);
 
-		ChartPanel chartPanel = new ChartPanel(jFreeChart);
+        StringBuilder titleSB = new StringBuilder();
+        titleSB.append(name);
+        titleSB.append("-");
+        titleSB.append(alertMessageId);
 
-		chartPanel.setMinimumDrawWidth(0);
-		chartPanel.setMinimumDrawHeight(0);
-		chartPanel.setMaximumDrawWidth(Integer.MAX_VALUE);
-		chartPanel.setMaximumDrawHeight(Integer.MAX_VALUE);
-		chartPanel.setMouseWheelEnabled(true);
+        CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
 
-		chartPanel.addChartMouseListener(
-				new CombinedDomainXYPlotMouseListener(chartPanel, logTableModel, navigationTableController));
+        // title will be used to fabricate filename
+        JFreeChart chart = new JFreeChart(titleSB.toString(), JFreeChart.DEFAULT_TITLE_FONT, combinedDomainXYPlot,
+                false);
 
-		return chartPanel;
-	}
+        TextTitle textTitle = chart.getTitle();
+        textTitle.setVisible(false);
 
-	private ChartPanel getBoxAndWiskerPanel(CategoryPlot categoryPlot) {
+        CustomChartPanel customChartPanel = new CustomChartPanel(chart);
 
-		CategoryAxis categoryAxis = new CategoryAxis("Box Plot");
-		categoryAxis.setLowerMargin(0.01);
-		categoryAxis.setUpperMargin(0.01);
+        customChartPanel.setMinimumDrawWidth(0);
+        customChartPanel.setMinimumDrawHeight(0);
+        customChartPanel.setMaximumDrawWidth(Integer.MAX_VALUE);
+        customChartPanel.setMaximumDrawHeight(Integer.MAX_VALUE);
+        customChartPanel.setMouseWheelEnabled(true);
+        customChartPanel.setRangeZoomable(false);
+        customChartPanel.setDefaultDirectoryForSaveAs(parentDir);
 
-		categoryPlot.setDomainAxis(categoryAxis);
+        customChartPanel.addChartMouseListener(
+                new CombinedDomainXYPlotMouseListener(customChartPanel, logEntryModel, navigationTableController));
 
-		JFreeChart jFreeChart = new JFreeChart("", JFreeChart.DEFAULT_TITLE_FONT, categoryPlot, false);
+        return customChartPanel;
+    }
 
-		ChartPanel boxAndWiskerPanel = new ChartPanel(jFreeChart);
+    private ChartPanel getBoxAndWiskerPanel(CategoryPlot categoryPlot) {
 
-		Dimension preferredSize = new Dimension(150, Integer.MAX_VALUE);
+        LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+        RecentFile recentFile = logTableModel.getRecentFile();
 
-		boxAndWiskerPanel.setPreferredSize(preferredSize);
+        String filePath = recentFile.getPath();
+        File file = new File(filePath);
+        File parentDir = file.getParentFile();
+        String name = FileUtilities.getNameWithoutExtension(file);
 
-		boxAndWiskerPanel.setMinimumDrawWidth(0);
-		boxAndWiskerPanel.setMinimumDrawHeight(0);
-		boxAndWiskerPanel.setMaximumDrawWidth(Integer.MAX_VALUE);
-		boxAndWiskerPanel.setMaximumDrawHeight(Integer.MAX_VALUE);
-		boxAndWiskerPanel.setMouseWheelEnabled(true);
+        StringBuilder titleSB = new StringBuilder();
+        titleSB.append(name);
+        titleSB.append("-");
+        titleSB.append(alertMessageId);
+        titleSB.append("-");
+        titleSB.append("BoxPlot");
 
-		// boxAndWiskerPanel.addChartMouseListener(new
-		// CombinedDomainCategoryPlotMouseListener(chartPanel, logTable));
+        CategoryAxis categoryAxis = new CategoryAxis("Box Plot");
+        categoryAxis.setLowerMargin(0.01);
+        categoryAxis.setUpperMargin(0.01);
 
-		// TODO revert when functionality done
-		// boxAndWiskerPanel.setVisible(false);
+        categoryPlot.setDomainAxis(categoryAxis);
 
-		return boxAndWiskerPanel;
-	}
+        JFreeChart chart = new JFreeChart(titleSB.toString(), JFreeChart.DEFAULT_TITLE_FONT, categoryPlot, false);
 
-	private JPanel getAlertMessageReportJPanel(LogSeriesCollection logTimeSeriesCollection) {
+        TextTitle textTitle = chart.getTitle();
+        textTitle.setVisible(false);
 
-		JPanel alertMessageReportJPanel = new JPanel();
+        CustomChartPanel customChartPanel = new CustomChartPanel(chart);
 
-		alertMessageReportJPanel.setLayout(new GridBagLayout());
+        Dimension preferredSize = new Dimension(150, Integer.MAX_VALUE);
 
-		String messageId = logTimeSeriesCollection.getName();
+        customChartPanel.setPreferredSize(preferredSize);
 
-		Map<String, Integer> messageIdAlertIdMap = AlertMessageListProvider.getInstance().getMessageIdAlertIdMap();
+        customChartPanel.setMinimumDrawWidth(0);
+        customChartPanel.setMinimumDrawHeight(0);
+        customChartPanel.setMaximumDrawWidth(Integer.MAX_VALUE);
+        customChartPanel.setMaximumDrawHeight(Integer.MAX_VALUE);
+        customChartPanel.setMouseWheelEnabled(true);
+        customChartPanel.setRangeZoomable(false);
+        customChartPanel.setDefaultDirectoryForSaveAs(parentDir);
+        // boxAndWiskerPanel.addChartMouseListener(new
+        // CombinedDomainCategoryPlotMouseListener(chartPanel, logTable));
 
-		Integer alertId = messageIdAlertIdMap.get(messageId);
+        // TODO revert when functionality done
+        // boxAndWiskerPanel.setVisible(false);
 
-		if (alertId != null) {
+        return customChartPanel;
+    }
 
-			LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+    private JPanel getAlertMessageReportJPanel(LogSeriesCollection logTimeSeriesCollection) {
 
-			AlertLogEntryModel alem = (AlertLogEntryModel) logTableModel.getLogEntryModel();
-			Map<Integer, AlertMessageReportModel> alertMessageReportModelMap = alem.getAlertMessageReportModelMap();
+        JPanel alertMessageReportJPanel = new JPanel();
 
-			AlertMessageReportModel alertMessageReportModel = alertMessageReportModelMap.get(alertId);
+        alertMessageReportJPanel.setLayout(new GridBagLayout());
 
-			if (alertMessageReportModel != null) {
+        String messageId = logTimeSeriesCollection.getName();
 
-				GridBagConstraints gbc1 = new GridBagConstraints();
-				gbc1.gridx = 0;
-				gbc1.gridy = 0;
-				gbc1.weightx = 1.0D;
-				gbc1.weighty = 1.0D;
-				gbc1.fill = GridBagConstraints.BOTH;
-				gbc1.anchor = GridBagConstraints.NORTHWEST;
-				gbc1.insets = new Insets(0, 0, 0, 0);
+        Map<String, Integer> messageIdAlertIdMap = AlertMessageListProvider.getInstance().getMessageIdAlertIdMap();
 
-				GridBagConstraints gbc2 = new GridBagConstraints();
-				gbc2.gridx = 0;
-				gbc2.gridy = 1;
-				gbc2.weightx = 1.0D;
-				gbc2.weighty = 0.0D;
-				gbc2.fill = GridBagConstraints.BOTH;
-				gbc2.anchor = GridBagConstraints.NORTHWEST;
-				gbc2.insets = new Insets(0, 0, 0, 0);
+        Integer alertId = messageIdAlertIdMap.get(messageId);
 
-				String alertModelName = logTableModel.getModelName();
+        if (alertId != null) {
 
-				AlertMessageReportTableMouseListener alertMessageReportTableMouseListener;
-				alertMessageReportTableMouseListener = new AlertMessageReportTableMouseListener(alertModelName,
-						navigationTableController, this);
+            LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-				AlertMessageReportTable alertMessageReportTable = new AlertMessageReportTable(alertModelName,
-						alertMessageReportModel);
+            AlertLogEntryModel alertLogEntryModel = (AlertLogEntryModel) logTableModel.getLogEntryModel();
 
-				alertMessageReportTable.setAlertMessageReportTableMouseListener(alertMessageReportTableMouseListener);
+            Map<Integer, AlertMessageReportModel> alertMessageReportModelMap;
+            alertMessageReportModelMap = alertLogEntryModel.getAlertMessageReportModelMap();
 
-				JScrollPane alertMessageReportTableScrollPane = new JScrollPane(alertMessageReportTable);
+            AlertMessageReportModel alertMessageReportModel = alertMessageReportModelMap.get(alertId);
 
-				alertMessageReportJPanel.add(alertMessageReportTableScrollPane, gbc1);
+            if (alertMessageReportModel != null) {
 
-				String noteText = "Double click on a row to see list of alerts for the selected key.";
+                GridBagConstraints gbc1 = new GridBagConstraints();
+                gbc1.gridx = 0;
+                gbc1.gridy = 0;
+                gbc1.weightx = 1.0D;
+                gbc1.weighty = 1.0D;
+                gbc1.fill = GridBagConstraints.BOTH;
+                gbc1.anchor = GridBagConstraints.NORTHWEST;
+                gbc1.insets = new Insets(0, 0, 0, 0);
 
-				NoteJPanel noteJPanel = new NoteJPanel(noteText, 1);
-				alertMessageReportJPanel.add(noteJPanel, gbc2);
-			}
+                GridBagConstraints gbc2 = new GridBagConstraints();
+                gbc2.gridx = 0;
+                gbc2.gridy = 1;
+                gbc2.weightx = 1.0D;
+                gbc2.weighty = 0.0D;
+                gbc2.fill = GridBagConstraints.BOTH;
+                gbc2.anchor = GridBagConstraints.NORTHWEST;
+                gbc2.insets = new Insets(0, 0, 0, 0);
 
-		}
+                String alertModelName = logTableModel.getModelName();
 
-		alertMessageReportJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+                AlertMessageReportTableMouseListener alertMessageReportTableMouseListener;
+                alertMessageReportTableMouseListener = new AlertMessageReportTableMouseListener(logTableModel,
+                        navigationTableController, this);
 
-		return alertMessageReportJPanel;
-	}
+                AlertMessageReportTable alertMessageReportTable = new AlertMessageReportTable(alertModelName,
+                        alertMessageReportModel);
 
-	private JPanel getAlertMessageJPanel(AlertMessage alertMessage) {
+                alertMessageReportTable.setAlertMessageReportTableMouseListener(alertMessageReportTableMouseListener);
 
-		JPanel alertMessageJPanel = new JPanel();
+                JScrollPane alertMessageReportTableScrollPane = new JScrollPane(alertMessageReportTable);
 
-		alertMessageJPanel.setLayout(new GridBagLayout());
+                alertMessageReportJPanel.add(alertMessageReportTableScrollPane, gbc1);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+                String noteText = "Double click on a row to see list of alerts for the selected key.";
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = 1;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+                NoteJPanel noteJPanel = new NoteJPanel(noteText, 1);
+                alertMessageReportJPanel.add(noteJPanel, gbc2);
+            }
 
-		JPanel alertGeneralJPanel = getAlertGeneralJPanel(alertMessage);
-		JPanel alertDSSJPanel = getAlertDSSJPanel(alertMessage);
+        }
 
-		alertMessageJPanel.add(alertGeneralJPanel, gbc1);
-		alertMessageJPanel.add(alertDSSJPanel, gbc2);
+        alertMessageReportJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		return alertMessageJPanel;
-	}
+        return alertMessageReportJPanel;
+    }
 
-	private JPanel getAlertGeneralJPanel(AlertMessage alertMessage) {
+    private JPanel getAlertMessageJPanel(AlertMessage alertMessage) {
 
-		JPanel alertGeneralJPanel = new JPanel();
+        JPanel alertMessageJPanel = new JPanel();
 
-		alertGeneralJPanel.setLayout(new GridBagLayout());
+        alertMessageJPanel.setLayout(new GridBagLayout());
 
-		Insets insets = new Insets(1, 5, 1, 5);
-		Dimension preferredSize = new Dimension(150, 20);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-		JPanel titleJPanel = getNameJPanel("Title: ", SwingConstants.LEFT, insets, preferredSize);
-		JPanel descJPanel = getNameJPanel("Decsription: ", SwingConstants.LEFT, insets, preferredSize);
-		JPanel pdnUrlJPanel = getNameJPanel("PDN Url: ", SwingConstants.LEFT, insets, preferredSize);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		JPanel titleValueJPanel = getValueJPanel(alertMessage.getTitle(), SwingConstants.LEFT, insets, false);
-		JPanel descValueJPanel = getValueJPanel(alertMessage.getDescription(), SwingConstants.LEFT, insets, false);
-		JPanel pdnUrlValueJPanel = getValueJPanel(alertMessage.getPDNURL(), SwingConstants.LEFT, insets, true);
+        JPanel alertGeneralJPanel = getAlertGeneralJPanel(alertMessage);
+        JPanel alertDssPanel = getAlertDssPanel(alertMessage);
 
-		List<JPanel> namePanelList = new ArrayList<>();
+        alertMessageJPanel.add(alertGeneralJPanel, gbc1);
+        alertMessageJPanel.add(alertDssPanel, gbc2);
 
-		namePanelList.add(titleJPanel);
-		namePanelList.add(descJPanel);
-		namePanelList.add(pdnUrlJPanel);
+        return alertMessageJPanel;
+    }
 
-		HashMap<JPanel, JPanel> panelMap = new HashMap<>();
-		panelMap.put(titleJPanel, titleValueJPanel);
-		panelMap.put(descJPanel, descValueJPanel);
-		panelMap.put(pdnUrlJPanel, pdnUrlValueJPanel);
+    private JPanel getAlertGeneralJPanel(AlertMessage alertMessage) {
 
-		int yIndex = 0;
+        JPanel alertGeneralJPanel = new JPanel();
 
-		for (JPanel namePanel : namePanelList) {
+        alertGeneralJPanel.setLayout(new GridBagLayout());
 
-			GridBagConstraints gbc1 = new GridBagConstraints();
-			gbc1.gridx = 0;
-			gbc1.gridy = yIndex;
-			gbc1.weightx = 0.0D;
-			gbc1.weighty = 1.0D;
-			gbc1.fill = GridBagConstraints.BOTH;
-			gbc1.anchor = GridBagConstraints.NORTHWEST;
-			gbc1.insets = new Insets(0, 0, 0, 0);
+        Insets insets = new Insets(1, 5, 1, 5);
+        Dimension preferredSize = new Dimension(150, 20);
 
-			GridBagConstraints gbc2 = new GridBagConstraints();
-			gbc2.gridx = 1;
-			gbc2.gridy = yIndex;
-			gbc2.weightx = 1.0D;
-			gbc2.weighty = 1.0D;
-			gbc2.fill = GridBagConstraints.BOTH;
-			gbc2.anchor = GridBagConstraints.NORTHWEST;
-			gbc2.insets = new Insets(0, 0, 0, 0);
+        JPanel titleJPanel = getNameJPanel("Title: ", SwingConstants.LEFT, insets, preferredSize);
+        JPanel descJPanel = getNameJPanel("Decsription: ", SwingConstants.LEFT, insets, preferredSize);
+        JPanel pegaUrlJPanel = getNameJPanel("Pega Url: ", SwingConstants.LEFT, insets, preferredSize);
 
-			yIndex++;
+        JPanel titleValueJPanel = getValueJPanel(alertMessage.getTitle(), SwingConstants.LEFT, insets, false);
+        JPanel descValueJPanel = getValueJPanel(alertMessage.getDescription(), SwingConstants.LEFT, insets, false);
+        JPanel pegaUrlValueJPanel = getValueJPanel(alertMessage.getPegaUrl(), SwingConstants.LEFT, insets, true);
 
-			JPanel nameJPanel = namePanel;
-			JPanel valueJPanel = panelMap.get(nameJPanel);
+        List<JPanel> namePanelList = new ArrayList<>();
 
-			alertGeneralJPanel.add(nameJPanel, gbc1);
-			alertGeneralJPanel.add(valueJPanel, gbc2);
-		}
+        namePanelList.add(titleJPanel);
+        namePanelList.add(descJPanel);
+        namePanelList.add(pegaUrlJPanel);
 
-		return alertGeneralJPanel;
-	}
+        HashMap<JPanel, JPanel> panelMap = new HashMap<>();
+        panelMap.put(titleJPanel, titleValueJPanel);
+        panelMap.put(descJPanel, descValueJPanel);
+        panelMap.put(pegaUrlJPanel, pegaUrlValueJPanel);
 
-	private JPanel getAlertDSSJPanel(AlertMessage alertMessage) {
+        int yindex = 0;
 
-		JPanel alertDSSJPanel = new JPanel();
+        for (JPanel namePanel : namePanelList) {
 
-		alertDSSJPanel.setLayout(new GridBagLayout());
+            GridBagConstraints gbc1 = new GridBagConstraints();
+            gbc1.gridx = 0;
+            gbc1.gridy = yindex;
+            gbc1.weightx = 0.0D;
+            gbc1.weighty = 1.0D;
+            gbc1.fill = GridBagConstraints.BOTH;
+            gbc1.anchor = GridBagConstraints.NORTHWEST;
+            gbc1.insets = new Insets(0, 0, 0, 0);
 
-		Insets insets = new Insets(5, 5, 5, 5);
-		Dimension preferredSize = new Dimension(250, 20);
+            GridBagConstraints gbc2 = new GridBagConstraints();
+            gbc2.gridx = 1;
+            gbc2.gridy = yindex;
+            gbc2.weightx = 1.0D;
+            gbc2.weighty = 1.0D;
+            gbc2.fill = GridBagConstraints.BOTH;
+            gbc2.anchor = GridBagConstraints.NORTHWEST;
+            gbc2.insets = new Insets(0, 0, 0, 0);
 
-		JPanel dssEnableConfigJPanel = getNameJPanel("DSS Enable Config", SwingConstants.CENTER, insets, preferredSize);
-		JPanel dssConfigJPanel = getNameJPanel("DSS Threshold Config", SwingConstants.CENTER, insets, preferredSize);
-		JPanel dssDefaultValueJPanel = getNameJPanel("DSS Default Value", SwingConstants.CENTER, insets, preferredSize);
-		JPanel dssValueUnitJPanel = getNameJPanel("DSS Value Unit", SwingConstants.CENTER, insets, preferredSize);
+            yindex++;
 
-		JPanel dssEnableConfigValueJPanel = getDSSValueJPanel(alertMessage.getDSSEnableConfig());
-		JPanel dssThresholdConfigValueJPanel = getDSSValueJPanel(alertMessage.getDSSThresholdConfig());
-		JPanel dssDefaultValueValueJPanel = getDSSValueJPanel(alertMessage.getDSSDefaultValue());
-		JPanel dssValueUnitValueJPanel = getDSSValueJPanel(alertMessage.getDSSValueUnit());
+            JPanel nameJPanel = namePanel;
+            JPanel valueJPanel = panelMap.get(nameJPanel);
 
-		List<JPanel> namePanelList = new ArrayList<>();
+            alertGeneralJPanel.add(nameJPanel, gbc1);
+            alertGeneralJPanel.add(valueJPanel, gbc2);
+        }
 
-		namePanelList.add(dssEnableConfigJPanel);
-		namePanelList.add(dssConfigJPanel);
-		namePanelList.add(dssDefaultValueJPanel);
-		namePanelList.add(dssValueUnitJPanel);
+        return alertGeneralJPanel;
+    }
 
-		HashMap<JPanel, JPanel> panelMap = new HashMap<>();
-		panelMap.put(dssEnableConfigJPanel, dssEnableConfigValueJPanel);
-		panelMap.put(dssConfigJPanel, dssThresholdConfigValueJPanel);
-		panelMap.put(dssDefaultValueJPanel, dssDefaultValueValueJPanel);
-		panelMap.put(dssValueUnitJPanel, dssValueUnitValueJPanel);
+    private JPanel getAlertDssPanel(AlertMessage alertMessage) {
 
-		int xIndex = 0;
+        JPanel alertDssPanel = new JPanel();
 
-		for (JPanel namePanel : namePanelList) {
+        alertDssPanel.setLayout(new GridBagLayout());
 
-			GridBagConstraints gbc1 = new GridBagConstraints();
-			gbc1.gridx = xIndex;
-			gbc1.gridy = 0;
-			gbc1.weightx = 1.0D;
-			gbc1.weighty = 1.0D;
-			gbc1.fill = GridBagConstraints.BOTH;
-			gbc1.anchor = GridBagConstraints.NORTHWEST;
-			gbc1.insets = new Insets(0, 0, 0, 0);
+        Insets insets = new Insets(5, 5, 5, 5);
+        Dimension preferredSize = new Dimension(250, 20);
 
-			GridBagConstraints gbc2 = new GridBagConstraints();
-			gbc2.gridx = xIndex;
-			gbc2.gridy = 1;
-			gbc2.weightx = 1.0D;
-			gbc2.weighty = 1.0D;
-			gbc2.fill = GridBagConstraints.BOTH;
-			gbc2.anchor = GridBagConstraints.NORTHWEST;
-			gbc2.insets = new Insets(0, 0, 0, 0);
+        JPanel dssEnableConfigJPanel = getNameJPanel("DSS Enable Config", SwingConstants.CENTER, insets, preferredSize);
+        JPanel dssConfigJPanel = getNameJPanel("DSS Threshold Config", SwingConstants.CENTER, insets, preferredSize);
+        JPanel dssDefaultValueJPanel = getNameJPanel("DSS Default Value", SwingConstants.CENTER, insets, preferredSize);
+        JPanel dssValueUnitJPanel = getNameJPanel("DSS Value Unit", SwingConstants.CENTER, insets, preferredSize);
 
-			JPanel nameJPanel = namePanel;
-			JPanel valueJPanel = panelMap.get(nameJPanel);
+        JPanel dssEnableConfigValueJPanel = getDssValueJPanel(alertMessage.getDssEnableConfig());
+        JPanel dssThresholdConfigValueJPanel = getDssValueJPanel(alertMessage.getDssThresholdConfig());
+        JPanel dssDefaultValueValueJPanel = getDssValueJPanel(alertMessage.getDssDefaultValue());
+        JPanel dssValueUnitValueJPanel = getDssValueJPanel(alertMessage.getDssValueUnit());
 
-			alertDSSJPanel.add(nameJPanel, gbc1);
-			alertDSSJPanel.add(valueJPanel, gbc2);
+        List<JPanel> namePanelList = new ArrayList<>();
 
-			xIndex++;
-		}
+        namePanelList.add(dssEnableConfigJPanel);
+        namePanelList.add(dssConfigJPanel);
+        namePanelList.add(dssDefaultValueJPanel);
+        namePanelList.add(dssValueUnitJPanel);
 
-		return alertDSSJPanel;
-	}
+        HashMap<JPanel, JPanel> panelMap = new HashMap<>();
+        panelMap.put(dssEnableConfigJPanel, dssEnableConfigValueJPanel);
+        panelMap.put(dssConfigJPanel, dssThresholdConfigValueJPanel);
+        panelMap.put(dssDefaultValueJPanel, dssDefaultValueValueJPanel);
+        panelMap.put(dssValueUnitJPanel, dssValueUnitValueJPanel);
 
-	private JPanel getDSSValueJPanel(String value) {
+        int xindex = 0;
 
-		JPanel dssValueJPanel = new JPanel();
+        for (JPanel namePanel : namePanelList) {
 
-		dssValueJPanel.setLayout(new GridBagLayout());
+            GridBagConstraints gbc1 = new GridBagConstraints();
+            gbc1.gridx = xindex;
+            gbc1.gridy = 0;
+            gbc1.weightx = 1.0D;
+            gbc1.weighty = 1.0D;
+            gbc1.fill = GridBagConstraints.BOTH;
+            gbc1.anchor = GridBagConstraints.NORTHWEST;
+            gbc1.insets = new Insets(0, 0, 0, 0);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 0.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(5, 5, 5, 5);
+            GridBagConstraints gbc2 = new GridBagConstraints();
+            gbc2.gridx = xindex;
+            gbc2.gridy = 1;
+            gbc2.weightx = 1.0D;
+            gbc2.weighty = 1.0D;
+            gbc2.fill = GridBagConstraints.BOTH;
+            gbc2.anchor = GridBagConstraints.NORTHWEST;
+            gbc2.insets = new Insets(0, 0, 0, 0);
 
-		int rows = 1;
+            JPanel nameJPanel = namePanel;
+            JPanel valueJPanel = panelMap.get(nameJPanel);
 
-		if (value != null) {
+            alertDssPanel.add(nameJPanel, gbc1);
+            alertDssPanel.add(valueJPanel, gbc2);
 
-			int fromIndex = 0;
+            xindex++;
+        }
 
-			while ((fromIndex = value.indexOf("\\n", fromIndex)) != -1) {
-				fromIndex++;
-				rows++;
-			}
+        return alertDssPanel;
+    }
 
-			value = value.replaceAll("\\\\n", System.getProperty("line.separator"));
-		}
+    private JPanel getDssValueJPanel(String value) {
 
-		JTextArea valueJTextArea = new JTextArea(value);
-		valueJTextArea.setEditable(false);
-		valueJTextArea.setBackground(null);
-		valueJTextArea.setBorder(null);
-		valueJTextArea.setRows(rows);
+        JPanel dssValueJPanel = new JPanel();
 
-		valueJTextArea.setAlignmentX(CENTER_ALIGNMENT);
-		valueJTextArea.setAlignmentY(CENTER_ALIGNMENT);
+        dssValueJPanel.setLayout(new GridBagLayout());
 
-		valueJTextArea.setFont(this.getFont());
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 0.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(5, 5, 5, 5);
 
-		dssValueJPanel.add(valueJTextArea, gbc1);
+        int rows = 1;
 
-		dssValueJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        if (value != null) {
 
-		return dssValueJPanel;
-	}
+            int fromIndex = 0;
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public void valueChanged(ListSelectionEvent e) {
+            while ((fromIndex = value.indexOf("\\n", fromIndex)) != -1) {
+                fromIndex++;
+                rows++;
+            }
 
-		if (!e.getValueIsAdjusting()) {
+            value = value.replaceAll("\\\\n", System.getProperty("line.separator"));
+        }
 
-			LogTableModel ltm = (LogTableModel) logTable.getModel();
+        JTextArea valueJTextArea = new JTextArea(value);
+        valueJTextArea.setEditable(false);
+        valueJTextArea.setBackground(null);
+        valueJTextArea.setBorder(null);
+        valueJTextArea.setRows(rows);
 
-			int[] selectedRows = logTable.getSelectedRows();
+        valueJTextArea.setAlignmentX(CENTER_ALIGNMENT);
+        valueJTextArea.setAlignmentY(CENTER_ALIGNMENT);
 
-			CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
+        valueJTextArea.setFont(this.getFont());
 
-			for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
+        dssValueJPanel.add(valueJTextArea, gbc1);
 
-				for (IntervalMarker im : manualIntervalMarkerList) {
-					subPlot.removeDomainMarker(im);
-				}
-			}
+        dssValueJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-			manualIntervalMarkerList.clear();
+        return dssValueJPanel;
+    }
 
-			for (int row : selectedRows) {
+    @SuppressWarnings("unchecked")
+    @Override
+    public void valueChanged(ListSelectionEvent listSelectionEvent) {
 
-				try {
+        if (!listSelectionEvent.getValueIsAdjusting()) {
 
-					LogEntry logEntry = (LogEntry) ltm.getValueAt(row, 0);
+            LogTableModel ltm = (LogTableModel) logTable.getModel();
 
-					Date logEntryDate = logEntry.getLogEntryDate();
+            int[] selectedRows = logTable.getSelectedRows();
 
-					if (logEntryDate != null) {
+            CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
 
-						long logEntryTime = logEntryDate.getTime();
-						Color color = Color.BLACK;
+            for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
 
-						IntervalMarker im;
-						// im = new IntervalMarker(logEntryTime, logEntryTime);
-						im = new IntervalMarker(logEntryTime, logEntryTime, color, new BasicStroke(0.6f), color,
-								new BasicStroke(0.6f), 0.8f);
+                for (IntervalMarker im : manualIntervalMarkerList) {
+                    subPlot.removeDomainMarker(im);
+                }
+            }
 
-						for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
-							subPlot.addDomainMarker(im);
-						}
+            manualIntervalMarkerList.clear();
 
-						manualIntervalMarkerList.add(im);
-					}
-				} catch (Exception e1) {
-					LOG.error("Error adding interval marker.", e1);
-				}
-			}
+            for (int row : selectedRows) {
 
-		}
-	}
+                try {
 
-	@Override
-	public void removeNotify() {
+                    LogEntry logEntry = (LogEntry) ltm.getValueAt(row, 0);
 
-		super.removeNotify();
+                    long logEntryTime = logEntry.getKey().getTimestamp();
 
-		ListSelectionModel lsm = logTable.getSelectionModel();
-		lsm.removeListSelectionListener(this);
+                    if (logEntryTime != -1) {
 
-	}
+                        Color color = Color.BLACK;
+
+                        IntervalMarker im;
+                        // im = new IntervalMarker(logEntryTime, logEntryTime);
+                        im = new IntervalMarker(logEntryTime, logEntryTime, color, new BasicStroke(0.6f), color,
+                                new BasicStroke(0.6f), 0.8f);
+
+                        for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
+                            subPlot.addDomainMarker(im);
+                        }
+
+                        manualIntervalMarkerList.add(im);
+                    }
+                } catch (Exception e1) {
+                    LOG.error("Error adding interval marker.", e1);
+                }
+            }
+
+        }
+    }
+
+    @Override
+    public void removeNotify() {
+
+        super.removeNotify();
+
+        ListSelectionModel lsm = logTable.getSelectionModel();
+        lsm.removeListSelectionListener(this);
+
+    }
 }

@@ -4,10 +4,12 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.HeadlessException;
 import java.awt.LayoutManager;
@@ -26,456 +28,442 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
-import org.jfree.ui.RefineryUtilities;
-
+import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
 import com.pega.gcs.fringecommon.guiutilities.Searchable.SelectedRowPosition;
 import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.logviewer.model.LogEntry;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 
 public class LogNavigationDialog extends JFrame {
 
-	private static final long serialVersionUID = 1116053624131571491L;
+    private static final long serialVersionUID = 1116053624131571491L;
 
-	private LogEntry logEntry;
+    private LogEntry logEntry;
 
-	private LogEntry currentLogEntry;
+    private LogEntry currentLogEntry;
 
-	private LogTable logTable;
+    private LogTable logTable;
 
-	// private LogEntryModel logEntryModel;
+    private JPanel mainLogEntryJPanel;
 
-	private JPanel mainLogEntryJPanel;
+    private ImageIcon firstImageIcon;
 
-	private ImageIcon firstImageIcon;
+    private ImageIcon lastImageIcon;
 
-	private ImageIcon lastImageIcon;
+    private ImageIcon prevImageIcon;
 
-	private ImageIcon prevImageIcon;
+    private ImageIcon nextImageIcon;
 
-	private ImageIcon nextImageIcon;
+    private JButton navPrevJButton;
 
-	private JButton navPrevJButton;
+    private JButton navNextJButton;
 
-	private JButton navNextJButton;
+    private JButton navFirstJButton;
 
-	private JButton navFirstJButton;
+    private JButton navLastJButton;
 
-	private JButton navLastJButton;
+    private JButton navResetJButton;
 
-	private JButton navResetJButton;
+    private JLabel navIndexJLabel;
 
-	private JLabel navIndexJLabel;
+    protected LogNavigationDialog(LogEntry logEntry, LogTable logTable, ImageIcon appIcon, Component parent)
+            throws HeadlessException {
 
-	protected LogNavigationDialog(LogEntry logEntry, LogTable logTable, ImageIcon appIcon) throws HeadlessException {
+        super();
 
-		super();
+        this.logEntry = logEntry;
+        this.logTable = logTable;
 
-		this.logEntry = logEntry;
-		this.logTable = logTable;
+        LogTableModel ltm = (LogTableModel) logTable.getModel();
+        String modelName = ltm.getModelName();
 
-		LogTableModel ltm = (LogTableModel) logTable.getModel();
-		String modelName = ltm.getModelName();
+        initialize();
 
-		initialize();
+        setIconImage(appIcon.getImage());
 
-		setIconImage(appIcon.getImage());
+        setPreferredSize(new Dimension(1280, 800));
 
-		setPreferredSize(new Dimension(1200, 600));
+        setTitle(modelName + " - Log Entry Details [" + logEntry.getKey() + "]");
 
-		setTitle(modelName + " - Log Entry Details [" + logEntry.getKey() + "]");
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setContentPane(getOverallJPanel());
 
-		setContentPane(getOverallJPanel());
+        pack();
 
-		pack();
+        GUIUtilities.centerFrameOnScreen(this);
 
-		RefineryUtilities.centerFrameOnScreen(this);
+        setLocationRelativeTo(parent);
 
-		// visible should be the last step
-		setVisible(true);
+        // setVisible called by caller.
+        // setVisible(true);
 
-	}
+    }
 
-	/**
-	 * @return the navPrevJButton
-	 */
-	private JButton getNavPrevJButton() {
+    private JButton getNavPrevJButton() {
 
-		if (navPrevJButton == null) {
+        if (navPrevJButton == null) {
 
-			navPrevJButton = new JButton("Previous", prevImageIcon);
+            navPrevJButton = new JButton("Previous", prevImageIcon);
 
-			Dimension size = new Dimension(80, 20);
-			navPrevJButton.setPreferredSize(size);
-			navPrevJButton.setMaximumSize(size);
-			navPrevJButton.setBorder(BorderFactory.createEmptyBorder());
-			navPrevJButton.setToolTipText("Previous entry");
-			navPrevJButton.addActionListener(new ActionListener() {
+            Dimension size = new Dimension(90, 26);
+            navPrevJButton.setPreferredSize(size);
+            navPrevJButton.setMaximumSize(size);
+            navPrevJButton.setBorder(BorderFactory.createEmptyBorder());
+            navPrevJButton.setToolTipText("Previous entry");
+            navPrevJButton.addActionListener(new ActionListener() {
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					navigatePrevious();
-				}
-			});
-		}
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    navigatePrevious();
+                }
+            });
+        }
 
-		return navPrevJButton;
-	}
+        return navPrevJButton;
+    }
 
-	/**
-	 * @return the navNextJButton
-	 */
-	private JButton getNavNextJButton() {
+    private JButton getNavNextJButton() {
 
-		if (navNextJButton == null) {
+        if (navNextJButton == null) {
 
-			navNextJButton = new JButton("Next", nextImageIcon);
+            navNextJButton = new JButton("Next", nextImageIcon);
 
-			Dimension size = new Dimension(80, 20);
-			navNextJButton.setPreferredSize(size);
-			navNextJButton.setMaximumSize(size);
-			navNextJButton.setBorder(BorderFactory.createEmptyBorder());
-			navNextJButton.setToolTipText("Next entry");
-			navNextJButton.addActionListener(new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					navigateNext();
-				}
-			});
-		}
-
-		return navNextJButton;
-	}
-
-	/**
-	 * @return the navFirstJButton
-	 */
-	private JButton getNavFirstJButton() {
-
-		if (navFirstJButton == null) {
-
-			navFirstJButton = new JButton("First", firstImageIcon);
-
-			Dimension size = new Dimension(80, 20);
-			navFirstJButton.setPreferredSize(size);
-			navFirstJButton.setMaximumSize(size);
-			navFirstJButton.setBorder(BorderFactory.createEmptyBorder());
-			navFirstJButton.setToolTipText("First entry");
-			navFirstJButton.addActionListener(new ActionListener() {
+            Dimension size = new Dimension(90, 26);
+            navNextJButton.setPreferredSize(size);
+            navNextJButton.setMaximumSize(size);
+            navNextJButton.setBorder(BorderFactory.createEmptyBorder());
+            navNextJButton.setToolTipText("Next entry");
+            navNextJButton.addActionListener(new ActionListener() {
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					navigateFirst();
-				}
-			});
-		}
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    navigateNext();
+                }
+            });
+        }
 
-		return navFirstJButton;
-	}
+        return navNextJButton;
+    }
 
-	/**
-	 * @return the navLastJButton
-	 */
-	private JButton getNavLastJButton() {
+    private JButton getNavFirstJButton() {
 
-		if (navLastJButton == null) {
+        if (navFirstJButton == null) {
 
-			navLastJButton = new JButton("Last", lastImageIcon);
+            navFirstJButton = new JButton("First", firstImageIcon);
 
-			Dimension size = new Dimension(80, 20);
-			navLastJButton.setPreferredSize(size);
-			navLastJButton.setMaximumSize(size);
-			navLastJButton.setBorder(BorderFactory.createEmptyBorder());
-			navLastJButton.setToolTipText("Last entry");
-			navLastJButton.addActionListener(new ActionListener() {
+            Dimension size = new Dimension(90, 26);
+            navFirstJButton.setPreferredSize(size);
+            navFirstJButton.setMaximumSize(size);
+            navFirstJButton.setBorder(BorderFactory.createEmptyBorder());
+            navFirstJButton.setToolTipText("First entry");
+            navFirstJButton.addActionListener(new ActionListener() {
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					navigateLast();
-				}
-			});
-		}
-
-		return navLastJButton;
-	}
-
-	/**
-	 * @return the navIndexJLabel
-	 */
-	private JLabel getNavIndexJLabel() {
-		if (navIndexJLabel == null) {
-			navIndexJLabel = new JLabel();
-
-			Dimension size = new Dimension(60, 20);
-			navIndexJLabel.setPreferredSize(size);
-			navIndexJLabel.setMaximumSize(size);
-			navIndexJLabel.setForeground(Color.BLUE);
-			navIndexJLabel.setHorizontalTextPosition(SwingConstants.CENTER);
-			navIndexJLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		}
-		return navIndexJLabel;
-	}
-
-	private JButton getNavResetJButton() {
-		if (navResetJButton == null) {
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    navigateFirst();
+                }
+            });
+        }
 
-			navResetJButton = new JButton("Reset");
+        return navFirstJButton;
+    }
 
-			Dimension size = new Dimension(80, 20);
-			navResetJButton.setPreferredSize(size);
-			navResetJButton.setMaximumSize(size);
-			navResetJButton.setBorder(BorderFactory.createEmptyBorder());
-			navResetJButton.setToolTipText("Reset to original log Entry");
-			navResetJButton.addActionListener(new ActionListener() {
+    private JButton getNavLastJButton() {
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					navigateReset();
-				}
-			});
-		}
+        if (navLastJButton == null) {
 
-		return navResetJButton;
-	}
+            navLastJButton = new JButton("Last", lastImageIcon);
 
-	private void initialize() {
+            Dimension size = new Dimension(90, 26);
+            navLastJButton.setPreferredSize(size);
+            navLastJButton.setMaximumSize(size);
+            navLastJButton.setBorder(BorderFactory.createEmptyBorder());
+            navLastJButton.setToolTipText("Last entry");
+            navLastJButton.addActionListener(new ActionListener() {
 
-		firstImageIcon = FileUtilities.getImageIcon(this.getClass(), "first.png");
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    navigateLast();
+                }
+            });
+        }
 
-		lastImageIcon = FileUtilities.getImageIcon(this.getClass(), "last.png");
+        return navLastJButton;
+    }
 
-		prevImageIcon = FileUtilities.getImageIcon(this.getClass(), "prev.png");
+    private JLabel getNavIndexJLabel() {
+        if (navIndexJLabel == null) {
+            navIndexJLabel = new JLabel();
 
-		nextImageIcon = FileUtilities.getImageIcon(this.getClass(), "next.png");
+            Dimension size = new Dimension(80, 26);
+            navIndexJLabel.setPreferredSize(size);
+            navIndexJLabel.setMaximumSize(size);
+            navIndexJLabel.setForeground(Color.BLUE);
+            navIndexJLabel.setHorizontalTextPosition(SwingConstants.CENTER);
+            navIndexJLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        }
+        return navIndexJLabel;
+    }
 
-		currentLogEntry = logEntry;
+    private JButton getNavResetJButton() {
+        if (navResetJButton == null) {
 
-		populateMainLogEntryJPanel();
-	}
+            navResetJButton = new JButton("Reset");
 
-	private JPanel getOverallJPanel() {
+            Dimension size = new Dimension(80, 26);
+            navResetJButton.setPreferredSize(size);
+            navResetJButton.setMaximumSize(size);
+            navResetJButton.setBorder(BorderFactory.createEmptyBorder());
+            navResetJButton.setToolTipText("Reset to original log Entry");
+            navResetJButton.addActionListener(new ActionListener() {
 
-		JPanel overallJPanel = new JPanel();
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    navigateReset();
+                }
+            });
+        }
 
-		overallJPanel.setLayout(new BorderLayout());
+        return navResetJButton;
+    }
 
-		JPanel toolbarJPanel = getToolbarJPanel();
-		JPanel mainLogEntryJPanel = getMainLogEntryJPanel();
+    private void initialize() {
 
-		overallJPanel.add(toolbarJPanel, BorderLayout.NORTH);
-		overallJPanel.add(mainLogEntryJPanel, BorderLayout.CENTER);
+        firstImageIcon = FileUtilities.getImageIcon(getClass(), "first.png");
 
-		return overallJPanel;
-	}
+        lastImageIcon = FileUtilities.getImageIcon(getClass(), "last.png");
 
-	private JPanel getToolbarJPanel() {
+        prevImageIcon = FileUtilities.getImageIcon(getClass(), "prev.png");
 
-		JPanel toolbarJPanel = new JPanel();
+        nextImageIcon = FileUtilities.getImageIcon(getClass(), "next.png");
 
-		LayoutManager layout = new BoxLayout(toolbarJPanel, BoxLayout.LINE_AXIS);
-		toolbarJPanel.setLayout(layout);
+        currentLogEntry = logEntry;
 
-		JButton navPrevJButton = getNavPrevJButton();
-		JButton navNextJButton = getNavNextJButton();
-		JLabel navIndexJLabel = getNavIndexJLabel();
-		JButton navFirstJButton = getNavFirstJButton();
-		JButton navLastJButton = getNavLastJButton();
-		JButton navResetJButton = getNavResetJButton();
+        populateMainLogEntryJPanel();
+    }
 
-		Dimension spacer = new Dimension(10, 30);
-		Dimension rigidArea = new Dimension(60, 30);
+    private JPanel getOverallJPanel() {
 
-		toolbarJPanel.add(Box.createHorizontalGlue());
-		toolbarJPanel.add(Box.createRigidArea(spacer));
-		toolbarJPanel.add(navFirstJButton);
-		toolbarJPanel.add(Box.createRigidArea(spacer));
-		toolbarJPanel.add(navPrevJButton);
-		toolbarJPanel.add(Box.createRigidArea(spacer));
-		toolbarJPanel.add(navIndexJLabel);
-		toolbarJPanel.add(Box.createRigidArea(spacer));
-		toolbarJPanel.add(navNextJButton);
-		toolbarJPanel.add(Box.createRigidArea(spacer));
-		toolbarJPanel.add(navLastJButton);
-		toolbarJPanel.add(Box.createRigidArea(rigidArea));
-		// toolbarJPanel.add(Box.createHorizontalGlue());
-		toolbarJPanel.add(navResetJButton);
-		toolbarJPanel.add(Box.createHorizontalGlue());
+        JPanel overallJPanel = new JPanel();
 
-		toolbarJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
-		return toolbarJPanel;
-	}
+        overallJPanel.setLayout(new BorderLayout());
 
-	private JPanel getMainLogEntryJPanel() {
+        JPanel toolbarJPanel = getToolbarJPanel();
+        JPanel mainLogEntryJPanel = getMainLogEntryJPanel();
 
-		if (mainLogEntryJPanel == null) {
-			mainLogEntryJPanel = new JPanel();
-			mainLogEntryJPanel.setLayout(new BorderLayout());
+        overallJPanel.add(toolbarJPanel, BorderLayout.NORTH);
+        overallJPanel.add(mainLogEntryJPanel, BorderLayout.CENTER);
 
-		}
+        return overallJPanel;
+    }
 
-		return mainLogEntryJPanel;
-	}
+    private JPanel getToolbarJPanel() {
 
-	private void populateMainLogEntryJPanel() {
+        JPanel toolbarJPanel = new JPanel();
 
-		JPanel mainLogEntryJPanel = getMainLogEntryJPanel();
+        LayoutManager layout = new BoxLayout(toolbarJPanel, BoxLayout.LINE_AXIS);
+        toolbarJPanel.setLayout(layout);
 
-		mainLogEntryJPanel.removeAll();
+        JButton navPrevJButton = getNavPrevJButton();
+        JButton navNextJButton = getNavNextJButton();
+        JLabel navIndexJLabel = getNavIndexJLabel();
+        JButton navFirstJButton = getNavFirstJButton();
+        JButton navLastJButton = getNavLastJButton();
+        JButton navResetJButton = getNavResetJButton();
 
-		LogTableModel ltm = (LogTableModel) logTable.getModel();
+        Dimension spacer = new Dimension(10, 40);
+        Dimension rigidArea = new Dimension(60, 40);
 
-		JPanel logEntryPanel = currentLogEntry.getDetailsJPanel(ltm);
+        toolbarJPanel.add(Box.createHorizontalGlue());
+        toolbarJPanel.add(Box.createRigidArea(spacer));
+        toolbarJPanel.add(navFirstJButton);
+        toolbarJPanel.add(Box.createRigidArea(spacer));
+        toolbarJPanel.add(navPrevJButton);
+        toolbarJPanel.add(Box.createRigidArea(spacer));
+        toolbarJPanel.add(navIndexJLabel);
+        toolbarJPanel.add(Box.createRigidArea(spacer));
+        toolbarJPanel.add(navNextJButton);
+        toolbarJPanel.add(Box.createRigidArea(spacer));
+        toolbarJPanel.add(navLastJButton);
+        toolbarJPanel.add(Box.createRigidArea(rigidArea));
+        toolbarJPanel.add(navResetJButton);
+        toolbarJPanel.add(Box.createHorizontalGlue());
 
-		Integer logEntryIndex = currentLogEntry.getKey();
+        toolbarJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        return toolbarJPanel;
+    }
 
-		mainLogEntryJPanel.add(logEntryPanel, BorderLayout.CENTER);
+    private JPanel getMainLogEntryJPanel() {
 
-		logTable.logTableScrollToIndex(logEntryIndex);
+        if (mainLogEntryJPanel == null) {
+            mainLogEntryJPanel = new JPanel();
+            mainLogEntryJPanel.setLayout(new BorderLayout());
 
-		updateNavButtonStates(logEntryIndex);
-	}
+        }
 
-	private void navigate(boolean forward, boolean first, boolean last) {
+        return mainLogEntryJPanel;
+    }
 
-		int rowNumber = -1;
+    private void populateMainLogEntryJPanel() {
 
-		LogTableModel ltm = (LogTableModel) logTable.getModel();
+        JPanel mainLogEntryJPanel = getMainLogEntryJPanel();
 
-		List<Integer> ltmIndexList = ltm.getFtmEntryKeyList();
-		int ltmLastIndex = ltmIndexList.size() - 1;
+        mainLogEntryJPanel.removeAll();
 
-		if (ltmIndexList.size() > 0) {
+        LogTableModel ltm = (LogTableModel) logTable.getModel();
 
-			if (first) {
-				rowNumber = 0;
+        JPanel logEntryPanel = currentLogEntry.getDetailsJPanel(ltm);
 
-			} else if (last) {
-				rowNumber = ltmLastIndex;
+        LogEntryKey logEntryKey = currentLogEntry.getKey();
 
-			} else {
+        mainLogEntryJPanel.add(logEntryPanel, BorderLayout.CENTER);
 
-				Integer currentLogEntryIndex = currentLogEntry.getKey();
+        logTable.logTableScrollToKey(logEntryKey);
 
-				rowNumber = Collections.binarySearch(ltmIndexList, currentLogEntryIndex);
+        updateNavButtonStates(logEntryKey);
+    }
 
-				if (rowNumber < 0) {
-					rowNumber = (rowNumber * -1) - 1;
-				}
+    private void navigate(boolean forward, boolean first, boolean last) {
 
-				if (forward) {
-					rowNumber++;
-				} else {
-					rowNumber--;
-				}
+        int rowNumber = -1;
 
-				if (rowNumber < 0) {
-					rowNumber = 0;
-				} else if (rowNumber > ltmLastIndex) {
-					rowNumber = ltmLastIndex;
-				}
+        LogTableModel ltm = (LogTableModel) logTable.getModel();
 
-			}
+        List<LogEntryKey> ltmKeyList = ltm.getFtmEntryKeyList();
+        int ltmLastIndex = ltmKeyList.size() - 1;
 
-			currentLogEntry = (LogEntry) ltm.getValueAt(rowNumber, 0);
+        if (ltmKeyList.size() > 0) {
 
-			populateMainLogEntryJPanel();
+            if (first) {
+                rowNumber = 0;
 
-			logTable.setRowSelectionInterval(rowNumber, rowNumber);
-			logTable.scrollRowToVisible(rowNumber);
-		}
-	}
+            } else if (last) {
+                rowNumber = ltmLastIndex;
 
-	protected void navigatePrevious() {
-		navigate(false, false, false);
-	}
+            } else {
 
-	protected void navigateNext() {
-		navigate(true, false, false);
-	}
+                LogEntryKey currentLogEntryKey = currentLogEntry.getKey();
 
-	protected void navigateFirst() {
-		navigate(false, true, false);
-	}
+                rowNumber = Collections.binarySearch(ltmKeyList, currentLogEntryKey);
 
-	protected void navigateLast() {
-		navigate(false, false, true);
-	}
+                if (rowNumber < 0) {
+                    rowNumber = (rowNumber * -1) - 1;
+                }
 
-	protected void navigateReset() {
+                if (forward) {
+                    rowNumber++;
+                } else {
+                    rowNumber--;
+                }
 
-		currentLogEntry = logEntry;
+                if (rowNumber < 0) {
+                    rowNumber = 0;
+                } else if (rowNumber > ltmLastIndex) {
+                    rowNumber = ltmLastIndex;
+                }
 
-		populateMainLogEntryJPanel();
-	}
+            }
 
-	private void updateNavButtonStates(Integer logEntryIndex) {
+            currentLogEntry = (LogEntry) ltm.getValueAt(rowNumber, 0);
 
-		LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+            populateMainLogEntryJPanel();
 
-		JButton navFirstJButton = getNavFirstJButton();
-		JButton navPrevJButton = getNavPrevJButton();
-		JButton navNextJButton = getNavNextJButton();
-		JButton navLastJButton = getNavLastJButton();
-		JLabel navIndexJLabel = getNavIndexJLabel();
+            logTable.setRowSelectionInterval(rowNumber, rowNumber);
+            logTable.scrollRowToVisible(rowNumber);
+        }
+    }
 
-		SelectedRowPosition selectedRowPosition = SelectedRowPosition.NONE;
+    protected void navigatePrevious() {
+        navigate(false, false, false);
+    }
 
-		List<Integer> logEntryIndexList = logTableModel.getFtmEntryKeyList();
+    protected void navigateNext() {
+        navigate(true, false, false);
+    }
 
-		if (logEntryIndexList.size() > 0) {
+    protected void navigateFirst() {
+        navigate(false, true, false);
+    }
 
-			int size = logEntryIndexList.size();
+    protected void navigateLast() {
+        navigate(false, false, true);
+    }
 
-			int firstIndex = logEntryIndexList.get(0);
-			int lastIndex = logEntryIndexList.get(size - 1);
+    protected void navigateReset() {
 
-			if ((logEntryIndex > firstIndex) && (logEntryIndex < lastIndex)) {
-				selectedRowPosition = SelectedRowPosition.BETWEEN;
-			} else if (logEntryIndex <= firstIndex) {
-				selectedRowPosition = SelectedRowPosition.FIRST;
-			} else if (logEntryIndex >= lastIndex) {
-				selectedRowPosition = SelectedRowPosition.LAST;
-			} else {
-				selectedRowPosition = SelectedRowPosition.NONE;
-			}
-		}
+        currentLogEntry = logEntry;
 
-		switch (selectedRowPosition) {
+        populateMainLogEntryJPanel();
+    }
 
-		case FIRST:
-			navFirstJButton.setEnabled(false);
-			navPrevJButton.setEnabled(false);
-			navNextJButton.setEnabled(true);
-			navLastJButton.setEnabled(true);
-			break;
+    private void updateNavButtonStates(LogEntryKey logEntryKey) {
 
-		case LAST:
-			navFirstJButton.setEnabled(true);
-			navPrevJButton.setEnabled(true);
-			navNextJButton.setEnabled(false);
-			navLastJButton.setEnabled(false);
-			break;
+        LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-		case BETWEEN:
-			navFirstJButton.setEnabled(true);
-			navPrevJButton.setEnabled(true);
-			navNextJButton.setEnabled(true);
-			navLastJButton.setEnabled(true);
-			break;
+        JButton navFirstJButton = getNavFirstJButton();
+        JButton navPrevJButton = getNavPrevJButton();
+        JButton navNextJButton = getNavNextJButton();
+        JButton navLastJButton = getNavLastJButton();
+        JLabel navIndexJLabel = getNavIndexJLabel();
 
-		case NONE:
-			navFirstJButton.setEnabled(false);
-			navPrevJButton.setEnabled(false);
-			navNextJButton.setEnabled(false);
-			navLastJButton.setEnabled(false);
-			break;
-		default:
-			break;
-		}
+        SelectedRowPosition selectedRowPosition = SelectedRowPosition.NONE;
 
-		navIndexJLabel.setText(logEntryIndex.toString());
+        List<LogEntryKey> logEntryKeyList = logTableModel.getFtmEntryKeyList();
 
-	}
+        if (logEntryKeyList.size() > 0) {
+
+            int size = logEntryKeyList.size();
+
+            long currentTime = logEntryKey.getTimestamp();
+            long firstTime = logEntryKeyList.get(0).getTimestamp();
+            long lastTime = logEntryKeyList.get(size - 1).getTimestamp();
+
+            if ((currentTime > firstTime) && (currentTime < lastTime)) {
+                selectedRowPosition = SelectedRowPosition.BETWEEN;
+            } else if (currentTime <= firstTime) {
+                selectedRowPosition = SelectedRowPosition.FIRST;
+            } else if (currentTime >= lastTime) {
+                selectedRowPosition = SelectedRowPosition.LAST;
+            } else {
+                selectedRowPosition = SelectedRowPosition.NONE;
+            }
+        }
+
+        switch (selectedRowPosition) {
+
+        case FIRST:
+            navFirstJButton.setEnabled(false);
+            navPrevJButton.setEnabled(false);
+            navNextJButton.setEnabled(true);
+            navLastJButton.setEnabled(true);
+            break;
+
+        case LAST:
+            navFirstJButton.setEnabled(true);
+            navPrevJButton.setEnabled(true);
+            navNextJButton.setEnabled(false);
+            navLastJButton.setEnabled(false);
+            break;
+
+        case BETWEEN:
+            navFirstJButton.setEnabled(true);
+            navPrevJButton.setEnabled(true);
+            navNextJButton.setEnabled(true);
+            navLastJButton.setEnabled(true);
+            break;
+
+        case NONE:
+            navFirstJButton.setEnabled(false);
+            navPrevJButton.setEnabled(false);
+            navNextJButton.setEnabled(false);
+            navLastJButton.setEnabled(false);
+            break;
+        default:
+            break;
+        }
+
+        navIndexJLabel.setText(logEntryKey.toString());
+
+    }
 }

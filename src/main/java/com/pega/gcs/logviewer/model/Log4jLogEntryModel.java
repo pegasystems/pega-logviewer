@@ -4,17 +4,19 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.model;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -25,860 +27,782 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.jfree.chart.plot.ValueMarker;
-import org.jfree.data.statistics.BoxAndWhiskerCalculator;
-import org.jfree.data.statistics.BoxAndWhiskerItem;
 import org.jfree.data.time.Millisecond;
 import org.jfree.data.time.RegularTimePeriod;
-import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesDataItem;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 
 public class Log4jLogEntryModel extends LogEntryModel {
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(Log4jLogEntryModel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(Log4jLogEntryModel.class);
 
-	private static final String TSC_MEMORY = "Memory (MB)";
+    private static final String TSC_MEMORY = "Memory (MB)";
 
-	public static final String TS_TOTAL_MEMORY = "Total Memory";
+    public static final String TS_TOTAL_MEMORY = "Total Memory";
 
-	public static final String TS_FREE_MEMORY = "Free Memory";
+    public static final String TS_FREE_MEMORY = "Free Memory";
 
-	public static final String TS_USED_MEMORY = "Used Memory";
+    public static final String TS_USED_MEMORY = "Used Memory";
 
-	public static final String TS_SHARED_PAGE_MEMORY = "Shared Page Memory";
+    public static final String TS_SHARED_PAGE_MEMORY = "Shared Page Memory";
 
-	public static final String TS_REQUESTOR_COUNT = "Requestor Count";
+    public static final String TS_REQUESTOR_COUNT = "Requestor Count";
 
-	public static final String TS_TOTAL_CPU_SECONDS = "Total CPU Seconds";
+    public static final String TS_TOTAL_CPU_SECONDS = "Total CPU Seconds";
 
-	public static final String TS_NUMBER_OF_THREADS = "Number Of Threads";
+    public static final String TS_NUMBER_OF_THREADS = "Number Of Threads";
 
-	public static final String IM_SYSTEM_START = "System Start";
+    public static final String IM_SYSTEM_START = "System Start";
 
-	public static final String IM_THREAD_DUMP = "Thread Dump";
+    public static final String IM_THREAD_DUMP = "Thread Dump";
 
-	public static final String IM_EXCEPTIONS = "Exceptions";
+    public static final String IM_EXCEPTIONS = "Exceptions";
 
-	private List<SystemStart> systemStartList;
+    private List<SystemStart> systemStartList;
 
-	private Map<String, List<Integer>> errorLogEntryIndexMap;
+    private List<HazelcastMembership> hazelcastMembershipList;
 
-	private List<Integer> threadDumpLogEntryIndexList;
+    private Map<String, List<LogEntryKey>> errorLogEntryIndexMap;
 
-	private int lastProcessedIndex;
+    private List<LogEntryKey> threadDumpLogEntryIndexList;
 
-	private Set<LogIntervalMarker> logIntervalMarkerSet;
+    private Map<String, LogSeriesCollection> overallLogTimeSeriesCollectionMap;
 
-	private List<Log4jMeasurePattern> customMeasurePatternList;
+    private Map<String, LogSeriesCollection> overallCustomMeasureLogTimeSeriesCollectionMap;
 
-	private MasterAgentSystemPattern masterAgentSystemPattern;
+    private Map<String, LogIntervalMarker> overallLogIntervalMarkerMap;
 
-	public Log4jLogEntryModel(DateFormat dateFormat, Locale locale, TimeZone displayTimezone) {
+    private Set<LogIntervalMarker> logIntervalMarkerSet;
 
-		super(dateFormat, locale);
+    private List<Log4jMeasurePattern> customMeasurePatternList;
 
-		systemStartList = new ArrayList<SystemStart>();
-		errorLogEntryIndexMap = new HashMap<String, List<Integer>>();
-		threadDumpLogEntryIndexList = new ArrayList<Integer>();
-		lastProcessedIndex = -1;
+    private MasterAgentSystemPattern masterAgentSystemPattern;
 
-		if (displayTimezone != null) {
-			setDisplayDateFormatTimeZone(displayTimezone);
-		}
+    public Log4jLogEntryModel(DateFormat dateFormat, TimeZone displayTimezone) {
 
-		CustomMeasurePatternProvider cmpProvider = CustomMeasurePatternProvider.getInstance();
+        super(dateFormat, displayTimezone);
 
-		customMeasurePatternList = cmpProvider.getCustomMeasurePatternList();
+        systemStartList = new ArrayList<>();
+        hazelcastMembershipList = new ArrayList<>();
 
-		masterAgentSystemPattern = null;
-	}
+        errorLogEntryIndexMap = new HashMap<>();
+        threadDumpLogEntryIndexList = new ArrayList<>();
 
-	@Override
-	protected void postProcess(LogEntry logEntry, ArrayList<String> logEntryValueList) {
+        // log series collection is not build upfront in rules log.
+        setRebuildLogTimeSeriesCollectionSet(true);
 
-	}
+        CustomMeasurePatternProvider cmpProvider = CustomMeasurePatternProvider.getInstance();
 
-	@Override
-	public void setModelDateFormatTimeZone(TimeZone modelTimeZone) {
+        customMeasurePatternList = cmpProvider.getCustomMeasurePatternList();
 
-		super.setModelDateFormatTimeZone(modelTimeZone);
+        masterAgentSystemPattern = null;
+    }
 
-		LOG.info("Model timezone changed to " + modelTimeZone);
+    @Override
+    protected void postProcess(LogEntry logEntry, ArrayList<String> logEntryValueList, Charset charset, Locale locale) {
 
-		Map<LogEntryColumn, Integer> logEntryColumnIndexMap = getLogEntryColumnIndexMap();
+        // for log file, the timezone is set later in the parsing process. this then forces the rebuild for first time
+        // getLogTimeSeriesCollectionSet is called, hence removing from below
 
-		int timestampColumnIndex = logEntryColumnIndexMap.get(LogEntryColumn.TIMESTAMP);
+        // Log4jLogEntry log4jLogEntry = (Log4jLogEntry) logEntry;
+        //
+        // Map<String, LogSeriesCollection> overallLogTimeSeriesCollectionMap;
+        // overallLogTimeSeriesCollectionMap = getOverallLogTimeSeriesCollectionMap();
+        //
+        // Map<String, LogSeriesCollection> overallCustomMeasureLogTimeSeriesCollectionMap;
+        // overallCustomMeasureLogTimeSeriesCollectionMap = getOverallCustomMeasureLogTimeSeriesCollectionMap();
+        //
+        // Map<String, LogIntervalMarker> overallLogIntervalMarkerMap;
+        // overallLogIntervalMarkerMap = getOverallLogIntervalMarkerMap();
+        //
+        // processLogSeriesCollection(overallLogTimeSeriesCollectionMap, log4jLogEntry, logEntryValueList, locale);
+        //
+        // processCustomMeasureLogSeriesCollection(overallCustomMeasureLogTimeSeriesCollectionMap, log4jLogEntry,
+        // logEntryValueList, locale);
+        //
+        // processLogIntervalMarker(overallLogIntervalMarkerMap, log4jLogEntry);
+    }
 
-		int deltaColumnIndex = logEntryColumnIndexMap.get(LogEntryColumn.DELTA);
+    private void processLogSeriesCollection(Map<String, LogSeriesCollection> logTimeSeriesCollectionMap,
+            Log4jLogEntry log4jLogEntry, ArrayList<String> logEntryValueList, Locale locale) {
 
-		DateFormat modelDateFormat = getModelDateFormat();
+        long logEntryTime = log4jLogEntry.getKey().getTimestamp();
 
-		if (timestampColumnIndex != -1) {
+        // logEntryTime can be -1 in case of corrupted log file
+        if (logEntryTime != -1) {
 
-			// update existing entries in map.
-			Map<Integer, LogEntry> logEntryMap = getLogEntryMap();
+            boolean sysdateEntry = log4jLogEntry.isSysdateEntry();
 
-			LOG.info("Updating " + logEntryMap.size() + " records because of model timezone change");
+            if (sysdateEntry) {
 
-			long lowerDomainRange = -1;
-			long upperDomainRange = -1;
+                DateFormat modelDateFormat = getModelDateFormat();
+                TimeZone timezone = modelDateFormat.getTimeZone();
 
-			Set<Integer> logEntryIndexSet = new TreeSet<Integer>(logEntryMap.keySet());
+                NumberFormat numberFormat = NumberFormat.getInstance(locale);
 
-			Iterator<Integer> logEntryIndexIterator = logEntryIndexSet.iterator();
+                // logEntryValueList will be null in case of reload
+                if (logEntryValueList == null) {
+                    logEntryValueList = log4jLogEntry.getLogEntryValueList();
+                }
 
-			Log4jLogEntry prevLog4jLogEntry = null;
+                Map<LogEntryColumn, Integer> logEntryColumnIndexMap = getLogEntryColumnIndexMap();
+                int messageIndex = logEntryColumnIndexMap.get(LogEntryColumn.MESSAGE);
 
-			while (logEntryIndexIterator.hasNext()) {
+                String systemStr = logEntryValueList.get(messageIndex);
 
-				Integer logEntryKey = logEntryIndexIterator.next();
+                // on some systems like GC, there are multiple spaces
+                // before '%m%n' pattern, for ex ' - %m%n'.
+                // this causes the system string to have a additional space
+                // in the front.hence it is required to
+                // trim the message to match the entries below
+                systemStr = systemStr.trim();
 
-				Log4jLogEntry log4jLogEntry = (Log4jLogEntry) logEntryMap.get(logEntryKey);
+                if (masterAgentSystemPattern == null) {
+                    masterAgentSystemPattern = MasterAgentSystemPattern.getMasterAgentSystemPattern(systemStr);
+                }
 
-				log4jLogEntry.updateTimestamp(modelDateFormat, timestampColumnIndex, deltaColumnIndex,
-						prevLog4jLogEntry);
+                if (masterAgentSystemPattern != null) {
 
-				prevLog4jLogEntry = log4jLogEntry;
+                    Pattern pattern = masterAgentSystemPattern.getPattern();
 
-				long logEntryTime = log4jLogEntry.getLogEntryDate().getTime();
+                    Matcher matcher = pattern.matcher(systemStr);
 
-				if (lowerDomainRange == -1) {
-					lowerDomainRange = logEntryTime - 1;
-				} else {
-					lowerDomainRange = Math.min(lowerDomainRange, logEntryTime);
-				}
+                    if (matcher.matches()) {
 
-				if (upperDomainRange == -1) {
-					upperDomainRange = logEntryTime;
-				} else {
-					upperDomainRange = Math.max(upperDomainRange, logEntryTime);
-				}
+                        Map<String, Color> logTimeSeriesColorMap = LogTimeSeriesColor.getLogTimeSeriesColorMap();
 
-			}
+                        ValueMarker thresholdMarker = null;
+                        boolean showCount = false;
+                        boolean defaultShowLogTimeSeries = true;
 
-			if ((lowerDomainRange != -1) && (upperDomainRange != -1)) {
-				setLowerDomainRange(lowerDomainRange);
-				setUpperDomainRange(upperDomainRange);
-			}
-		}
-	}
+                        Map<String, Integer> fieldNameGroupIndexMap;
+                        fieldNameGroupIndexMap = masterAgentSystemPattern.getFieldNameGroupIndexMap();
 
-	private void addToMap(Map<String, List<TimeSeriesDataItem>> log4jMessageMap, String key, Date logEntryDate,
-			TimeZone timezone, Locale locale, double value) {
+                        List<String> fieldNameList = new ArrayList<>(fieldNameGroupIndexMap.keySet());
+                        List<String> valueStrList = new ArrayList<>();
 
-		List<TimeSeriesDataItem> logMessageList = log4jMessageMap.get(key);
+                        for (String fieldName : fieldNameList) {
 
-		if (logMessageList == null) {
-			logMessageList = new ArrayList<TimeSeriesDataItem>();
-			log4jMessageMap.put(key, logMessageList);
-		}
+                            int groupIndex = fieldNameGroupIndexMap.get(fieldName);
+                            String valueStr = matcher.group(groupIndex);
+                            valueStrList.add(valueStr);
+                        }
 
-		RegularTimePeriod regularTimePeriod;
+                        String timeSeriesName;
+                        int fieldIndex;
 
-		regularTimePeriod = new Millisecond(logEntryDate, timezone, locale);
+                        // TOTAL_MEMORY
+                        timeSeriesName = TS_TOTAL_MEMORY;
+                        fieldIndex = fieldNameList.indexOf(timeSeriesName);
 
-		TimeSeriesDataItem tsdi = new TimeSeriesDataItem(regularTimePeriod, value);
+                        double totalMemory = -1;
 
-		logMessageList.add(tsdi);
+                        if (fieldIndex != -1) {
 
-	}
+                            String totalMemoryStr = null;
 
-	private void processSystemStr(String tsKey, List<String> fieldNameList, List<String> valueStrList,
-			Date logEntryDate, Map<String, List<TimeSeriesDataItem>> log4jMessageMap,
-			Map<String, List<Double>> log4jMessageDataMap) {
+                            try {
 
-		int fieldIndex = fieldNameList.indexOf(tsKey);
+                                totalMemoryStr = valueStrList.get(fieldIndex);
+                                totalMemory = numberFormat.parse(totalMemoryStr).doubleValue();
 
-		if (fieldIndex != -1) {
+                                // convert to MB
+                                totalMemory = totalMemory / (1024 * 1024);
 
-			DateFormat modelDateFormat = getModelDateFormat();
-			Locale locale = getLocale();
-			NumberFormat numberFormat = getNumberFormat();
+                                Color color = logTimeSeriesColorMap.get(timeSeriesName);
 
-			TimeZone timeZone = modelDateFormat.getTimeZone();
+                                processLogTimeSeries(logTimeSeriesCollectionMap, TSC_MEMORY, logEntryTime, totalMemory,
+                                        timeSeriesName, color, thresholdMarker, showCount, defaultShowLogTimeSeries,
+                                        timezone, locale);
 
-			String valueStr = null;
+                            } catch (Exception e) {
+                                LOG.error("Error adding total memory to map:" + totalMemoryStr, e);
+                            }
+                        }
 
-			try {
+                        // FREE_MEMORY / USED_MEMORY
+                        timeSeriesName = TS_FREE_MEMORY;
+                        fieldIndex = fieldNameList.indexOf(timeSeriesName);
 
-				valueStr = valueStrList.get(fieldIndex);
-				double value = numberFormat.parse(valueStr).doubleValue();
+                        if (fieldIndex != -1) {
 
-				addToMap(log4jMessageMap, tsKey, logEntryDate, timeZone, locale, value);
+                            String freeMemoryStr = null;
 
-				List<Double> log4jMessageDataList = log4jMessageDataMap.get(tsKey);
+                            try {
 
-				if (log4jMessageDataList == null) {
-					log4jMessageDataList = new LinkedList<Double>();
-					log4jMessageDataMap.put(tsKey, log4jMessageDataList);
-				}
+                                freeMemoryStr = valueStrList.get(fieldIndex);
+                                double freeMemory = numberFormat.parse(freeMemoryStr).doubleValue();
 
-				log4jMessageDataList.add(value);
+                                // convert to MB
+                                freeMemory = freeMemory / (1024 * 1024);
+                                double timeSeriesValue = -1;
 
-			} catch (Exception e) {
-				LOG.error("Error adding to map:" + valueStr, e);
-			}
-		} else {
-			LOG.error("could not find key" + tsKey);
-		}
-	}
+                                if (totalMemory != -1) {
+                                    timeSeriesName = TS_USED_MEMORY;
+                                    timeSeriesValue = (totalMemory - freeMemory);
+                                } else {
+                                    timeSeriesValue = freeMemory;
+                                }
 
-	@Override
-	public Set<LogSeriesCollection> getLogTimeSeriesCollectionSet(boolean filtered) throws Exception {
+                                Color color = logTimeSeriesColorMap.get(timeSeriesName);
 
-		Map<Integer, LogEntry> logEntryMap = getLogEntryMap();
+                                processLogTimeSeries(logTimeSeriesCollectionMap, TSC_MEMORY, logEntryTime,
+                                        timeSeriesValue, timeSeriesName, color, thresholdMarker, showCount,
+                                        defaultShowLogTimeSeries, timezone, locale);
 
-		Iterator<Integer> logEntryIndexIterator = null;
+                            } catch (Exception e) {
+                                LOG.error("Error adding free memory to map:" + freeMemoryStr, e);
+                            }
+                        }
 
-		if (filtered) {
+                        // TOTAL_CPU_SECONDS
+                        timeSeriesName = TS_TOTAL_CPU_SECONDS;
+                        fieldIndex = fieldNameList.indexOf(timeSeriesName);
 
-			List<Integer> logEntryIndexList = getLogEntryIndexList();
-			logEntryIndexIterator = logEntryIndexList.iterator();
+                        if (fieldIndex != -1) {
 
-		} else {
+                            String totalCPUStr = null;
 
-			Set<Integer> logEntryIndexSet = new TreeSet<Integer>(logEntryMap.keySet());
-			logEntryIndexIterator = logEntryIndexSet.iterator();
+                            try {
 
-		}
+                                totalCPUStr = valueStrList.get(fieldIndex);
+                                double totalCPU = numberFormat.parse(totalCPUStr).doubleValue();
 
-		Map<String, List<TimeSeriesDataItem>> log4jMessageMap = new HashMap<String, List<TimeSeriesDataItem>>();
-		Map<String, List<Double>> log4jMessageDataMap = new HashMap<String, List<Double>>();
+                                Color color = logTimeSeriesColorMap.get(timeSeriesName);
 
-		List<String> logEntryColumnList = getLogEntryColumnList();
+                                processLogTimeSeries(logTimeSeriesCollectionMap, timeSeriesName, logEntryTime, totalCPU,
+                                        timeSeriesName, color, thresholdMarker, showCount, defaultShowLogTimeSeries,
+                                        timezone, locale);
 
-		int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
+                            } catch (Exception e) {
+                                LOG.error("Error adding total cpu to map:" + totalCPUStr, e);
+                            }
+                        }
 
-		DateFormat modelDateFormat = getModelDateFormat();
-		Locale locale = getLocale();
-		NumberFormat numberFormat = getNumberFormat();
+                        // REQUESTOR_COUNT
+                        timeSeriesName = TS_REQUESTOR_COUNT;
+                        fieldIndex = fieldNameList.indexOf(timeSeriesName);
 
-		TimeZone timeZone = modelDateFormat.getTimeZone();
+                        if (fieldIndex != -1) {
 
-		Set<LogIntervalMarker> logIntervalMarkerSet = getLogIntervalMarkerSet();
-		logIntervalMarkerSet.clear();
+                            String requestorCountStr = null;
 
-		Map<String, Color> logTimeSeriesColorMap = LogTimeSeriesColor.getLogTimeSeriesColorMap();
+                            try {
 
-		Color systemStartColor = logTimeSeriesColorMap.get(IM_SYSTEM_START);
-		Color threadDumpColor = logTimeSeriesColorMap.get(IM_THREAD_DUMP);
-		Color exceptionsColor = logTimeSeriesColorMap.get(IM_EXCEPTIONS);
+                                requestorCountStr = valueStrList.get(fieldIndex);
+                                double requestorCount = numberFormat.parse(requestorCountStr).doubleValue();
 
-		LogIntervalMarker ssLogIntervalMarker = null;
-		LogIntervalMarker tdLogIntervalMarker = null;
-		LogIntervalMarker exLogIntervalMarker = null;
+                                Color color = logTimeSeriesColorMap.get(timeSeriesName);
 
-		while (logEntryIndexIterator.hasNext()) {
+                                processLogTimeSeries(logTimeSeriesCollectionMap, timeSeriesName, logEntryTime,
+                                        requestorCount, timeSeriesName, color, thresholdMarker, showCount,
+                                        defaultShowLogTimeSeries, timezone, locale);
 
-			Integer logEntryKey = logEntryIndexIterator.next();
-			Log4jLogEntry log4jLogEntry = (Log4jLogEntry) logEntryMap.get(logEntryKey);
+                            } catch (Exception e) {
+                                LOG.error("Error adding requestor count to map:" + requestorCountStr, e);
+                            }
+                        }
 
-			Date logEntryDate = log4jLogEntry.getLogEntryDate();
+                        // SHARED_PAGE_MEMORY
+                        timeSeriesName = TS_SHARED_PAGE_MEMORY;
+                        fieldIndex = fieldNameList.indexOf(timeSeriesName);
 
-			// date can be null in case of corrupted log file
-			if (logEntryDate != null) {
+                        if (fieldIndex != -1) {
 
-				long logEntryTime = logEntryDate.getTime();
+                            String sharedPageMemoryStr = null;
 
-				boolean sysdateEntry = log4jLogEntry.isSysdateEntry();
+                            try {
 
-				ArrayList<String> logEntryValueList = log4jLogEntry.getLogEntryValueList();
+                                sharedPageMemoryStr = valueStrList.get(fieldIndex);
+                                double sharedPageMemory = numberFormat.parse(sharedPageMemoryStr).doubleValue();
 
-				if (sysdateEntry) {
+                                Color color = logTimeSeriesColorMap.get(timeSeriesName);
 
-					// ArrayList<String> logEntryValueList =
-					// log4jLogEntry.getLogEntryValueList();
+                                processLogTimeSeries(logTimeSeriesCollectionMap, timeSeriesName, logEntryTime,
+                                        sharedPageMemory, timeSeriesName, color, thresholdMarker, showCount,
+                                        defaultShowLogTimeSeries, timezone, locale);
 
-					String systemStr = logEntryValueList.get(messageIndex);
+                            } catch (Exception e) {
+                                LOG.error("Error adding shared page memory to map:" + sharedPageMemoryStr, e);
+                            }
+                        }
 
-					// TODO: on some systems like GC, there are multiple spaces
-					// before '%m%n' pattern, for ex ' - %m%n'.
-					// this causes the system string to have a additional space
-					// in the front.hence it is required to
-					// trim the message to match the entries below
-					systemStr = systemStr.trim();
+                        // NUMBER_OF_THREADS
+                        timeSeriesName = TS_NUMBER_OF_THREADS;
+                        fieldIndex = fieldNameList.indexOf(timeSeriesName);
 
-					if (masterAgentSystemPattern == null) {
-						masterAgentSystemPattern = MasterAgentSystemPattern.getMasterAgentSystemPattern(systemStr);
-					}
+                        if (fieldIndex != -1) {
 
-					if (masterAgentSystemPattern != null) {
+                            String numberOfThreadsStr = null;
 
-						Pattern pattern = masterAgentSystemPattern.getPattern();
+                            try {
 
-						Matcher matcher = pattern.matcher(systemStr);
+                                numberOfThreadsStr = valueStrList.get(fieldIndex);
+                                double numberOfThreads = numberFormat.parse(numberOfThreadsStr).doubleValue();
 
-						if (matcher.matches()) {
+                                Color color = logTimeSeriesColorMap.get(timeSeriesName);
 
-							Map<String, Integer> fieldNameGroupIndexMap;
-							fieldNameGroupIndexMap = masterAgentSystemPattern.getFieldNameGroupIndexMap();
+                                processLogTimeSeries(logTimeSeriesCollectionMap, timeSeriesName, logEntryTime,
+                                        numberOfThreads, timeSeriesName, color, thresholdMarker, showCount,
+                                        defaultShowLogTimeSeries, timezone, locale);
 
-							List<String> fieldNameList = new ArrayList<>(fieldNameGroupIndexMap.keySet());
-							List<String> valueStrList = new ArrayList<>();
+                            } catch (Exception e) {
+                                LOG.error("Error adding number of threads to map:" + numberOfThreadsStr, e);
+                            }
+                        }
 
-							for (String fieldName : fieldNameList) {
+                    } else {
+                        LOG.error("unable to match master agent system string: " + systemStr);
+                    }
 
-								int groupIndex = fieldNameGroupIndexMap.get(fieldName);
-								String valueStr = matcher.group(groupIndex);
-								valueStrList.add(valueStr);
-							}
+                } else {
+                    LOG.error("unable to get MasterAgentSystemPattern for system string: " + systemStr);
+                }
+            }
+        }
+    }
 
-							String tsKey;
-							int fieldIndex;
+    // TODO possibly have all the pattern externalise as measures?
+    private void processCustomMeasureLogSeriesCollection(Map<String, LogSeriesCollection> logTimeSeriesCollectionMap,
+            Log4jLogEntry log4jLogEntry, ArrayList<String> logEntryValueList, Locale locale) {
 
-							// TOTAL_MEMORY
-							tsKey = TS_TOTAL_MEMORY;
-							fieldIndex = fieldNameList.indexOf(tsKey);
+        long logEntryTime = log4jLogEntry.getKey().getTimestamp();
 
-							double totalMemory = -1;
+        // logEntryTime can be -1 in case of corrupted log file
+        if (logEntryTime != -1) {
 
-							if (fieldIndex != -1) {
+            boolean sysdateEntry = log4jLogEntry.isSysdateEntry();
+            boolean log4jLogExceptionEntry = (log4jLogEntry instanceof Log4jLogExceptionEntry);
+            boolean log4jLogRequestorLockEntry = (log4jLogEntry instanceof Log4jLogRequestorLockEntry);
+            boolean log4jLogThreadDumpEntry = (log4jLogEntry instanceof Log4jLogThreadDumpEntry);
+            boolean log4jLogSystemStartEntry = (log4jLogEntry instanceof Log4jLogSystemStartEntry);
 
-								String totalMemoryStr = null;
+            if ((!sysdateEntry) && (!log4jLogExceptionEntry) && (!log4jLogRequestorLockEntry)
+                    && (!log4jLogThreadDumpEntry) && (!log4jLogSystemStartEntry)) {
 
-								try {
-									totalMemoryStr = valueStrList.get(fieldIndex);
-									totalMemory = numberFormat.parse(totalMemoryStr).doubleValue();
+                List<String> logEntryColumnList = getLogEntryColumnList();
+                int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
 
-									// change to MB
-									totalMemory = totalMemory / (1024 * 1024);
-									addToMap(log4jMessageMap, tsKey, logEntryDate, timeZone, locale, totalMemory);
-								} catch (Exception e) {
-									LOG.error("Error adding total memory to map:" + totalMemoryStr, e);
-								}
-							}
+                DateFormat modelDateFormat = getModelDateFormat();
+                TimeZone timezone = modelDateFormat.getTimeZone();
 
-							tsKey = TS_FREE_MEMORY;
-							fieldIndex = fieldNameList.indexOf(tsKey);
+                NumberFormat numberFormat = NumberFormat.getInstance(locale);
 
-							if (fieldIndex != -1) {
+                ValueMarker thresholdMarker = null;
+                boolean showCount = false;
+                boolean defaultShowLogTimeSeries = true;
 
-								String freeMemoryStr = null;
+                // logEntryValueList will be null in case of reload
+                if (logEntryValueList == null) {
+                    logEntryValueList = log4jLogEntry.getLogEntryValueList();
+                }
 
-								try {
+                // process custom measures
+                for (Log4jMeasurePattern log4jMeasurePattern : customMeasurePatternList) {
 
-									freeMemoryStr = valueStrList.get(fieldIndex);
-									double freeMemory = numberFormat.parse(freeMemoryStr).doubleValue();
+                    String name = log4jMeasurePattern.getName();
+                    Pattern pattern = log4jMeasurePattern.getPattern();
 
-									freeMemory = freeMemory / (1024 * 1024);
+                    String messageStr = logEntryValueList.get(messageIndex);
 
-									if (totalMemory != -1) {
-										tsKey = TS_USED_MEMORY;
-										addToMap(log4jMessageMap, tsKey, logEntryDate, timeZone, locale,
-												(totalMemory - freeMemory));
-									} else {
-										addToMap(log4jMessageMap, tsKey, logEntryDate, timeZone, locale, freeMemory);
-									}
+                    Matcher matcher = pattern.matcher(messageStr);
 
-									List<Double> log4jMessageDataList = log4jMessageDataMap.get(tsKey);
+                    String customMeasureStr = null;
 
-									if (log4jMessageDataList == null) {
-										log4jMessageDataList = new ArrayList<Double>();
-										log4jMessageDataMap.put(tsKey, log4jMessageDataList);
-									}
+                    if (matcher.matches()) {
 
-									log4jMessageDataList.add(freeMemory);
+                        customMeasureStr = matcher.group(3);
 
-								} catch (Exception e) {
-									LOG.error("Error adding free memory to map:" + freeMemoryStr, e);
-								}
-							}
+                        if (customMeasureStr != null) {
 
-							// TOTAL_CPU_SECONDS
-							tsKey = TS_TOTAL_CPU_SECONDS;
-							fieldIndex = fieldNameList.indexOf(tsKey);
+                            double customMeasure;
 
-							if (fieldIndex != -1) {
+                            try {
+                                customMeasure = numberFormat.parse(customMeasureStr).doubleValue();
 
-								String totalCPUStr = null;
+                                Color color = null;
 
-								try {
+                                processLogTimeSeries(logTimeSeriesCollectionMap, name, logEntryTime, customMeasure,
+                                        name, color, thresholdMarker, showCount, defaultShowLogTimeSeries, timezone,
+                                        locale);
 
-									totalCPUStr = valueStrList.get(fieldIndex);
-									double totalCPU = numberFormat.parse(totalCPUStr).doubleValue();
+                            } catch (Exception e) {
+                                LOG.error("Error adding custom measure to map:" + customMeasureStr, e);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-									addToMap(log4jMessageMap, tsKey, logEntryDate, timeZone, locale, totalCPU);
+    private void processLogTimeSeries(Map<String, LogSeriesCollection> logTimeSeriesCollectionMap,
+            String logSeriesCollectionName, long logEntryTime, double timeSeriesValue, String timeSeriesName,
+            Color color, ValueMarker thresholdMarker, boolean showCount, boolean defaultShowLogTimeSeries,
+            TimeZone timezone, Locale locale) {
 
-									List<Double> log4jMessageDataList = log4jMessageDataMap.get(tsKey);
+        LogSeriesCollection logSeriesCollection;
+        logSeriesCollection = logTimeSeriesCollectionMap.get(logSeriesCollectionName);
 
-									if (log4jMessageDataList == null) {
-										log4jMessageDataList = new ArrayList<Double>();
-										log4jMessageDataMap.put(tsKey, log4jMessageDataList);
-									}
+        if (logSeriesCollection == null) {
+            logSeriesCollection = new LogSeriesCollection(logSeriesCollectionName);
+            logTimeSeriesCollectionMap.put(logSeriesCollectionName, logSeriesCollection);
+        }
 
-									log4jMessageDataList.add(totalCPU);
+        RegularTimePeriod regularTimePeriod;
+        regularTimePeriod = new Millisecond(new Date(logEntryTime), timezone, locale);
 
-								} catch (Exception e) {
-									LOG.error("Error adding total cpu to map:" + totalCPUStr, e);
-								}
-							}
+        TimeSeriesDataItem timeSeriesDataItem;
+        timeSeriesDataItem = new TimeSeriesDataItem(regularTimePeriod, timeSeriesValue);
 
-							// REQUESTOR_COUNT
-							tsKey = TS_REQUESTOR_COUNT;
-							fieldIndex = fieldNameList.indexOf(tsKey);
+        LogTimeSeries logSeries = (LogTimeSeries) logSeriesCollection.getLogSeries(timeSeriesName);
 
-							if (fieldIndex != -1) {
+        if (logSeries == null) {
 
-								String requestorCountStr = null;
+            if (color == null) {
+                color = Color.BLACK;
+            }
 
-								try {
+            logSeries = new LogTimeSeries(timeSeriesName, color, thresholdMarker, showCount, defaultShowLogTimeSeries);
 
-									requestorCountStr = valueStrList.get(fieldIndex);
-									double requestorCount = numberFormat.parse(requestorCountStr).doubleValue();
+            logSeriesCollection.addLogSeries(logSeries);
+        }
 
-									addToMap(log4jMessageMap, tsKey, logEntryDate, timeZone, locale, requestorCount);
+        logSeries.addTimeSeriesDataItem(timeSeriesDataItem);
 
-									List<Double> log4jMessageDataList = log4jMessageDataMap.get(tsKey);
+    }
 
-									if (log4jMessageDataList == null) {
-										log4jMessageDataList = new LinkedList<Double>();
-										log4jMessageDataMap.put(tsKey, log4jMessageDataList);
-									}
+    private void processLogIntervalMarker(Map<String, LogIntervalMarker> intervalMarkerMap,
+            Log4jLogEntry log4jLogEntry) {
 
-									log4jMessageDataList.add(requestorCount);
+        long logEntryTime = log4jLogEntry.getKey().getTimestamp();
 
-								} catch (Exception e) {
-									LOG.error("Error adding requestor count to map:" + requestorCountStr, e);
-								}
-							}
+        // logEntryTime can be -1 in case of corrupted log file
+        if (logEntryTime != -1) {
 
-							// SHARED_PAGE_MEMORY
-							tsKey = TS_SHARED_PAGE_MEMORY;
-							fieldIndex = fieldNameList.indexOf(tsKey);
+            String logIntervalMarkerName = null;
 
-							if (fieldIndex != -1) {
+            if (log4jLogEntry instanceof Log4jLogThreadDumpEntry) {
 
-								String sharedPageMemoryStr = null;
+                logIntervalMarkerName = IM_THREAD_DUMP;
 
-								try {
+                processIntervalMarker(intervalMarkerMap, logIntervalMarkerName, logEntryTime, true);
 
-									sharedPageMemoryStr = valueStrList.get(fieldIndex);
-									double sharedPageMemory = numberFormat.parse(sharedPageMemoryStr).doubleValue();
+            } else if (log4jLogEntry instanceof Log4jLogSystemStartEntry) {
 
-									addToMap(log4jMessageMap, tsKey, logEntryDate, timeZone, locale, sharedPageMemory);
+                logIntervalMarkerName = IM_SYSTEM_START;
 
-									List<Double> log4jMessageDataList = log4jMessageDataMap.get(tsKey);
+                processIntervalMarker(intervalMarkerMap, logIntervalMarkerName, logEntryTime, true);
 
-									if (log4jMessageDataList == null) {
-										log4jMessageDataList = new LinkedList<Double>();
-										log4jMessageDataMap.put(tsKey, log4jMessageDataList);
-									}
+            } else if (log4jLogEntry instanceof Log4jLogExceptionEntry) {
 
-									log4jMessageDataList.add(sharedPageMemory);
+                logIntervalMarkerName = IM_EXCEPTIONS;
 
-								} catch (Exception e) {
-									LOG.error("Error adding shared page memory to map:" + sharedPageMemoryStr, e);
-								}
-							}
+                processIntervalMarker(intervalMarkerMap, logIntervalMarkerName, logEntryTime, false);
+            }
+        }
+    }
 
-							// NUMBER_OF_THREADS
-							tsKey = TS_NUMBER_OF_THREADS;
-							fieldIndex = fieldNameList.indexOf(tsKey);
+    private void processIntervalMarker(Map<String, LogIntervalMarker> intervalMarkerMap, String logIntervalMarkerName,
+            long logEntryTime, boolean defaultShowLogTimeSeries) {
 
-							if (fieldIndex != -1) {
+        Map<String, Color> logTimeSeriesColorMap = LogTimeSeriesColor.getLogTimeSeriesColorMap();
 
-								String numberOfThreadsStr = null;
+        Color intervalMarkerColor = logTimeSeriesColorMap.get(logIntervalMarkerName);
 
-								try {
+        LogIntervalMarker logIntervalMarker = intervalMarkerMap.get(logIntervalMarkerName);
 
-									numberOfThreadsStr = valueStrList.get(fieldIndex);
-									double numberOfThreads = numberFormat.parse(numberOfThreadsStr).doubleValue();
+        if (logIntervalMarker == null) {
 
-									addToMap(log4jMessageMap, tsKey, logEntryDate, timeZone, locale, numberOfThreads);
+            logIntervalMarker = new LogIntervalMarker(logIntervalMarkerName, intervalMarkerColor, true,
+                    defaultShowLogTimeSeries);
 
-									List<Double> log4jMessageDataList = log4jMessageDataMap.get(tsKey);
+            intervalMarkerMap.put(logIntervalMarkerName, logIntervalMarker);
+        }
 
-									if (log4jMessageDataList == null) {
-										log4jMessageDataList = new LinkedList<Double>();
-										log4jMessageDataMap.put(tsKey, log4jMessageDataList);
-									}
+        ValueMarker vm = new ValueMarker(logEntryTime, intervalMarkerColor, new BasicStroke(1.0f), intervalMarkerColor,
+                new BasicStroke(1.0f), 1.0f);
 
-									log4jMessageDataList.add(numberOfThreads);
+        logIntervalMarker.addValueMarker(vm);
+    }
 
-								} catch (Exception e) {
-									LOG.error("Error adding number of threads to map:" + numberOfThreadsStr, e);
-								}
-							}
-						} else {
-							LOG.error("unable to match master agent system string: " + systemStr);
-						}
-					} else {
-						LOG.error("unable to get MasterAgentSystemPattern for system string: " + systemStr);
-					}
+    @Override
+    public void setModelDateFormatTimeZone(TimeZone modelTimeZone) {
 
-				}
+        super.setModelDateFormatTimeZone(modelTimeZone);
 
-				// process custom measures
-				for (Log4jMeasurePattern cmp : customMeasurePatternList) {
+        LOG.info("Model timezone changed to " + modelTimeZone);
 
-					String name = cmp.getName();
-					Pattern pattern = cmp.getPattern();
+        Map<LogEntryColumn, Integer> logEntryColumnIndexMap = getLogEntryColumnIndexMap();
 
-					String messageStr = logEntryValueList.get(messageIndex);
+        int timestampColumnIndex = logEntryColumnIndexMap.get(LogEntryColumn.TIMESTAMP);
 
-					Matcher matcher = pattern.matcher(messageStr);
+        DateFormat modelDateFormat = getModelDateFormat();
 
-					String customMeasureStr = null;
+        if (timestampColumnIndex != -1) {
 
-					if (matcher.matches()) {
-						customMeasureStr = matcher.group(3);
+            // update existing entries in map.
+            Map<LogEntryKey, LogEntry> logEntryMap = getLogEntryMap();
 
-						if (customMeasureStr != null) {
+            LOG.info("Updating " + logEntryMap.size() + " records because of model timezone change");
 
-							double customMeasure;
-							try {
-								customMeasure = numberFormat.parse(customMeasureStr).doubleValue();
+            long lowerDomainRange = -1;
+            long upperDomainRange = -1;
 
-								addToMap(log4jMessageMap, name, logEntryDate, timeZone, locale, customMeasure);
+            List<LogEntry> updatedLogEntryList = new ArrayList<>();
 
-								List<Double> log4jMessageDataList = log4jMessageDataMap.get(name);
+            for (LogEntry logEntry : logEntryMap.values()) {
 
-								if (log4jMessageDataList == null) {
-									log4jMessageDataList = new ArrayList<Double>();
-									log4jMessageDataMap.put(name, log4jMessageDataList);
-								}
+                LogEntryKey logEntryKey = logEntry.getKey();
 
-								log4jMessageDataList.add(customMeasure);
+                LogEntryData logEntryData = logEntry.getLogEntryData();
 
-							} catch (Exception e) {
-								LOG.error("Error adding custom measure to map:" + customMeasureStr, e);
-							}
-						}
-					}
-				}
+                ArrayList<String> logEntryValueList = logEntryData.getLogEntryValueList();
 
-				// setup interval markers
-				if (log4jLogEntry instanceof Log4jLogThreadDumpEntry) {
+                String logEntryDateStr = logEntryValueList.get(timestampColumnIndex);
 
-					if (tdLogIntervalMarker == null) {
+                try {
 
-						tdLogIntervalMarker = new LogIntervalMarker(IM_THREAD_DUMP, threadDumpColor, true, true);
+                    // Recalculating time when timezone becomes known
+                    Date logEntryDate = modelDateFormat.parse(logEntryDateStr);
 
-						logIntervalMarkerSet.add(tdLogIntervalMarker);
-					}
+                    long logEntryTime = logEntryDate.getTime();
 
-					ValueMarker vm = new ValueMarker(logEntryTime, threadDumpColor, new BasicStroke(1.0f),
-							threadDumpColor, new BasicStroke(1.0f), 1.0f);
+                    logEntryKey.setTimestamp(logEntryTime);
 
-					tdLogIntervalMarker.addValueMarker(vm);
+                    updatedLogEntryList.add(logEntry);
 
-				} else if (log4jLogEntry instanceof Log4jLogSystemStartEntry) {
+                    if (lowerDomainRange == -1) {
+                        lowerDomainRange = logEntryTime - 1;
+                    } else {
+                        lowerDomainRange = Math.min(lowerDomainRange, logEntryTime);
+                    }
 
-					if (ssLogIntervalMarker == null) {
+                    if (upperDomainRange == -1) {
+                        upperDomainRange = logEntryTime;
+                    } else {
+                        upperDomainRange = Math.max(upperDomainRange, logEntryTime);
+                    }
 
-						ssLogIntervalMarker = new LogIntervalMarker(IM_SYSTEM_START, systemStartColor, true, true);
+                } catch (ParseException pe) {
+                    LOG.info("Date parse error: " + logEntryDateStr);
+                }
 
-						logIntervalMarkerSet.add(ssLogIntervalMarker);
-					}
+            }
 
-					ValueMarker vm = new ValueMarker(logEntryTime, systemStartColor, new BasicStroke(1.0f),
-							systemStartColor, new BasicStroke(1.0f), 1.0f);
+            // recreate the map with updated Keys.
+            logEntryMap.clear();
 
-					ssLogIntervalMarker.addValueMarker(vm);
+            for (LogEntry logEntry : updatedLogEntryList) {
+                logEntryMap.put(logEntry.getKey(), logEntry);
+            }
 
-				} else if (log4jLogEntry instanceof Log4jLogExceptionEntry) {
+            if ((lowerDomainRange != -1) && (upperDomainRange != -1)) {
+                setLowerDomainRange(lowerDomainRange);
+                setUpperDomainRange(upperDomainRange);
+            }
+        }
+    }
 
-					if (exLogIntervalMarker == null) {
+    @Override
+    public Set<LogSeriesCollection> getLogTimeSeriesCollectionSet(boolean filtered, Locale locale) throws Exception {
 
-						exLogIntervalMarker = new LogIntervalMarker(IM_EXCEPTIONS, exceptionsColor, true, true);
+        if (isRebuildLogTimeSeriesCollectionSet()) {
+            rebuildLogTimeSeriesCollectionSet(locale);
+        }
 
-						logIntervalMarkerSet.add(exLogIntervalMarker);
-					}
+        Set<LogSeriesCollection> logTimeSeriesCollectionSet = new TreeSet<>();
 
-					ValueMarker vm = new ValueMarker(logEntryTime, exceptionsColor, new BasicStroke(1.0f),
-							exceptionsColor, new BasicStroke(1.0f), 1.0f);
+        Map<String, LogSeriesCollection> overallLogTimeSeriesCollectionMap;
+        overallLogTimeSeriesCollectionMap = getOverallLogTimeSeriesCollectionMap();
 
-					exLogIntervalMarker.addValueMarker(vm);
+        // for log4j, don't filter out master agent data points.
+        logTimeSeriesCollectionSet.addAll(overallLogTimeSeriesCollectionMap.values());
 
-				}
-			}
-		}
+        if (filtered) {
 
-		LogSeriesCollection ltsc;
-		ValueMarker valueMarker = null;
-		BoxAndWhiskerItem boxAndWhiskerItem = null;
-		List<Double> l4jmdList;
+            List<LogEntryKey> logEntryKeyList = getLogEntryKeyList();
+            Iterator<LogEntryKey> logEntryKeyIterator = logEntryKeyList.iterator();
 
-		Set<LogSeriesCollection> logTimeSeriesCollectionSet = new TreeSet<LogSeriesCollection>();
+            Map<String, LogSeriesCollection> customMeasureLogTimeSeriesCollectionMap;
+            customMeasureLogTimeSeriesCollectionMap = new HashMap<>();
 
-		List<TimeSeriesDataItem> tsdiList = log4jMessageMap.get(TS_TOTAL_MEMORY);
+            Map<String, LogIntervalMarker> logIntervalMarkerMap;
+            logIntervalMarkerMap = new HashMap<>();
 
-		if ((tsdiList != null) && (tsdiList.size() > 0)) {
+            Map<LogEntryKey, LogEntry> logEntryMap = getLogEntryMap();
 
-			ltsc = new LogSeriesCollection(TSC_MEMORY);
-			logTimeSeriesCollectionSet.add(ltsc);
+            while (logEntryKeyIterator.hasNext()) {
 
-			int timeSeriesEntryCount = 0;
-			TimeSeries tsTotalMemory = new TimeSeries(TS_TOTAL_MEMORY);
+                LogEntryKey logEntryKey = logEntryKeyIterator.next();
+                Log4jLogEntry log4jLogEntry = (Log4jLogEntry) logEntryMap.get(logEntryKey);
 
-			for (TimeSeriesDataItem tsdi : tsdiList) {
-				tsTotalMemory.add(tsdi);
-				timeSeriesEntryCount++;
-			}
+                long logEntryTime = logEntryKey.getTimestamp();
 
-			Color color = logTimeSeriesColorMap.get(TS_TOTAL_MEMORY);
+                // logEntryTime can be -1 in case of corrupted log file
+                if (logEntryTime != -1) {
 
-			LogTimeSeries logTimeSeries = new LogTimeSeries(tsTotalMemory, null, color, valueMarker,
-					timeSeriesEntryCount, false, true);
+                    processCustomMeasureLogSeriesCollection(customMeasureLogTimeSeriesCollectionMap, log4jLogEntry,
+                            null, locale);
 
-			ltsc.addLogSeries(logTimeSeries);
+                    processLogIntervalMarker(logIntervalMarkerMap, log4jLogEntry);
+                }
+            }
 
-			tsdiList = log4jMessageMap.get(TS_USED_MEMORY);
+            logTimeSeriesCollectionSet.addAll(customMeasureLogTimeSeriesCollectionMap.values());
 
-			if ((tsdiList != null) && (tsdiList.size() > 0)) {
+            Set<LogIntervalMarker> logIntervalMarkerSet = getLogIntervalMarkerSet();
+            logIntervalMarkerSet.clear();
 
-				timeSeriesEntryCount = 0;
-				TimeSeries tsFreeMemory = new TimeSeries(TS_USED_MEMORY);
+            logIntervalMarkerSet.addAll(logIntervalMarkerMap.values());
 
-				for (TimeSeriesDataItem tsdi : tsdiList) {
-					tsFreeMemory.add(tsdi);
-					timeSeriesEntryCount++;
-				}
+        } else {
 
-				l4jmdList = log4jMessageDataMap.get(TS_USED_MEMORY);
+            Map<String, LogSeriesCollection> overallCustomMeasureLogTimeSeriesCollectionMap;
+            overallCustomMeasureLogTimeSeriesCollectionMap = getOverallCustomMeasureLogTimeSeriesCollectionMap();
 
-				if ((l4jmdList != null) && (l4jmdList.size() > 0)) {
-					boxAndWhiskerItem = BoxAndWhiskerCalculator.calculateBoxAndWhiskerStatistics(l4jmdList);
-				}
+            logTimeSeriesCollectionSet.addAll(overallCustomMeasureLogTimeSeriesCollectionMap.values());
 
-				color = logTimeSeriesColorMap.get(TS_USED_MEMORY);
+            Map<String, LogIntervalMarker> overallLogIntervalMarkerMap;
+            overallLogIntervalMarkerMap = getOverallLogIntervalMarkerMap();
 
-				logTimeSeries = new LogTimeSeries(tsFreeMemory, boxAndWhiskerItem, color, valueMarker,
-						timeSeriesEntryCount, false, true);
+            Set<LogIntervalMarker> logIntervalMarkerSet = getLogIntervalMarkerSet();
+            logIntervalMarkerSet.clear();
 
-				ltsc.addLogSeries(logTimeSeries);
+            logIntervalMarkerSet.addAll(overallLogIntervalMarkerMap.values());
+        }
 
-			}
-		}
+        return logTimeSeriesCollectionSet;
+    }
 
-		tsdiList = log4jMessageMap.get(TS_TOTAL_CPU_SECONDS);
+    private Map<String, LogSeriesCollection> getOverallLogTimeSeriesCollectionMap() {
 
-		if ((tsdiList != null) && (tsdiList.size() > 0)) {
+        if (overallLogTimeSeriesCollectionMap == null) {
+            overallLogTimeSeriesCollectionMap = new HashMap<>();
+        }
 
-			ltsc = new LogSeriesCollection(TS_TOTAL_CPU_SECONDS);
-			logTimeSeriesCollectionSet.add(ltsc);
+        return overallLogTimeSeriesCollectionMap;
+    }
 
-			l4jmdList = null;
-			boxAndWhiskerItem = null;
+    private Map<String, LogSeriesCollection> getOverallCustomMeasureLogTimeSeriesCollectionMap() {
 
-			int timeSeriesEntryCount = 0;
-			TimeSeries tsTotalCPU = new TimeSeries(TS_TOTAL_CPU_SECONDS);
+        if (overallCustomMeasureLogTimeSeriesCollectionMap == null) {
+            overallCustomMeasureLogTimeSeriesCollectionMap = new HashMap<>();
+        }
 
-			for (TimeSeriesDataItem tsdi : tsdiList) {
-				tsTotalCPU.add(tsdi);
-				timeSeriesEntryCount++;
-			}
+        return overallCustomMeasureLogTimeSeriesCollectionMap;
+    }
 
-			l4jmdList = log4jMessageDataMap.get(TS_TOTAL_CPU_SECONDS);
+    private Map<String, LogIntervalMarker> getOverallLogIntervalMarkerMap() {
 
-			if ((l4jmdList != null) && (l4jmdList.size() > 0)) {
-				boxAndWhiskerItem = BoxAndWhiskerCalculator.calculateBoxAndWhiskerStatistics(l4jmdList);
-			}
+        if (overallLogIntervalMarkerMap == null) {
+            overallLogIntervalMarkerMap = new HashMap<>();
+        }
 
-			Color color = logTimeSeriesColorMap.get(TS_TOTAL_CPU_SECONDS);
+        return overallLogIntervalMarkerMap;
+    }
 
-			LogTimeSeries logTimeSeries = new LogTimeSeries(tsTotalCPU, boxAndWhiskerItem, color, valueMarker,
-					timeSeriesEntryCount, false, true);
+    @Override
+    public Set<LogIntervalMarker> getLogIntervalMarkerSet() {
 
-			ltsc.addLogSeries(logTimeSeries);
+        // logIntervalMarkerCollectionSet is populated in
+        // getLogTimeSeriesCollectionSet
+        // in order to save additional looping
+        if (logIntervalMarkerSet == null) {
+            logIntervalMarkerSet = new TreeSet<>();
+        }
 
-		}
+        return logIntervalMarkerSet;
+    }
 
-		tsdiList = log4jMessageMap.get(TS_REQUESTOR_COUNT);
+    @Override
+    public String getTypeName() {
+        return "Log4j";
+    }
 
-		if ((tsdiList != null) && (tsdiList.size() > 0)) {
+    public List<SystemStart> getSystemStartList() {
+        return systemStartList;
+    }
 
-			ltsc = new LogSeriesCollection(TS_REQUESTOR_COUNT);
-			logTimeSeriesCollectionSet.add(ltsc);
+    public List<HazelcastMembership> getHazelcastMembershipList() {
+        return hazelcastMembershipList;
+    }
 
-			l4jmdList = null;
-			boxAndWhiskerItem = null;
+    public Map<String, List<LogEntryKey>> getErrorLogEntryIndexMap() {
+        return errorLogEntryIndexMap;
+    }
 
-			int timeSeriesEntryCount = 0;
-			TimeSeries tsRequestorCount = new TimeSeries(TS_REQUESTOR_COUNT);
+    public List<LogEntryKey> getThreadDumpLogEntryKeyList() {
+        return threadDumpLogEntryIndexList;
+    }
 
-			for (TimeSeriesDataItem tsdi : tsdiList) {
-				tsRequestorCount.add(tsdi);
-				timeSeriesEntryCount++;
-			}
+    @Override
+    public LogEntryColumn[] getReportTableColumns() {
 
-			l4jmdList = log4jMessageDataMap.get(TS_REQUESTOR_COUNT);
+        LogEntryColumn[] reportTableColumns = new LogEntryColumn[10];
 
-			if ((l4jmdList != null) && (l4jmdList.size() > 0)) {
-				boxAndWhiskerItem = BoxAndWhiskerCalculator.calculateBoxAndWhiskerStatistics(l4jmdList);
-			}
+        reportTableColumns[0] = LogEntryColumn.LINE;
+        reportTableColumns[1] = LogEntryColumn.TIMESTAMP;
+        reportTableColumns[2] = LogEntryColumn.DELTA;
+        reportTableColumns[3] = LogEntryColumn.THREAD;
+        reportTableColumns[4] = LogEntryColumn.APP;
+        reportTableColumns[5] = LogEntryColumn.LOGGER;
+        reportTableColumns[6] = LogEntryColumn.LEVEL;
+        reportTableColumns[7] = LogEntryColumn.STACK;
+        reportTableColumns[8] = LogEntryColumn.USERID;
+        reportTableColumns[9] = LogEntryColumn.MESSAGE;
 
-			Color color = logTimeSeriesColorMap.get(TS_REQUESTOR_COUNT);
+        return reportTableColumns;
+    }
 
-			LogTimeSeries logTimeSeries = new LogTimeSeries(tsRequestorCount, boxAndWhiskerItem, color, valueMarker,
-					timeSeriesEntryCount, false, true);
+    @Override
+    public void rebuildLogTimeSeriesCollectionSet(Locale locale) throws Exception {
 
-			ltsc.addLogSeries(logTimeSeries);
+        Map<String, LogSeriesCollection> overallLogTimeSeriesCollectionMap;
+        overallLogTimeSeriesCollectionMap = getOverallLogTimeSeriesCollectionMap();
+        overallLogTimeSeriesCollectionMap.clear();
 
-		}
+        Map<String, LogSeriesCollection> overallCustomMeasureLogTimeSeriesCollectionMap;
+        overallCustomMeasureLogTimeSeriesCollectionMap = getOverallCustomMeasureLogTimeSeriesCollectionMap();
+        overallCustomMeasureLogTimeSeriesCollectionMap.clear();
 
-		tsdiList = log4jMessageMap.get(TS_SHARED_PAGE_MEMORY);
+        Map<String, LogIntervalMarker> overallLogIntervalMarkerMap;
+        overallLogIntervalMarkerMap = getOverallLogIntervalMarkerMap();
+        overallLogIntervalMarkerMap.clear();
 
-		if ((tsdiList != null) && (tsdiList.size() > 0)) {
+        Map<LogEntryKey, LogEntry> logEntryMap = getLogEntryMap();
 
-			ltsc = new LogSeriesCollection(TS_SHARED_PAGE_MEMORY);
-			logTimeSeriesCollectionSet.add(ltsc);
+        for (LogEntry logEntry : logEntryMap.values()) {
 
-			l4jmdList = null;
-			boxAndWhiskerItem = null;
+            Log4jLogEntry log4jLogEntry = (Log4jLogEntry) logEntry;
 
-			int timeSeriesEntryCount = 0;
-			TimeSeries tsSharedPageMemory = new TimeSeries(TS_SHARED_PAGE_MEMORY);
+            processLogSeriesCollection(overallLogTimeSeriesCollectionMap, log4jLogEntry, null, locale);
 
-			for (TimeSeriesDataItem tsdi : tsdiList) {
-				tsSharedPageMemory.add(tsdi);
-				timeSeriesEntryCount++;
-			}
+            processCustomMeasureLogSeriesCollection(overallCustomMeasureLogTimeSeriesCollectionMap, log4jLogEntry, null,
+                    locale);
 
-			l4jmdList = log4jMessageDataMap.get(TS_SHARED_PAGE_MEMORY);
+            processLogIntervalMarker(overallLogIntervalMarkerMap, log4jLogEntry);
+        }
 
-			if ((l4jmdList != null) && (l4jmdList.size() > 0)) {
-				boxAndWhiskerItem = BoxAndWhiskerCalculator.calculateBoxAndWhiskerStatistics(l4jmdList);
-			}
+        // Not doing sorting anymore
+        // Set<Integer> logEntryKeySet = new TreeSet<Integer>(logEntryMap.keySet());
+        // Iterator<Integer> logEntryKeyIterator = logEntryKeySet.iterator();
+        //
+        // while (logEntryKeyIterator.hasNext()) {
+        //
+        // Integer logEntryKey = logEntryKeyIterator.next();
+        // Log4jLogEntry log4jLogEntry = (Log4jLogEntry) logEntryMap.get(logEntryKey);
+        //
+        // processLogSeriesCollection(overallLogTimeSeriesCollectionMap, log4jLogEntry, null, locale);
+        //
+        // processCustomMeasureLogSeriesCollection(overallCustomMeasureLogTimeSeriesCollectionMap, log4jLogEntry, null,
+        // locale);
+        //
+        // processLogIntervalMarker(overallLogIntervalMarkerMap, log4jLogEntry);
+        // }
 
-			Color color = logTimeSeriesColorMap.get(TS_SHARED_PAGE_MEMORY);
-
-			LogTimeSeries logTimeSeries = new LogTimeSeries(tsSharedPageMemory, boxAndWhiskerItem, color, valueMarker,
-					timeSeriesEntryCount, false, false);
-
-			ltsc.addLogSeries(logTimeSeries);
-
-		}
-
-		tsdiList = log4jMessageMap.get(TS_NUMBER_OF_THREADS);
-
-		if ((tsdiList != null) && (tsdiList.size() > 0)) {
-
-			ltsc = new LogSeriesCollection(TS_NUMBER_OF_THREADS);
-			logTimeSeriesCollectionSet.add(ltsc);
-
-			l4jmdList = null;
-			boxAndWhiskerItem = null;
-
-			int timeSeriesEntryCount = 0;
-			TimeSeries tsSharedPageMemory = new TimeSeries(TS_NUMBER_OF_THREADS);
-
-			for (TimeSeriesDataItem tsdi : tsdiList) {
-				tsSharedPageMemory.add(tsdi);
-				timeSeriesEntryCount++;
-			}
-
-			l4jmdList = log4jMessageDataMap.get(TS_NUMBER_OF_THREADS);
-
-			if ((l4jmdList != null) && (l4jmdList.size() > 0)) {
-				boxAndWhiskerItem = BoxAndWhiskerCalculator.calculateBoxAndWhiskerStatistics(l4jmdList);
-			}
-
-			Color color = logTimeSeriesColorMap.get(TS_NUMBER_OF_THREADS);
-
-			LogTimeSeries logTimeSeries = new LogTimeSeries(tsSharedPageMemory, boxAndWhiskerItem, color, valueMarker,
-					timeSeriesEntryCount, false, true);
-
-			ltsc.addLogSeries(logTimeSeries);
-
-		}
-
-		// TODO need a smart way to do this. possibly have all the pattern
-		// externalise as measures?
-
-		for (Log4jMeasurePattern cmp : customMeasurePatternList) {
-
-			String cmpName = cmp.getName();
-
-			tsdiList = log4jMessageMap.get(cmpName);
-
-			if ((tsdiList != null) && (tsdiList.size() > 0)) {
-
-				ltsc = new LogSeriesCollection(cmpName);
-				logTimeSeriesCollectionSet.add(ltsc);
-
-				l4jmdList = null;
-				boxAndWhiskerItem = null;
-
-				int timeSeriesEntryCount = 0;
-				TimeSeries tsCustomMeasure = new TimeSeries(cmpName);
-
-				for (TimeSeriesDataItem tsdi : tsdiList) {
-					tsCustomMeasure.addOrUpdate(tsdi);
-					timeSeriesEntryCount++;
-				}
-
-				l4jmdList = log4jMessageDataMap.get(cmpName);
-
-				if ((l4jmdList != null) && (l4jmdList.size() > 0)) {
-					boxAndWhiskerItem = BoxAndWhiskerCalculator.calculateBoxAndWhiskerStatistics(l4jmdList);
-				}
-
-				Color color = Color.BLACK;
-
-				LogTimeSeries logTimeSeries = new LogTimeSeries(tsCustomMeasure, boxAndWhiskerItem, color, valueMarker,
-						timeSeriesEntryCount, false, false);
-
-				ltsc.addLogSeries(logTimeSeries);
-
-			}
-		}
-
-		return logTimeSeriesCollectionSet;
-	}
-
-	@Override
-	public Set<LogIntervalMarker> getLogIntervalMarkerSet() {
-
-		// logIntervalMarkerCollectionSet is populated in
-		// getLogTimeSeriesCollectionSet
-		// in order to save additional looping
-		if (logIntervalMarkerSet == null) {
-			logIntervalMarkerSet = new TreeSet<>();
-		}
-
-		return logIntervalMarkerSet;
-	}
-
-	@Override
-	public String getTypeName() {
-		return "Log4j";
-	}
-
-	/**
-	 * @return the systemStartList
-	 */
-	public List<SystemStart> getSystemStartList() {
-		return systemStartList;
-	}
-
-	public Map<String, List<Integer>> getErrorLogEntryIndexMap() {
-		return errorLogEntryIndexMap;
-	}
-
-	/**
-	 * @return the threadDumpLogEntryIndexList
-	 */
-	public List<Integer> getThreadDumpLogEntryIndexList() {
-		return threadDumpLogEntryIndexList;
-	}
-
-	@Override
-	public LogEntryColumn[] getReportTableColumns() {
-
-		LogEntryColumn[] reportTableColumns = new LogEntryColumn[8];
-
-		reportTableColumns[0] = LogEntryColumn.LINE;
-		reportTableColumns[1] = LogEntryColumn.TIMESTAMP;
-		reportTableColumns[2] = LogEntryColumn.THREAD;
-		reportTableColumns[3] = LogEntryColumn.APP;
-		reportTableColumns[4] = LogEntryColumn.LOGGER;
-		reportTableColumns[5] = LogEntryColumn.LEVEL;
-		reportTableColumns[6] = LogEntryColumn.STACK;
-		reportTableColumns[7] = LogEntryColumn.USERID;
-
-		return reportTableColumns;
-	}
-
+        // reset the flag
+        setRebuildLogTimeSeriesCollectionSet(false);
+    }
 }

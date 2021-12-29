@@ -4,115 +4,122 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alert;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.SwingConstants;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.logviewer.model.AlertLogEntry;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
+import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 
 public class PEGA0090ReportModel extends AlertMessageReportModel {
 
-	private static final long serialVersionUID = -8889727175209305065L;
+    private static final long serialVersionUID = -8889727175209305065L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0090ReportModel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0090ReportModel.class);
 
-	private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
+    private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
 
-	private Pattern pattern;
+    private Pattern pattern;
 
-	public PEGA0090ReportModel(long thresholdKPI, String kpiUnit, AlertLogEntryModel alertLogEntryModel) {
+    private Pattern pattern82;
 
-		super("PEGA0090", thresholdKPI, kpiUnit, alertLogEntryModel);
+    public PEGA0090ReportModel(AlertMessage alertMessage, long thresholdKPI, AlertLogEntryModel alertLogEntryModel,
+            Locale locale) {
 
-		String regex = "Segmentation detected, remaining members:(.*)";
-		pattern = Pattern.compile(regex);
-	}
+        super(alertMessage, thresholdKPI, alertLogEntryModel, locale);
 
-	@Override
-	protected List<AlertBoxAndWhiskerReportColumn> getAlertMessageReportColumnList() {
+        String regex = "Segmentation detected, remaining members:(.*)";
+        pattern = Pattern.compile(regex);
 
-		if (alertMessageReportColumnList == null) {
-			alertMessageReportColumnList = new ArrayList<AlertBoxAndWhiskerReportColumn>();
+        // A partition was lost: com.hazelcast.partition.PartitionLostEvent{partitionId=6, lostBackupCount=0, eventSource=[10.0.20.5]:5701}
+        String regex82 = "A partition was lost: com.hazelcast.partition.PartitionLostEvent\\{(.*)\\}";
+        pattern82 = Pattern.compile(regex82);
 
-			String displayName;
-			int prefColWidth;
-			int hAlignment;
-			boolean filterable;
-			AlertBoxAndWhiskerReportColumn amReportColumn = null;
+    }
 
-			// first column data is the key
-			displayName = "Ignite Cluster - Remaining Members";
-			prefColWidth = 500;
-			hAlignment = SwingConstants.LEFT;
-			filterable = true;
-			amReportColumn = new AlertBoxAndWhiskerReportColumn(AlertBoxAndWhiskerReportColumn.KEY, displayName,
-					prefColWidth, hAlignment, filterable);
+    @Override
+    protected List<AlertBoxAndWhiskerReportColumn> getAlertMessageReportColumnList() {
 
-			alertMessageReportColumnList.add(amReportColumn);
+        if (alertMessageReportColumnList == null) {
+            alertMessageReportColumnList = new ArrayList<AlertBoxAndWhiskerReportColumn>();
 
-			List<AlertBoxAndWhiskerReportColumn> defaultAlertMessageReportColumnList = AlertBoxAndWhiskerReportColumn
-					.getDefaultAlertMessageReportColumnList();
+            String displayName;
+            int prefColWidth;
+            int horizontalAlignment;
+            boolean filterable;
 
-			alertMessageReportColumnList.addAll(defaultAlertMessageReportColumnList);
-		}
+            // first column data is the key
+            displayName = "Alert Subject (\"Remaining Cluster Members\"\\\"Partition Lost\")";
+            prefColWidth = 500;
+            horizontalAlignment = SwingConstants.LEFT;
+            filterable = true;
 
-		return alertMessageReportColumnList;
-	}
+            AlertBoxAndWhiskerReportColumn amReportColumn;
+            amReportColumn = new AlertBoxAndWhiskerReportColumn(AlertBoxAndWhiskerReportColumn.KEY, displayName,
+                    prefColWidth, horizontalAlignment, filterable);
 
-	@Override
-	public String getAlertMessageReportEntryKey(AlertLogEntry alertLogEntry, ArrayList<String> logEntryValueList) {
+            alertMessageReportColumnList.add(amReportColumn);
 
-		String alertMessageReportEntryKey = null;
+            List<AlertBoxAndWhiskerReportColumn> defaultAlertMessageReportColumnList = AlertBoxAndWhiskerReportColumn
+                    .getDefaultAlertMessageReportColumnList();
 
-		AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
+            alertMessageReportColumnList.addAll(defaultAlertMessageReportColumnList);
+        }
 
-		List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
+        return alertMessageReportColumnList;
+    }
 
-		int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
-		String message = logEntryValueList.get(messageIndex);
+    @Override
+    public String getAlertMessageReportEntryKey(String dataText) {
 
-		Matcher patternMatcher = pattern.matcher(message);
-		boolean matches = patternMatcher.find();
+        String alertMessageReportEntryKey = null;
 
-		if (matches) {
-			alertMessageReportEntryKey = patternMatcher.group(1).trim();
-		}
+        Matcher patternMatcher = pattern.matcher(dataText);
+        boolean matches = patternMatcher.find();
 
-		if (alertMessageReportEntryKey == null) {
-			LOG.info("PEGA0090ReportModel - Could'nt match - [" + message + "]");
-		}
+        if (matches) {
+            alertMessageReportEntryKey = patternMatcher.group(1).trim();
+        } else {
+            patternMatcher = pattern82.matcher(dataText);
+            matches = patternMatcher.find();
 
-		return alertMessageReportEntryKey;
-	}
+            if (matches) {
+                alertMessageReportEntryKey = patternMatcher.group(1).trim();
+            }
+        }
 
-	public static void main(String[] args) {
+        return alertMessageReportEntryKey;
 
-		long before = System.currentTimeMillis();
-		String message1 = "Segmentation detected, remaining members: " + "mClusterMembershipManager.getMembers().toString()";
+    }
 
-		String regex = "Segmentation detected, remaining members:(.*)";
+    @Override
+    public String getAlertMessageReportEntryKey(ArrayList<String> logEntryValueList) {
 
-		Pattern pattern = Pattern.compile(regex);
+        String alertMessageReportEntryKey = null;
 
-		Matcher patternMatcher = pattern.matcher(message1);
-		boolean matches = patternMatcher.find();
-		System.out.println(matches);
+        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
 
-		if (matches) {
-			System.out.println(patternMatcher.groupCount());
-			System.out.println(patternMatcher.group(1));
-		}
-		long after = System.currentTimeMillis();
+        List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
 
-		System.out.println(after - before);
-	}
+        int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
+        String message = logEntryValueList.get(messageIndex);
+
+        alertMessageReportEntryKey = getAlertMessageReportEntryKey(message);
+
+        if (alertMessageReportEntryKey == null) {
+            LOG.info("PEGA0090ReportModel - Could'nt match - [" + message + "]");
+        }
+
+        return alertMessageReportEntryKey;
+    }
 
 }

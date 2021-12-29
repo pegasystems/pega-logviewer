@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.pegatdp;
 
 import java.awt.BorderLayout;
@@ -16,8 +17,10 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -55,1075 +58,1111 @@ import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.logviewer.LogTableModel;
 import com.pega.gcs.logviewer.ThreadDumpRequestorLockTableMouseListener;
 import com.pega.gcs.logviewer.model.Log4jLogThreadDumpEntry;
+import com.pega.gcs.logviewer.model.LogEntryKey;
+import com.pega.gcs.logviewer.model.LogEntryModel;
 
 public class PegaThreadDumpParserPanel extends JPanel {
 
-	private static final long serialVersionUID = 4566725855309906575L;
+    private static final long serialVersionUID = 4566725855309906575L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(PegaThreadDumpParserPanel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(PegaThreadDumpParserPanel.class);
 
-	private Log4jLogThreadDumpEntry log4jLogThreadDumpEntry;
+    private Log4jLogThreadDumpEntry log4jLogThreadDumpEntry;
 
-	private boolean v7ThreadDump;
+    private boolean v7ThreadDump;
 
-	private LogTableModel logTableModel;
+    private LogTableModel logTableModel;
 
-	private ThreadDumpRequestorLockTableMouseListener threadDumpRequestorLockTableMouseListener;
+    private ThreadDumpRequestorLockTableMouseListener threadDumpRequestorLockTableMouseListener;
 
-	private JFileChooser fileChooser;
+    private JFileChooser fileChooser;
 
-	private File logFile;
+    private File logFile;
 
-	private JButton generateReportHTMLJButton;
+    private JButton generateReportHtmlButton;
 
-	private ClickableFilePathPanel reportClickableFilePathPanel;
+    private ClickableFilePathPanel reportClickableFilePathPanel;
 
-	private PegaThreadDumpParser pegaThreadDumpParser;
+    private PegaThreadDumpParser pegaThreadDumpParser;
 
-	private Object ptdpThreadDump;
+    private Object ptdpThreadDump;
 
-	// passing the text separately as it is already uncompressed in the caller.
-	public PegaThreadDumpParserPanel(String logEntryText, Log4jLogThreadDumpEntry log4jLogThreadDumpEntry,
-			boolean v7ThreadDump, LogTableModel logTableModel,
-			ThreadDumpRequestorLockTableMouseListener threadDumpRequestorLockTableMouseListener) {
+    // passing the text separately as it is already uncompressed in the caller.
+    public PegaThreadDumpParserPanel(String logEntryText, Log4jLogThreadDumpEntry log4jLogThreadDumpEntry,
+            boolean v7ThreadDump, LogTableModel logTableModel,
+            ThreadDumpRequestorLockTableMouseListener threadDumpRequestorLockTableMouseListener) {
 
-		this.log4jLogThreadDumpEntry = log4jLogThreadDumpEntry;
-		this.v7ThreadDump = v7ThreadDump;
-		this.logTableModel = logTableModel;
-		this.threadDumpRequestorLockTableMouseListener = threadDumpRequestorLockTableMouseListener;
+        this.log4jLogThreadDumpEntry = log4jLogThreadDumpEntry;
+        this.v7ThreadDump = v7ThreadDump;
+        this.logTableModel = logTableModel;
+        this.threadDumpRequestorLockTableMouseListener = threadDumpRequestorLockTableMouseListener;
 
-		RecentFile recentFile = logTableModel.getRecentFile();
-		String recentFileStr = (String) recentFile.getAttribute(RecentFile.KEY_FILE);
+        RecentFile recentFile = logTableModel.getRecentFile();
+        String fileStr = recentFile.getPath();
 
-		logFile = new File(recentFileStr);
+        logFile = new File(fileStr);
 
-		String text = "Full Java thread dump with locks info";
-		int java7ThreadDumpIndex = logEntryText.indexOf(text);
+        String text = "Full Java thread dump with locks info";
+        int java7ThreadDumpIndex = logEntryText.indexOf(text);
 
-		pegaThreadDumpParser = PegaThreadDumpParser.getInstance();
+        pegaThreadDumpParser = PegaThreadDumpParser.getInstance();
 
-		if ((v7ThreadDump) && (java7ThreadDumpIndex != -1)) {
+        if ((v7ThreadDump) && (java7ThreadDumpIndex != -1)) {
 
-			ptdpThreadDump = log4jLogThreadDumpEntry.getPtdpThreadDump();
+            ptdpThreadDump = log4jLogThreadDumpEntry.getPtdpThreadDump();
 
-			if (ptdpThreadDump == null) {
+            if (ptdpThreadDump == null) {
 
-				logEntryText = logEntryText.substring(java7ThreadDumpIndex);
+                try {
+                    logEntryText = logEntryText.substring(java7ThreadDumpIndex);
 
-				ptdpThreadDump = pegaThreadDumpParser.getThreadDumpObject(logEntryText);
-				log4jLogThreadDumpEntry.setPtdpThreadDump(ptdpThreadDump);
-			}
-		}
+                    boolean isCW = logTableModel.getLogFileType().getLogPattern().isCW();
 
-		setGeneratedFileIfAvailable();
+                    if (isCW) {
+                        logEntryText = sanitiseThreadDumpText(logEntryText);
+                    }
 
-		setLayout(new BorderLayout());
+                    ptdpThreadDump = pegaThreadDumpParser.getThreadDumpObject(logEntryText);
+                    log4jLogThreadDumpEntry.setPtdpThreadDump(ptdpThreadDump);
 
-		JPanel threadDumpReportJPanel = null;
+                } catch (Exception e) {
+                    LOG.error("Error sanitising thread dump text", e);
+                }
+            }
+        }
 
-		boolean isTDPAvailable = pegaThreadDumpParser.isInitialised();
+        setGeneratedFileIfAvailable();
 
-		if (isTDPAvailable) {
+        setLayout(new BorderLayout());
 
-			threadDumpReportJPanel = getPegaThreadDumpReportJPanel();
-		} else {
-			threadDumpReportJPanel = getDefaultThreadDumpReportJPanel();
-		}
+        JPanel threadDumpReportJPanel = null;
 
-		add(threadDumpReportJPanel, BorderLayout.CENTER);
+        boolean isTDPAvailable = pegaThreadDumpParser.isInitialised();
 
-	}
+        if (isTDPAvailable) {
 
-	private JFileChooser getFileChooser() {
+            threadDumpReportJPanel = getPegaThreadDumpReportJPanel();
+        } else {
+            threadDumpReportJPanel = getDefaultThreadDumpReportJPanel();
+        }
 
-		if (fileChooser == null) {
+        add(threadDumpReportJPanel, BorderLayout.CENTER);
 
-			String fileName = getDefaultReportFileName();
+    }
 
-			File currentDirectory = logFile.getParentFile();
+    private JFileChooser getFileChooser() {
 
-			File proposedFile = new File(currentDirectory, fileName);
+        if (fileChooser == null) {
 
-			fileChooser = new JFileChooser(currentDirectory);
+            String fileName = getDefaultReportFileName();
 
-			fileChooser.setDialogTitle("Save PegaThreadDumpParser report file (.html)");
-			fileChooser.setSelectedFile(proposedFile);
-			fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            File currentDirectory = logFile.getParentFile();
 
-			FileNameExtensionFilter filter = new FileNameExtensionFilter("HTML File (HTML)", "html");
+            File proposedFile = new File(currentDirectory, fileName);
 
-			fileChooser.setFileFilter(filter);
-		}
+            fileChooser = new JFileChooser(currentDirectory);
 
-		return fileChooser;
-	}
+            fileChooser.setDialogTitle("Save PegaThreadDumpParser report file (.html)");
+            fileChooser.setSelectedFile(proposedFile);
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
-	private JButton getGenerateReportHTMLJButton() {
+            FileNameExtensionFilter filter = new FileNameExtensionFilter("HTML File (HTML)", "html");
 
-		if (generateReportHTMLJButton == null) {
+            fileChooser.setFileFilter(filter);
+        }
 
-			generateReportHTMLJButton = new JButton("Generate Thread Dump Report");
+        return fileChooser;
+    }
 
-			Dimension size = new Dimension(200, 20);
-			generateReportHTMLJButton.setPreferredSize(size);
-			generateReportHTMLJButton.setMaximumSize(size);
-			generateReportHTMLJButton.addActionListener(new ActionListener() {
+    private JButton getGenerateReportHtmlButton() {
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					showSaveReportHtmlChooser();
-				}
-			});
+        if (generateReportHtmlButton == null) {
 
-			generateReportHTMLJButton.setEnabled(v7ThreadDump);
+            generateReportHtmlButton = new JButton("Generate Thread Dump Report");
 
-		}
+            Dimension size = new Dimension(200, 20);
+            generateReportHtmlButton.setPreferredSize(size);
+            generateReportHtmlButton.setMaximumSize(size);
+            generateReportHtmlButton.addActionListener(new ActionListener() {
 
-		return generateReportHTMLJButton;
-	}
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    showSaveReportHtmlChooser();
+                }
+            });
 
-	private ClickableFilePathPanel getReportClickableFilePathPanel() {
+            generateReportHtmlButton.setEnabled(v7ThreadDump);
 
-		if (reportClickableFilePathPanel == null) {
-			reportClickableFilePathPanel = new ClickableFilePathPanel(true);
-		}
+        }
 
-		return reportClickableFilePathPanel;
-	}
+        return generateReportHtmlButton;
+    }
 
-	private JPanel getCopyrightJPanel() {
+    private ClickableFilePathPanel getReportClickableFilePathPanel() {
 
-		JPanel copyrightJPanel = new JPanel();
+        if (reportClickableFilePathPanel == null) {
+            reportClickableFilePathPanel = new ClickableFilePathPanel(true);
+        }
 
-		copyrightJPanel.setLayout(new GridBagLayout());
+        return reportClickableFilePathPanel;
+    }
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(5, 2, 5, 2);
+    private JPanel getCopyrightJPanel() {
 
-		JLabel copyrightLabel = new JLabel("by 'Pega 7 Thread Dump Parser'");
-		copyrightLabel.setHorizontalAlignment(SwingConstants.CENTER);
-		copyrightJPanel.add(copyrightLabel, gbc1);
+        JPanel copyrightJPanel = new JPanel();
 
-		copyrightJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        copyrightJPanel.setLayout(new GridBagLayout());
 
-		return copyrightJPanel;
-	}
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(5, 2, 5, 2);
 
-	private JPanel getPegaThreadDumpReportJPanel() {
+        JLabel copyrightLabel = new JLabel("by 'Pega 7 Thread Dump Parser'");
+        copyrightLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        copyrightJPanel.add(copyrightLabel, gbc1);
 
-		JPanel pegaThreadDumpReportJPanel = new JPanel();
+        copyrightJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		pegaThreadDumpReportJPanel.setLayout(new GridBagLayout());
+        return copyrightJPanel;
+    }
 
-		int yIndex = 0;
+    private JPanel getPegaThreadDumpReportJPanel() {
 
-		if (!v7ThreadDump) {
+        JPanel pegaThreadDumpReportJPanel = new JPanel();
 
-			GridBagConstraints gbc1 = new GridBagConstraints();
-			gbc1.gridx = 0;
-			gbc1.gridy = yIndex++;
-			gbc1.weightx = 1.0D;
-			gbc1.weighty = 0.0D;
-			gbc1.fill = GridBagConstraints.BOTH;
-			gbc1.anchor = GridBagConstraints.NORTHWEST;
-			gbc1.insets = new Insets(0, 0, 0, 0);
+        pegaThreadDumpReportJPanel.setLayout(new GridBagLayout());
 
-			JPanel pega6ThreadDumpMessagePanel = getPega6ThreadDumpMessagePanel();
-			pegaThreadDumpReportJPanel.add(pega6ThreadDumpMessagePanel, gbc1);
-		}
+        int yindex = 0;
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = yIndex++;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 0.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+        if (!v7ThreadDump) {
 
-		JPanel pegaThreadDumpControlsJPanel = getPegaThreadDumpControlsJPanel();
-		pegaThreadDumpReportJPanel.add(pegaThreadDumpControlsJPanel, gbc2);
+            GridBagConstraints gbc1 = new GridBagConstraints();
+            gbc1.gridx = 0;
+            gbc1.gridy = yindex++;
+            gbc1.weightx = 1.0D;
+            gbc1.weighty = 0.0D;
+            gbc1.fill = GridBagConstraints.BOTH;
+            gbc1.anchor = GridBagConstraints.NORTHWEST;
+            gbc1.insets = new Insets(0, 0, 0, 0);
 
-		GridBagConstraints gbc3 = new GridBagConstraints();
-		gbc3.gridx = 0;
-		gbc3.gridy = yIndex++;
-		gbc3.weightx = 1.0D;
-		gbc3.weighty = 1.0D;
-		gbc3.fill = GridBagConstraints.BOTH;
-		gbc3.anchor = GridBagConstraints.NORTHWEST;
-		gbc3.insets = new Insets(0, 0, 0, 0);
-		JPanel pegaThreadDumpGraphJPanel = getPegaThreadDumpGraphJPanel();
+            JPanel pega6ThreadDumpMessagePanel = getPega6ThreadDumpMessagePanel();
+            pegaThreadDumpReportJPanel.add(pega6ThreadDumpMessagePanel, gbc1);
+        }
 
-		pegaThreadDumpReportJPanel.add(pegaThreadDumpGraphJPanel, gbc3);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = yindex++;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 0.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		return pegaThreadDumpReportJPanel;
-	}
+        JPanel pegaThreadDumpControlsJPanel = getPegaThreadDumpControlsJPanel();
+        pegaThreadDumpReportJPanel.add(pegaThreadDumpControlsJPanel, gbc2);
 
-	private JPanel getPega6ThreadDumpMessagePanel() {
-		JPanel pega6ThreadDumpMessagePanel = new JPanel();
+        GridBagConstraints gbc3 = new GridBagConstraints();
+        gbc3.gridx = 0;
+        gbc3.gridy = yindex++;
+        gbc3.weightx = 1.0D;
+        gbc3.weighty = 1.0D;
+        gbc3.fill = GridBagConstraints.BOTH;
+        gbc3.anchor = GridBagConstraints.NORTHWEST;
+        gbc3.insets = new Insets(0, 0, 0, 0);
+        JPanel pegaThreadDumpGraphJPanel = getPegaThreadDumpGraphJPanel();
 
-		pega6ThreadDumpMessagePanel.setLayout(new GridBagLayout());
+        pegaThreadDumpReportJPanel.add(pegaThreadDumpGraphJPanel, gbc3);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(5, 0, 5, 0);
+        return pegaThreadDumpReportJPanel;
+    }
 
-		JLabel pega6MessageJLabel = new JLabel(
-				"Currently 'Pega 7 Thread Dump Parser' works only with Pega 7 Thread dumps");
+    private JPanel getPega6ThreadDumpMessagePanel() {
+        JPanel pega6ThreadDumpMessagePanel = new JPanel();
 
-		pega6MessageJLabel.setForeground(Color.RED);
-		pega6MessageJLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        pega6ThreadDumpMessagePanel.setLayout(new GridBagLayout());
 
-		Dimension preferredSize = new Dimension(Integer.MAX_VALUE, 30);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(5, 0, 5, 0);
 
-		pega6MessageJLabel.setPreferredSize(preferredSize);
+        JLabel pega6MessageJLabel = new JLabel(
+                "Currently 'Pega 7 Thread Dump Parser' works only with Pega 7 Thread dumps");
 
-		pega6ThreadDumpMessagePanel.add(pega6MessageJLabel, gbc1);
+        pega6MessageJLabel.setForeground(Color.RED);
+        pega6MessageJLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		pega6ThreadDumpMessagePanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        Dimension preferredSize = new Dimension(Integer.MAX_VALUE, 30);
 
-		return pega6ThreadDumpMessagePanel;
-	}
+        pega6MessageJLabel.setPreferredSize(preferredSize);
 
-	private JPanel getPegaThreadDumpControlsJPanel() {
+        pega6ThreadDumpMessagePanel.add(pega6MessageJLabel, gbc1);
 
-		JPanel pegaThreadDumpControlsJPanel = new JPanel();
+        pega6ThreadDumpMessagePanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		pegaThreadDumpControlsJPanel.setLayout(new GridBagLayout());
+        return pega6ThreadDumpMessagePanel;
+    }
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+    private JPanel getPegaThreadDumpControlsJPanel() {
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 1;
-		gbc2.gridy = 0;
-		gbc2.weightx = 0.3D;
-		gbc2.weighty = 0.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+        JPanel pegaThreadDumpControlsJPanel = new JPanel();
 
-		JPanel pegaThreadDumpButtonsJPanel = getPegaThreadDumpButtonsJPanel();
+        pegaThreadDumpControlsJPanel.setLayout(new GridBagLayout());
 
-		JPanel copyrightJPane = getCopyrightJPanel();
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-		pegaThreadDumpControlsJPanel.add(pegaThreadDumpButtonsJPanel, gbc1);
-		pegaThreadDumpControlsJPanel.add(copyrightJPane, gbc2);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 1;
+        gbc2.gridy = 0;
+        gbc2.weightx = 0.3D;
+        gbc2.weighty = 0.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		pegaThreadDumpControlsJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        JPanel pegaThreadDumpButtonsJPanel = getPegaThreadDumpButtonsJPanel();
 
-		return pegaThreadDumpControlsJPanel;
-	}
+        JPanel copyrightJPane = getCopyrightJPanel();
 
-	private JPanel getPegaThreadDumpButtonsJPanel() {
+        pegaThreadDumpControlsJPanel.add(pegaThreadDumpButtonsJPanel, gbc1);
+        pegaThreadDumpControlsJPanel.add(copyrightJPane, gbc2);
 
-		JPanel pegaThreadDumpButtonsJPanel = new JPanel();
+        pegaThreadDumpControlsJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		pegaThreadDumpButtonsJPanel.setLayout(new GridBagLayout());
+        return pegaThreadDumpControlsJPanel;
+    }
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 0.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(10, 5, 10, 2);
+    private JPanel getPegaThreadDumpButtonsJPanel() {
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 1;
-		gbc2.gridy = 0;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 0.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(10, 2, 10, 2);
+        JPanel pegaThreadDumpButtonsJPanel = new JPanel();
 
-		JButton generateReportHTMLJButton = getGenerateReportHTMLJButton();
+        pegaThreadDumpButtonsJPanel.setLayout(new GridBagLayout());
 
-		ClickableFilePathPanel reportClickableFilePathPanel = getReportClickableFilePathPanel();
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 0.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(10, 5, 10, 2);
 
-		pegaThreadDumpButtonsJPanel.add(generateReportHTMLJButton, gbc1);
-		pegaThreadDumpButtonsJPanel.add(reportClickableFilePathPanel, gbc2);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 1;
+        gbc2.gridy = 0;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 0.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(10, 2, 10, 2);
 
-		pegaThreadDumpButtonsJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        JButton generateReportHtmlButton = getGenerateReportHtmlButton();
 
-		return pegaThreadDumpButtonsJPanel;
-	}
+        ClickableFilePathPanel reportClickableFilePathPanel = getReportClickableFilePathPanel();
 
-	private JPanel getPegaThreadDumpGraphJPanel() {
-		JPanel pegaThreadDumpGraphJPanel = new JPanel();
-		pegaThreadDumpGraphJPanel.setLayout(new BorderLayout());
+        pegaThreadDumpButtonsJPanel.add(generateReportHtmlButton, gbc1);
+        pegaThreadDumpButtonsJPanel.add(reportClickableFilePathPanel, gbc2);
 
-		if (ptdpThreadDump != null) {
-			JTabbedPane jTabbedPane = new JTabbedPane();
+        pegaThreadDumpButtonsJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-			List<FindingAdapter> findingAdapterList = pegaThreadDumpParser.getFindingAdapterList(ptdpThreadDump);
+        return pegaThreadDumpButtonsJPanel;
+    }
 
-			int tabCounter = 0;
+    private JPanel getPegaThreadDumpGraphJPanel() {
+        JPanel pegaThreadDumpGraphJPanel = new JPanel();
+        pegaThreadDumpGraphJPanel.setLayout(new BorderLayout());
 
-			for (FindingAdapter findingAdapter : findingAdapterList) {
+        if (ptdpThreadDump != null) {
+            JTabbedPane tabbedPane = new JTabbedPane();
 
-				String tabText = findingAdapter.getName();
+            List<FindingAdapter> findingAdapterList = pegaThreadDumpParser.getFindingAdapterList(ptdpThreadDump);
 
-				if (findingAdapter instanceof GraphFindingAdapter) {
+            int tabCounter = 0;
 
-					GraphFindingAdapter graphFindingAdapter = (GraphFindingAdapter) findingAdapter;
-					JPanel graphFindingAdapterJPanel = getGraphFindingAdapterJPanel(graphFindingAdapter);
+            for (FindingAdapter findingAdapter : findingAdapterList) {
 
-					JLabel tabLabel = new JLabel(tabText);
-					Font labelFont = tabLabel.getFont();
-					Font tabFont = labelFont.deriveFont(Font.BOLD, 12);
-					Dimension dim = new Dimension(250, 22);
-					tabLabel.setFont(tabFont);
-					tabLabel.setPreferredSize(dim);
-					tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                String tabText = findingAdapter.getName();
 
-					jTabbedPane.addTab(tabText, graphFindingAdapterJPanel);
-					jTabbedPane.setTabComponentAt(tabCounter, tabLabel);
+                if (findingAdapter instanceof GraphFindingAdapter) {
 
-					tabCounter++;
-				} else {
-					JPanel findingAdapterJPanel = getFindingAdapterJPanel(findingAdapter);
+                    GraphFindingAdapter graphFindingAdapter = (GraphFindingAdapter) findingAdapter;
+                    JPanel graphFindingAdapterJPanel = getGraphFindingAdapterJPanel(graphFindingAdapter);
 
-					JLabel tabLabel = new JLabel(tabText);
-					Font labelFont = tabLabel.getFont();
-					Font tabFont = labelFont.deriveFont(Font.BOLD, 12);
-					Dimension dim = new Dimension(250, 22);
-					tabLabel.setFont(tabFont);
-					tabLabel.setPreferredSize(dim);
-					tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                    JLabel tabLabel = new JLabel(tabText);
+                    Font labelFont = tabLabel.getFont();
+                    Font tabFont = labelFont.deriveFont(Font.BOLD, 12);
+                    Dimension dim = new Dimension(250, 22);
+                    tabLabel.setFont(tabFont);
+                    tabLabel.setPreferredSize(dim);
+                    tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-					jTabbedPane.addTab(tabText, findingAdapterJPanel);
-					jTabbedPane.setTabComponentAt(tabCounter, tabLabel);
+                    tabbedPane.addTab(tabText, graphFindingAdapterJPanel);
+                    tabbedPane.setTabComponentAt(tabCounter, tabLabel);
 
-					tabCounter++;
-				}
-			}
+                    tabCounter++;
+                } else {
+                    JPanel findingAdapterJPanel = getFindingAdapterJPanel(findingAdapter);
 
-			pegaThreadDumpGraphJPanel.add(jTabbedPane, BorderLayout.CENTER);
-		}
+                    JLabel tabLabel = new JLabel(tabText);
+                    Font labelFont = tabLabel.getFont();
+                    Font tabFont = labelFont.deriveFont(Font.BOLD, 12);
+                    Dimension dim = new Dimension(250, 22);
+                    tabLabel.setFont(tabFont);
+                    tabLabel.setPreferredSize(dim);
+                    tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		return pegaThreadDumpGraphJPanel;
-	}
+                    tabbedPane.addTab(tabText, findingAdapterJPanel);
+                    tabbedPane.setTabComponentAt(tabCounter, tabLabel);
 
-	private JPanel getDefaultThreadDumpReportJPanel() {
-		JPanel defaultThreadDumpReportJPanel = new JPanel();
+                    tabCounter++;
+                }
+            }
 
-		defaultThreadDumpReportJPanel.setLayout(new GridBagLayout());
+            pegaThreadDumpGraphJPanel.add(tabbedPane, BorderLayout.CENTER);
+        }
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(10, 5, 2, 2);
-		gbc1.gridwidth = GridBagConstraints.REMAINDER;
+        return pegaThreadDumpGraphJPanel;
+    }
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = 1;
-		gbc2.weightx = 0.0D;
-		gbc2.weighty = 0.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(2, 5, 2, 2);
+    private JPanel getDefaultThreadDumpReportJPanel() {
+        JPanel defaultThreadDumpReportJPanel = new JPanel();
 
-		GridBagConstraints gbc3 = new GridBagConstraints();
-		gbc3.gridx = 1;
-		gbc3.gridy = 1;
-		gbc3.weightx = 1.0D;
-		gbc3.weighty = 0.0D;
-		gbc3.fill = GridBagConstraints.BOTH;
-		gbc3.anchor = GridBagConstraints.NORTHWEST;
-		gbc3.insets = new Insets(2, 2, 2, 2);
+        defaultThreadDumpReportJPanel.setLayout(new GridBagLayout());
 
-		GridBagConstraints gbc4 = new GridBagConstraints();
-		gbc4.gridx = 0;
-		gbc4.gridy = 2;
-		gbc4.weightx = 1.0D;
-		gbc4.weighty = 0.0D;
-		gbc4.fill = GridBagConstraints.BOTH;
-		gbc4.anchor = GridBagConstraints.NORTHWEST;
-		gbc4.insets = new Insets(2, 5, 2, 2);
-		gbc4.gridwidth = GridBagConstraints.REMAINDER;
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(10, 5, 2, 2);
+        gbc1.gridwidth = GridBagConstraints.REMAINDER;
 
-		GridBagConstraints gbc5 = new GridBagConstraints();
-		gbc5.gridx = 0;
-		gbc5.gridy = 3;
-		gbc5.weightx = 1.0D;
-		gbc5.weighty = 1.0D;
-		gbc5.fill = GridBagConstraints.BOTH;
-		gbc5.anchor = GridBagConstraints.NORTHWEST;
-		gbc5.insets = new Insets(2, 5, 2, 2);
-		gbc5.gridwidth = GridBagConstraints.REMAINDER;
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 0.0D;
+        gbc2.weighty = 0.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(2, 5, 2, 2);
 
-		JLabel label1 = new JLabel(
-				"This tab is loaded from 'Pega 7 Thread Dump Parser' tool built by Domenico Giffone");
-		JLabel label2 = new JLabel("Please download the tool from Pega Mesh.");
-		ClickablePathPanel meshClickablePathPanel = new ClickablePathPanel();
+        GridBagConstraints gbc3 = new GridBagConstraints();
+        gbc3.gridx = 1;
+        gbc3.gridy = 1;
+        gbc3.weightx = 1.0D;
+        gbc3.weighty = 0.0D;
+        gbc3.fill = GridBagConstraints.BOTH;
+        gbc3.anchor = GridBagConstraints.NORTHWEST;
+        gbc3.insets = new Insets(2, 2, 2, 2);
 
-		String meshLink = "https://mesh.pega.com/docs/DOC-110737";
+        GridBagConstraints gbc4 = new GridBagConstraints();
+        gbc4.gridx = 0;
+        gbc4.gridy = 2;
+        gbc4.weightx = 1.0D;
+        gbc4.weighty = 0.0D;
+        gbc4.fill = GridBagConstraints.BOTH;
+        gbc4.anchor = GridBagConstraints.NORTHWEST;
+        gbc4.insets = new Insets(2, 5, 2, 2);
+        gbc4.gridwidth = GridBagConstraints.REMAINDER;
 
-		meshClickablePathPanel.setUrl(meshLink);
+        GridBagConstraints gbc5 = new GridBagConstraints();
+        gbc5.gridx = 0;
+        gbc5.gridy = 3;
+        gbc5.weightx = 1.0D;
+        gbc5.weighty = 1.0D;
+        gbc5.fill = GridBagConstraints.BOTH;
+        gbc5.anchor = GridBagConstraints.NORTHWEST;
+        gbc5.insets = new Insets(2, 5, 2, 2);
+        gbc5.gridwidth = GridBagConstraints.REMAINDER;
 
-		JLabel label3 = new JLabel("Put pegatdp.jar to 'plugins' directory and restart Pega-Logviewer.");
+        JLabel label1 = new JLabel(
+                "This tab is loaded from 'Pega 7 Thread Dump Parser' tool built by Domenico Giffone");
+        JLabel label2 = new JLabel("Please download the tool from Pega Mesh.");
+        ClickablePathPanel meshClickablePathPanel = new ClickablePathPanel();
 
-		defaultThreadDumpReportJPanel.add(label1, gbc1);
-		defaultThreadDumpReportJPanel.add(label2, gbc2);
-		defaultThreadDumpReportJPanel.add(meshClickablePathPanel, gbc3);
-		defaultThreadDumpReportJPanel.add(label3, gbc4);
-		defaultThreadDumpReportJPanel.add(new JPanel(), gbc5);
+        String meshLink = "https://mesh.pega.com/docs/DOC-110737";
 
-		return defaultThreadDumpReportJPanel;
-	}
+        meshClickablePathPanel.setUrl(meshLink);
 
-	private void showSaveReportHtmlChooser() {
+        JLabel label3 = new JLabel("Put pegatdp.jar to 'plugins' directory and restart Pega-Logviewer.");
 
-		File exportFile = null;
+        defaultThreadDumpReportJPanel.add(label1, gbc1);
+        defaultThreadDumpReportJPanel.add(label2, gbc2);
+        defaultThreadDumpReportJPanel.add(meshClickablePathPanel, gbc3);
+        defaultThreadDumpReportJPanel.add(label3, gbc4);
+        defaultThreadDumpReportJPanel.add(new JPanel(), gbc5);
 
-		JFileChooser fileChooser = getFileChooser();
+        return defaultThreadDumpReportJPanel;
+    }
 
-		int returnValue = fileChooser.showSaveDialog(this);
+    private void showSaveReportHtmlChooser() {
 
-		if (returnValue == JFileChooser.APPROVE_OPTION) {
+        File exportFile = null;
 
-			exportFile = fileChooser.getSelectedFile();
+        JFileChooser fileChooser = getFileChooser();
 
-			returnValue = JOptionPane.YES_OPTION;
+        int returnValue = fileChooser.showSaveDialog(this);
 
-			if (exportFile.exists()) {
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
 
-				returnValue = JOptionPane.showConfirmDialog(null, "Replace Existing File?", "File Exists",
-						JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-			}
+            exportFile = fileChooser.getSelectedFile();
 
-			if (returnValue == JOptionPane.YES_OPTION) {
+            returnValue = JOptionPane.YES_OPTION;
 
-				String filename = logTableModel.getModelName();
-				String line = log4jLogThreadDumpEntry.getKey().toString();
-				String time = log4jLogThreadDumpEntry.getLogEntryDate().toString();
+            if (exportFile.exists()) {
 
-				String reportHTML = pegaThreadDumpParser.getHTMLReport(ptdpThreadDump, filename, line, time);
+                returnValue = JOptionPane.showConfirmDialog(null, "Replace Existing File?", "File Exists",
+                        JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            }
 
-				try {
-					FileUtils.writeStringToFile(exportFile, reportHTML, logTableModel.getCharset());
-					log4jLogThreadDumpEntry.setGeneratedReportFile(exportFile.getAbsolutePath());
-					populateGeneratedReportPath(exportFile);
+            if (returnValue == JOptionPane.YES_OPTION) {
 
-				} catch (IOException e) {
-					LOG.error("Error generating report HTML: " + filename, e);
-				}
+                String filename = logTableModel.getModelName();
+                LogEntryModel lem = logTableModel.getLogEntryModel();
 
-			}
-		}
-	}
+                LogEntryKey logEntryKey = log4jLogThreadDumpEntry.getKey();
 
-	private String getDefaultReportFileName() {
+                String line = Integer.toString(logEntryKey.getLineNo());
+                String time = lem.getLogEntryTimeDisplayString(logEntryKey);
 
-		String fileName = FileUtilities.getNameWithoutExtension(logFile);
+                String reportHtml = pegaThreadDumpParser.getHtmlReport(ptdpThreadDump, filename, line, time);
 
-		// String outputFile =
-		// filename.concat("-").concat(line).concat(".html");
-		StringBuffer sb = new StringBuffer();
-		sb.append(fileName);
-		sb.append("-");
-		sb.append(log4jLogThreadDumpEntry.getKey());
-		sb.append(".html");
+                try {
+                    FileUtils.writeStringToFile(exportFile, reportHtml, logTableModel.getCharset());
+                    log4jLogThreadDumpEntry.setGeneratedReportFile(exportFile.getAbsolutePath());
+                    populateGeneratedReportPath(exportFile);
 
-		String defaultReportFileName = sb.toString();
+                } catch (IOException e) {
+                    LOG.error("Error generating report HTML: " + filename, e);
+                }
 
-		return defaultReportFileName;
-	}
+            }
+        }
+    }
 
-	private void setGeneratedFileIfAvailable() {
+    private String getDefaultReportFileName() {
 
-		boolean generatedFileAvailable = false;
+        String fileName = FileUtilities.getNameWithoutExtension(logFile);
 
-		File reportFile = null;
-		String reportFilePath = log4jLogThreadDumpEntry.getGeneratedReportFile();
+        // String outputFile =
+        // filename.concat("-").concat(line).concat(".html");
+        StringBuilder sb = new StringBuilder();
+        sb.append(fileName);
+        sb.append("-");
+        sb.append(log4jLogThreadDumpEntry.getKey());
+        sb.append(".html");
 
-		if ((reportFilePath != null) && (!"".equals(reportFilePath))) {
+        String defaultReportFileName = sb.toString();
 
-			reportFile = new File(reportFilePath);
+        return defaultReportFileName;
+    }
 
-			if (reportFile.exists() && reportFile.isFile()) {
-				generatedFileAvailable = true;
-			}
+    private void setGeneratedFileIfAvailable() {
 
-		} else {
-			// check if the default output file is available
-			String fileName = getDefaultReportFileName();
-			File currentDirectory = logFile.getParentFile();
+        boolean generatedFileAvailable = false;
 
-			reportFile = new File(currentDirectory, fileName);
+        File reportFile = null;
+        String reportFilePath = log4jLogThreadDumpEntry.getGeneratedReportFile();
 
-			if (reportFile.exists() && reportFile.isFile()) {
-				generatedFileAvailable = true;
+        if ((reportFilePath != null) && (!"".equals(reportFilePath))) {
 
-				log4jLogThreadDumpEntry.setGeneratedReportFile(reportFile.getAbsolutePath());
-			}
-		}
+            reportFile = new File(reportFilePath);
 
-		if (generatedFileAvailable) {
-			populateGeneratedReportPath(reportFile);
-		}
-	}
+            if (reportFile.exists() && reportFile.isFile()) {
+                generatedFileAvailable = true;
+            }
 
-	private void populateGeneratedReportPath(File reportFile) {
+        } else {
+            // check if the default output file is available
+            String fileName = getDefaultReportFileName();
+            File currentDirectory = logFile.getParentFile();
 
-		ClickableFilePathPanel reportClickableFilePathPanel = getReportClickableFilePathPanel();
+            reportFile = new File(currentDirectory, fileName);
 
-		reportClickableFilePathPanel.setFile(reportFile);
-	}
+            if (reportFile.exists() && reportFile.isFile()) {
+                generatedFileAvailable = true;
 
-	private JPanel getGenericJPanel(JComponent jComponent, Insets insets, Dimension preferredSize) {
+                log4jLogThreadDumpEntry.setGeneratedReportFile(reportFile.getAbsolutePath());
+            }
+        }
 
-		JPanel genericJPanel = new JPanel();
+        if (generatedFileAvailable) {
+            populateGeneratedReportPath(reportFile);
+        }
+    }
 
-		genericJPanel.setLayout(new GridBagLayout());
+    private void populateGeneratedReportPath(File reportFile) {
 
-		if (jComponent != null) {
+        ClickableFilePathPanel reportClickableFilePathPanel = getReportClickableFilePathPanel();
 
-			GridBagConstraints gbc1 = new GridBagConstraints();
-			gbc1.gridx = 0;
-			gbc1.gridy = 0;
-			gbc1.weightx = 1.0D;
-			gbc1.weighty = 1.0D;
-			gbc1.fill = GridBagConstraints.BOTH;
-			gbc1.anchor = GridBagConstraints.NORTHWEST;
-			gbc1.insets = insets;
+        reportClickableFilePathPanel.setFile(reportFile);
+    }
 
-			if (preferredSize != null) {
-				jComponent.setPreferredSize(preferredSize);
-			}
+    private JPanel getGenericJPanel(JComponent component, Insets insets, Dimension preferredSize) {
 
-			genericJPanel.add(jComponent, gbc1);
-		}
+        JPanel genericJPanel = new JPanel();
 
-		genericJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        genericJPanel.setLayout(new GridBagLayout());
 
-		return genericJPanel;
-	}
+        if (component != null) {
 
-	private JPanel getNameJPanel(String name, int hAlignment, Insets insets, Dimension preferredSize) {
+            GridBagConstraints gbc1 = new GridBagConstraints();
+            gbc1.gridx = 0;
+            gbc1.gridy = 0;
+            gbc1.weightx = 1.0D;
+            gbc1.weighty = 1.0D;
+            gbc1.fill = GridBagConstraints.BOTH;
+            gbc1.anchor = GridBagConstraints.NORTHWEST;
+            gbc1.insets = insets;
 
-		JLabel nameJLabel = new JLabel(name);
+            if (preferredSize != null) {
+                component.setPreferredSize(preferredSize);
+            }
 
-		Font labelFont = nameJLabel.getFont();
-		Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
+            genericJPanel.add(component, gbc1);
+        }
 
-		nameJLabel.setFont(tabFont);
+        genericJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		nameJLabel.setHorizontalAlignment(hAlignment);
+        return genericJPanel;
+    }
 
-		JPanel nameJPanel = getGenericJPanel(nameJLabel, insets, preferredSize);
-		return nameJPanel;
-	}
+    private JPanel getNameJPanel(String name, int horizontalAlignment, Insets insets, Dimension preferredSize) {
 
-	private JPanel getLabelValueJPanel(String value, Insets insets, Dimension preferredSize) {
+        JLabel nameJLabel = new JLabel(name);
 
-		JLabel valueJLabel = new JLabel(value);
+        Font labelFont = nameJLabel.getFont();
+        Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
 
-		JPanel valueJPanel = getGenericJPanel(valueJLabel, insets, preferredSize);
-		return valueJPanel;
-	}
+        nameJLabel.setFont(tabFont);
 
-	private JPanel getTextAreaValueJPanel(String value, Insets insets) {
+        nameJLabel.setHorizontalAlignment(horizontalAlignment);
 
-		int rows = 1;
+        JPanel nameJPanel = getGenericJPanel(nameJLabel, insets, preferredSize);
+        return nameJPanel;
+    }
 
-		if (value != null) {
+    private JPanel getLabelValueJPanel(String value, Insets insets, Dimension preferredSize) {
 
-			int fromIndex = 0;
+        JLabel valueJLabel = new JLabel(value);
 
-			while ((fromIndex = value.indexOf("\\n", fromIndex)) != -1) {
-				fromIndex++;
-				rows++;
-			}
+        JPanel valueJPanel = getGenericJPanel(valueJLabel, insets, preferredSize);
+        return valueJPanel;
+    }
 
-			value = value.replaceAll("\\\\n", System.getProperty("line.separator"));
-		}
+    private JPanel getTextAreaValueJPanel(String value, Insets insets) {
 
-		JTextArea valueJTextArea = new JTextArea(value);
-		valueJTextArea.setEditable(false);
-		valueJTextArea.setBackground(null);
-		valueJTextArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-		valueJTextArea.setRows(rows);
+        int rows = 1;
 
-		valueJTextArea.setAlignmentX(CENTER_ALIGNMENT);
-		valueJTextArea.setAlignmentY(CENTER_ALIGNMENT);
+        if (value != null) {
 
-		valueJTextArea.setFont(this.getFont());
+            int fromIndex = 0;
 
-		valueJTextArea.setPreferredSize(new Dimension(150, 150));
+            while ((fromIndex = value.indexOf("\\n", fromIndex)) != -1) {
+                fromIndex++;
+                rows++;
+            }
 
-		JScrollPane jScrollPane = new JScrollPane(valueJTextArea, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+            value = value.replaceAll("\\\\n", System.getProperty("line.separator"));
+        }
 
-		JPanel dssValueJPanel = getGenericJPanel(jScrollPane, insets, null);
+        JTextArea valueJTextArea = new JTextArea(value);
+        valueJTextArea.setEditable(false);
+        valueJTextArea.setBackground(null);
+        valueJTextArea.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        valueJTextArea.setRows(rows);
 
-		return dssValueJPanel;
-	}
+        valueJTextArea.setAlignmentX(CENTER_ALIGNMENT);
+        valueJTextArea.setAlignmentY(CENTER_ALIGNMENT);
 
-	private JPanel getApplyToJPanel(Map<String, String> applyToMap, Insets insets) {
+        valueJTextArea.setFont(this.getFont());
 
-		JComponent component = null;
+        valueJTextArea.setPreferredSize(new Dimension(150, 150));
 
-		if (applyToMap != null) {
+        JScrollPane scrollPane = new JScrollPane(valueJTextArea, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-			DefaultTableModel dtm = new DefaultTableModel(new String[] { "Thread" }, 0) {
+        JPanel dssValueJPanel = getGenericJPanel(scrollPane, insets, null);
 
-				private static final long serialVersionUID = 4373854997870235236L;
+        return dssValueJPanel;
+    }
 
-				@Override
-				public boolean isCellEditable(int row, int column) {
-					return false;
-				}
+    private JPanel getApplyToJPanel(Map<String, String> applyToMap, Insets insets) {
 
-			};
+        JComponent component = null;
 
-			for (String value : applyToMap.values()) {
+        if (applyToMap != null) {
 
-				dtm.addRow(new String[] { value });
-			}
+            DefaultTableModel dtm = new DefaultTableModel(new String[] { "Thread" }, 0) {
 
-			JTable threadtable = new JTable(dtm);
-			threadtable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-			threadtable.setRowHeight(22);
+                private static final long serialVersionUID = 4373854997870235236L;
 
-			JTableHeader tableHeader = threadtable.getTableHeader();
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
 
-			DefaultTableCellRenderer dtcr = (DefaultTableCellRenderer) tableHeader.getDefaultRenderer();
-			dtcr.setHorizontalAlignment(SwingConstants.CENTER);
+            };
 
-			Font existingFont = tableHeader.getFont();
-			String existingFontName = existingFont.getName();
-			int existFontSize = existingFont.getSize();
-			Font newFont = new Font(existingFontName, Font.BOLD, existFontSize);
-			tableHeader.setFont(newFont);
+            for (String value : applyToMap.values()) {
 
-			tableHeader.setReorderingAllowed(false);
+                dtm.addRow(new String[] { value });
+            }
 
-			DefaultTableCellRenderer cdtcr = new DefaultTableCellRenderer() {
+            JTable threadtable = new JTable(dtm);
+            threadtable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+            threadtable.setRowHeight(22);
 
-				private static final long serialVersionUID = 3022165406106800014L;
+            JTableHeader tableHeader = threadtable.getTableHeader();
 
-				@Override
-				public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-						boolean hasFocus, int row, int column) {
+            DefaultTableCellRenderer dtcr = (DefaultTableCellRenderer) tableHeader.getDefaultRenderer();
+            dtcr.setHorizontalAlignment(SwingConstants.CENTER);
 
-					super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            Font existingFont = tableHeader.getFont();
+            String existingFontName = existingFont.getName();
+            int existFontSize = existingFont.getSize();
+            Font newFont = new Font(existingFontName, Font.BOLD, existFontSize);
+            tableHeader.setFont(newFont);
 
-					setBorder(new EmptyBorder(1, 5, 1, 1));
+            tableHeader.setReorderingAllowed(false);
 
-					if (!isSelected) {
+            DefaultTableCellRenderer cdtcr = new DefaultTableCellRenderer() {
 
-						if ((row % 2) == 0) {
-							setBackground(MyColor.LIGHTEST_LIGHT_GRAY);
-						} else {
-							setBackground(Color.WHITE);
-						}
-					}
-					return this;
-				}
+                private static final long serialVersionUID = 3022165406106800014L;
 
-			};
+                @Override
+                public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                        boolean hasFocus, int row, int column) {
 
-			TableColumnModel tcm = threadtable.getColumnModel();
-			TableColumn tc = tcm.getColumn(0);
-			tc.setCellRenderer(cdtcr);
-			tc.setPreferredWidth(300);
+                    super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-			threadtable.addMouseListener(threadDumpRequestorLockTableMouseListener);
+                    setBorder(new EmptyBorder(1, 5, 1, 1));
 
-			JScrollPane jScrollPane = new JScrollPane(threadtable, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-					ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+                    if (!isSelected) {
 
-			component = jScrollPane;
-		}
+                        if ((row % 2) == 0) {
+                            setBackground(MyColor.LIGHTEST_LIGHT_GRAY);
+                        } else {
+                            setBackground(Color.WHITE);
+                        }
+                    }
+                    return this;
+                }
 
-		JPanel dssValueJPanel = getGenericJPanel(component, insets, null);
+            };
 
-		return dssValueJPanel;
-	}
+            TableColumnModel tcm = threadtable.getColumnModel();
+            TableColumn tc = tcm.getColumn(0);
+            tc.setCellRenderer(cdtcr);
+            tc.setPreferredWidth(300);
 
-	private JPanel getFindingAdapterJPanel(FindingAdapter findingAdapter) {
+            threadtable.addMouseListener(threadDumpRequestorLockTableMouseListener);
 
-		JPanel findingAdapterJPanel = new JPanel();
+            JScrollPane scrollPane = new JScrollPane(threadtable, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                    ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-		findingAdapterJPanel.setLayout(new GridBagLayout());
+            component = scrollPane;
+        }
 
-		LinkedHashMap<WeightJPanel, JPanel> findingAdapterJPanelMap = getFindingAdapterJPanelMap(findingAdapter);
+        JPanel dssValueJPanel = getGenericJPanel(component, insets, null);
 
-		int yIndex = 0;
+        return dssValueJPanel;
+    }
 
-		for (Map.Entry<WeightJPanel, JPanel> entry : findingAdapterJPanelMap.entrySet()) {
+    private JPanel getFindingAdapterJPanel(FindingAdapter findingAdapter) {
 
-			WeightJPanel weightJPanel = entry.getKey();
-			JPanel nJPanel = weightJPanel.getjPanel();
-			double weighty = weightJPanel.getWeighty();
+        JPanel findingAdapterJPanel = new JPanel();
 
-			JPanel vJPanel = entry.getValue();
+        findingAdapterJPanel.setLayout(new GridBagLayout());
 
-			GridBagConstraints gbc1 = new GridBagConstraints();
-			gbc1.gridx = 0;
-			gbc1.gridy = yIndex;
-			gbc1.weightx = 0.0D;
-			gbc1.weighty = weighty;
-			gbc1.fill = GridBagConstraints.BOTH;
-			gbc1.anchor = GridBagConstraints.NORTHWEST;
-			gbc1.insets = new Insets(0, 0, 0, 0);
+        LinkedHashMap<WeightPanel, JPanel> findingAdapterJPanelMap = getFindingAdapterJPanelMap(findingAdapter);
 
-			GridBagConstraints gbc2 = new GridBagConstraints();
-			gbc2.gridx = 1;
-			gbc2.gridy = yIndex;
-			gbc2.weightx = 1.0D;
-			gbc2.weighty = weighty;
-			gbc2.fill = GridBagConstraints.BOTH;
-			gbc2.anchor = GridBagConstraints.NORTHWEST;
-			gbc2.insets = new Insets(0, 0, 0, 0);
+        int yindex = 0;
 
-			yIndex++;
+        for (Map.Entry<WeightPanel, JPanel> entry : findingAdapterJPanelMap.entrySet()) {
 
-			findingAdapterJPanel.add(nJPanel, gbc1);
-			findingAdapterJPanel.add(vJPanel, gbc2);
-		}
+            WeightPanel weightJPanel = entry.getKey();
+            JPanel weightNamePanel = weightJPanel.getPanel();
+            double weighty = weightJPanel.getWeighty();
 
-		return findingAdapterJPanel;
-	}
+            JPanel weightValuePanel = entry.getValue();
 
-	private LinkedHashMap<WeightJPanel, JPanel> getFindingAdapterJPanelMap(FindingAdapter findingAdapter) {
+            GridBagConstraints gbc1 = new GridBagConstraints();
+            gbc1.gridx = 0;
+            gbc1.gridy = yindex;
+            gbc1.weightx = 0.0D;
+            gbc1.weighty = weighty;
+            gbc1.fill = GridBagConstraints.BOTH;
+            gbc1.anchor = GridBagConstraints.NORTHWEST;
+            gbc1.insets = new Insets(0, 0, 0, 0);
 
-		LinkedHashMap<WeightJPanel, JPanel> findingAdapterJPanelMap = new LinkedHashMap<>();
+            GridBagConstraints gbc2 = new GridBagConstraints();
+            gbc2.gridx = 1;
+            gbc2.gridy = yindex;
+            gbc2.weightx = 1.0D;
+            gbc2.weighty = weighty;
+            gbc2.fill = GridBagConstraints.BOTH;
+            gbc2.anchor = GridBagConstraints.NORTHWEST;
+            gbc2.insets = new Insets(0, 0, 0, 0);
 
-		Insets insets = new Insets(5, 5, 5, 5);
-		Dimension preferredSize = new Dimension(150, 20);
+            yindex++;
 
-		String name = null;
-		String value = null;
-		JPanel nameJPanel = null;
-		JPanel valueJPanel = null;
-		WeightJPanel weightJPanel = null;
+            findingAdapterJPanel.add(weightNamePanel, gbc1);
+            findingAdapterJPanel.add(weightValuePanel, gbc2);
+        }
 
-		// //ID
-		// String name = "Id";
-		// String value = null;
-		// try {
-		// value = String.valueOf(findingAdapter.getId());
-		// } catch (Exception e) {
-		// }
-		//
-		// JPanel nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets,
-		// preferredSize);
-		// JPanel valueJPanel = getLabelValueJPanel(value, insets,
-		// preferredSize);
-		// WeightJPanel weightJPanel = new WeightJPanel(nameJPanel, 0);
-		// findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        return findingAdapterJPanel;
+    }
 
-		// Name
-		name = "Name";
-		value = findingAdapter.getName();
+    private LinkedHashMap<WeightPanel, JPanel> getFindingAdapterJPanelMap(FindingAdapter findingAdapter) {
 
-		nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-		valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
-		weightJPanel = new WeightJPanel(nameJPanel, 0);
-		findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        LinkedHashMap<WeightPanel, JPanel> findingAdapterJPanelMap = new LinkedHashMap<>();
 
-		// Severity
-		name = "Severity";
-		Enum<?> severity = findingAdapter.getSeverity();
-		value = severity != null ? String.valueOf(severity) : null;
+        Insets insets = new Insets(5, 5, 5, 5);
+        Dimension preferredSize = new Dimension(150, 20);
 
-		nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-		valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
-		weightJPanel = new WeightJPanel(nameJPanel, 0);
-		findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        String name = null;
+        String value = null;
+        JPanel nameJPanel = null;
+        JPanel valueJPanel = null;
+        WeightPanel weightJPanel = null;
 
-		// Category
-		name = "Category";
-		value = findingAdapter.getCategory();
+        // //ID
+        // String name = "Id";
+        // String value = null;
+        // try {
+        // value = String.valueOf(findingAdapter.getId());
+        // } catch (Exception e) {
+        // }
+        //
+        // JPanel nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets,
+        // preferredSize);
+        // JPanel valueJPanel = getLabelValueJPanel(value, insets,
+        // preferredSize);
+        // WeightPanel weightJPanel = new WeightPanel(nameJPanel, 0);
+        // findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
 
-		nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-		valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
-		weightJPanel = new WeightJPanel(nameJPanel, 0);
-		findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        // Name
+        name = "Name";
+        value = findingAdapter.getName();
 
-		// Symptoms
-		name = "Symptoms";
-		String[] symptoms = findingAdapter.getSymptoms();
-		value = symptoms != null ? Arrays.toString(symptoms) : null;
+        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
+        weightJPanel = new WeightPanel(nameJPanel, 0);
+        findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
 
-		nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-		valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
-		weightJPanel = new WeightJPanel(nameJPanel, 0);
-		findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        // Severity
+        name = "Severity";
+        Enum<?> severity = findingAdapter.getSeverity();
+        value = severity != null ? String.valueOf(severity) : null;
 
-		// Apply To
-		name = "Apply To";
-		Map<String, String> applyToMap = findingAdapter.getApplyTo();
+        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
+        weightJPanel = new WeightPanel(nameJPanel, 0);
+        findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
 
-		nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-		valueJPanel = getApplyToJPanel(applyToMap, new Insets(0, 0, 0, 0));
-		weightJPanel = new WeightJPanel(nameJPanel, 1);
-		findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        // Category
+        name = "Category";
+        value = findingAdapter.getCategory();
 
-		// Description
-		name = "Description";
-		value = findingAdapter.getDescription();
+        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
+        weightJPanel = new WeightPanel(nameJPanel, 0);
+        findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
 
-		nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-		valueJPanel = getTextAreaValueJPanel(value, new Insets(0, 0, 0, 0));
-		weightJPanel = new WeightJPanel(nameJPanel, 0.5);
-		findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        // Symptoms
+        name = "Symptoms";
+        String[] symptoms = findingAdapter.getSymptoms();
+        value = symptoms != null ? Arrays.toString(symptoms) : null;
 
-		return findingAdapterJPanelMap;
-	}
+        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
+        weightJPanel = new WeightPanel(nameJPanel, 0);
+        findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
 
-	private JPanel getGraphFindingAdapterJPanel(GraphFindingAdapter graphFindingAdapter) {
+        // Apply To
+        name = "Apply To";
+        Map<String, String> applyToMap = findingAdapter.getApplyTo();
 
-		JPanel graphFindingAdapterJPanel = new JPanel();
-		graphFindingAdapterJPanel.setLayout(new GridBagLayout());
+        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valueJPanel = getApplyToJPanel(applyToMap, new Insets(0, 0, 0, 0));
+        weightJPanel = new WeightPanel(nameJPanel, 1);
+        findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+        // Description
+        name = "Description";
+        value = findingAdapter.getDescription();
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = 1;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valueJPanel = getTextAreaValueJPanel(value, new Insets(0, 0, 0, 0));
+        weightJPanel = new WeightPanel(nameJPanel, 0.5);
+        findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
 
-		JPanel getGraphFindingDetailsJPanel = getGraphFindingDetailsJPanel(graphFindingAdapter);
+        return findingAdapterJPanelMap;
+    }
 
-		graphFindingAdapterJPanel.add(getGraphFindingDetailsJPanel, gbc1);
+    private JPanel getGraphFindingAdapterJPanel(GraphFindingAdapter graphFindingAdapter) {
 
-		JTabbedPane jTabbedPane = new JTabbedPane();
+        JPanel graphFindingAdapterJPanel = new JPanel();
+        graphFindingAdapterJPanel.setLayout(new GridBagLayout());
 
-		int tabCounter = 0;
-		Component component = null;
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-		// Wait-For Graph
-		component = graphFindingAdapter.getWaitForGraphComponent();
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		if (component != null) {
+        JPanel getGraphFindingDetailsJPanel = getGraphFindingDetailsJPanel(graphFindingAdapter);
 
-			String tabText = "Wait-For Graph";
-			JPanel graphJPanel = getGraphJPanel(tabText, component);
+        graphFindingAdapterJPanel.add(getGraphFindingDetailsJPanel, gbc1);
 
-			JLabel tabLabel = new JLabel(tabText);
-			Font labelFont = tabLabel.getFont();
-			Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
-			Dimension dim = new Dimension(200, 20);
-			tabLabel.setFont(tabFont);
-			tabLabel.setPreferredSize(dim);
-			tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        JTabbedPane tabbedPane = new JTabbedPane();
 
-			jTabbedPane.addTab(tabText, graphJPanel);
-			jTabbedPane.setTabComponentAt(tabCounter, tabLabel);
+        int tabCounter = 0;
+        Component component = null;
 
-			tabCounter++;
-		}
+        // Wait-For Graph
+        component = graphFindingAdapter.getWaitForGraphComponent();
 
-		// Resource Allocation Graph Graph
-		component = graphFindingAdapter.getResourceAllocationGraphComponent();
+        if (component != null) {
 
-		if (component != null) {
+            String tabText = "Wait-For Graph";
+            JPanel graphJPanel = getGraphJPanel(tabText, component);
 
-			String tabText = "Resource Allocation Graph";
-			JPanel graphJPanel = getGraphJPanel(tabText, component);
+            JLabel tabLabel = new JLabel(tabText);
+            Font labelFont = tabLabel.getFont();
+            Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
+            Dimension dim = new Dimension(200, 20);
+            tabLabel.setFont(tabFont);
+            tabLabel.setPreferredSize(dim);
+            tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-			JLabel tabLabel = new JLabel(tabText);
-			Font labelFont = tabLabel.getFont();
-			Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
-			Dimension dim = new Dimension(200, 20);
-			tabLabel.setFont(tabFont);
-			tabLabel.setPreferredSize(dim);
-			tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            tabbedPane.addTab(tabText, graphJPanel);
+            tabbedPane.setTabComponentAt(tabCounter, tabLabel);
 
-			jTabbedPane.addTab(tabText, graphJPanel);
-			jTabbedPane.setTabComponentAt(tabCounter, tabLabel);
+            tabCounter++;
+        }
 
-			tabCounter++;
-		}
+        // Resource Allocation Graph Graph
+        component = graphFindingAdapter.getResourceAllocationGraphComponent();
 
-		graphFindingAdapterJPanel.add(jTabbedPane, gbc2);
+        if (component != null) {
 
-		return graphFindingAdapterJPanel;
-	}
+            String tabText = "Resource Allocation Graph";
+            JPanel graphJPanel = getGraphJPanel(tabText, component);
 
-	private JPanel getGraphFindingDetailsJPanel(GraphFindingAdapter graphFindingAdapter) {
+            JLabel tabLabel = new JLabel(tabText);
+            Font labelFont = tabLabel.getFont();
+            Font tabFont = labelFont.deriveFont(Font.BOLD, 11);
+            Dimension dim = new Dimension(200, 20);
+            tabLabel.setFont(tabFont);
+            tabLabel.setPreferredSize(dim);
+            tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		JPanel graphFindingDetailsJPanel = new JPanel();
+            tabbedPane.addTab(tabText, graphJPanel);
+            tabbedPane.setTabComponentAt(tabCounter, tabLabel);
 
-		graphFindingDetailsJPanel.setLayout(new GridBagLayout());
+            tabCounter++;
+        }
 
-		LinkedHashMap<WeightJPanel, JPanel> findingAdapterJPanelMap = getGraphFindingDetailsMap(graphFindingAdapter);
+        graphFindingAdapterJPanel.add(tabbedPane, gbc2);
 
-		int yIndex = 0;
+        return graphFindingAdapterJPanel;
+    }
 
-		for (Map.Entry<WeightJPanel, JPanel> entry : findingAdapterJPanelMap.entrySet()) {
+    private JPanel getGraphFindingDetailsJPanel(GraphFindingAdapter graphFindingAdapter) {
 
-			WeightJPanel weightJPanel = entry.getKey();
-			JPanel nJPanel = weightJPanel.getjPanel();
-			double weighty = weightJPanel.getWeighty();
+        JPanel graphFindingDetailsJPanel = new JPanel();
 
-			JPanel vJPanel = entry.getValue();
+        graphFindingDetailsJPanel.setLayout(new GridBagLayout());
 
-			GridBagConstraints gbc1 = new GridBagConstraints();
-			gbc1.gridx = 0;
-			gbc1.gridy = yIndex;
-			gbc1.weightx = 0.0D;
-			gbc1.weighty = weighty;
-			gbc1.fill = GridBagConstraints.BOTH;
-			gbc1.anchor = GridBagConstraints.NORTHWEST;
-			gbc1.insets = new Insets(0, 0, 0, 0);
+        LinkedHashMap<WeightPanel, JPanel> findingAdapterJPanelMap = getGraphFindingDetailsMap(graphFindingAdapter);
 
-			GridBagConstraints gbc2 = new GridBagConstraints();
-			gbc2.gridx = 1;
-			gbc2.gridy = yIndex;
-			gbc2.weightx = 1.0D;
-			gbc2.weighty = weighty;
-			gbc2.fill = GridBagConstraints.BOTH;
-			gbc2.anchor = GridBagConstraints.NORTHWEST;
-			gbc2.insets = new Insets(0, 0, 0, 0);
+        int yindex = 0;
 
-			yIndex++;
+        for (Map.Entry<WeightPanel, JPanel> entry : findingAdapterJPanelMap.entrySet()) {
 
-			graphFindingDetailsJPanel.add(nJPanel, gbc1);
-			graphFindingDetailsJPanel.add(vJPanel, gbc2);
-		}
+            WeightPanel weightJPanel = entry.getKey();
+            JPanel weightNamePanel = weightJPanel.getPanel();
+            double weighty = weightJPanel.getWeighty();
 
-		return graphFindingDetailsJPanel;
-	}
+            JPanel weightValuePanel = entry.getValue();
 
-	private LinkedHashMap<WeightJPanel, JPanel> getGraphFindingDetailsMap(GraphFindingAdapter graphFindingAdapter) {
+            GridBagConstraints gbc1 = new GridBagConstraints();
+            gbc1.gridx = 0;
+            gbc1.gridy = yindex;
+            gbc1.weightx = 0.0D;
+            gbc1.weighty = weighty;
+            gbc1.fill = GridBagConstraints.BOTH;
+            gbc1.anchor = GridBagConstraints.NORTHWEST;
+            gbc1.insets = new Insets(0, 0, 0, 0);
 
-		LinkedHashMap<WeightJPanel, JPanel> findingAdapterJPanelMap = getFindingAdapterJPanelMap(graphFindingAdapter);
+            GridBagConstraints gbc2 = new GridBagConstraints();
+            gbc2.gridx = 1;
+            gbc2.gridy = yindex;
+            gbc2.weightx = 1.0D;
+            gbc2.weighty = weighty;
+            gbc2.fill = GridBagConstraints.BOTH;
+            gbc2.anchor = GridBagConstraints.NORTHWEST;
+            gbc2.insets = new Insets(0, 0, 0, 0);
 
-		Insets insets = new Insets(5, 5, 5, 5);
-		Dimension preferredSize = new Dimension(150, 20);
+            yindex++;
 
-		// isCyclic
-		String name = "Is Cyclic";
-		Boolean cyclic = graphFindingAdapter.isCyclic();
-		String value = cyclic != null ? String.valueOf(cyclic) : null;
+            graphFindingDetailsJPanel.add(weightNamePanel, gbc1);
+            graphFindingDetailsJPanel.add(weightValuePanel, gbc2);
+        }
 
-		JPanel nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-		JPanel valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
-		WeightJPanel weightJPanel = new WeightJPanel(nameJPanel, 0);
-		findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        return graphFindingDetailsJPanel;
+    }
 
-		// getCyclicPath
-		name = "Cyclic Path ";
-		value = graphFindingAdapter.getCyclicPath();
+    private LinkedHashMap<WeightPanel, JPanel> getGraphFindingDetailsMap(GraphFindingAdapter graphFindingAdapter) {
 
-		nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-		valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
-		weightJPanel = new WeightJPanel(nameJPanel, 0);
-		findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        LinkedHashMap<WeightPanel, JPanel> findingAdapterJPanelMap = getFindingAdapterJPanelMap(graphFindingAdapter);
 
-		// getThreadsCount
-		name = "Thread Count";
-		Integer threadCount = graphFindingAdapter.getThreadsCount();
-		value = threadCount != null ? String.valueOf(threadCount) : null;
+        Insets insets = new Insets(5, 5, 5, 5);
+        Dimension preferredSize = new Dimension(150, 20);
 
-		nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-		valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
-		weightJPanel = new WeightJPanel(nameJPanel, 0);
-		findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        // isCyclic
+        String name = "Is Cyclic";
+        Boolean cyclic = graphFindingAdapter.isCyclic();
+        String value = cyclic != null ? String.valueOf(cyclic) : null;
 
-		// getRootName
-		name = "Root Name";
-		value = graphFindingAdapter.getRootName();
+        JPanel nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        JPanel valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
+        WeightPanel weightPanel = new WeightPanel(nameJPanel, 0);
+        findingAdapterJPanelMap.put(weightPanel, valueJPanel);
 
-		nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-		valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
-		weightJPanel = new WeightJPanel(nameJPanel, 0);
-		findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        // getCyclicPath
+        name = "Cyclic Path ";
+        value = graphFindingAdapter.getCyclicPath();
 
-		return findingAdapterJPanelMap;
-	}
+        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
+        weightPanel = new WeightPanel(nameJPanel, 0);
+        findingAdapterJPanelMap.put(weightPanel, valueJPanel);
 
-	private JPanel getGraphJPanel(String title, Component component) {
+        // getThreadsCount
+        name = "Thread Count";
+        Integer threadCount = graphFindingAdapter.getThreadsCount();
+        value = threadCount != null ? String.valueOf(threadCount) : null;
 
-		JPanel graphJPanel = new JPanel();
-		graphJPanel.setLayout(new GridBagLayout());
+        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
+        weightPanel = new WeightPanel(nameJPanel, 0);
+        findingAdapterJPanelMap.put(weightPanel, valueJPanel);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+        // getRootName
+        name = "Root Name";
+        value = graphFindingAdapter.getRootName();
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = 1;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
+        weightPanel = new WeightPanel(nameJPanel, 0);
+        findingAdapterJPanelMap.put(weightPanel, valueJPanel);
 
-		Insets insets = new Insets(5, 5, 5, 5);
-		JPanel titleJPanel = getNameJPanel(title, SwingConstants.CENTER, insets, null);
+        return findingAdapterJPanelMap;
+    }
 
-		graphJPanel.add(titleJPanel, gbc1);
-		graphJPanel.add(component, gbc2);
+    private JPanel getGraphJPanel(String title, Component component) {
 
-		return graphJPanel;
-	}
+        JPanel graphJPanel = new JPanel();
+        graphJPanel.setLayout(new GridBagLayout());
 
-	private class WeightJPanel {
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-		private JPanel jPanel;
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		private double weighty;
+        Insets insets = new Insets(5, 5, 5, 5);
+        JPanel titleJPanel = getNameJPanel(title, SwingConstants.CENTER, insets, null);
 
-		public WeightJPanel(JPanel jPanel, double weighty) {
-			super();
-			this.jPanel = jPanel;
-			this.weighty = weighty;
-		}
+        graphJPanel.add(titleJPanel, gbc1);
+        graphJPanel.add(component, gbc2);
 
-		protected JPanel getjPanel() {
-			return jPanel;
-		}
+        return graphJPanel;
+    }
 
-		protected double getWeighty() {
-			return weighty;
-		}
+    private String sanitiseThreadDumpText(String threadDumpText) throws Exception {
 
-	}
+        StringBuilder sanitisedThreadDumpText = new StringBuilder();
+
+        BufferedReader bufferedReader = new BufferedReader(new StringReader(threadDumpText));
+
+        String line = null;
+
+        while ((line = bufferedReader.readLine()) != null) {
+
+            String sanitisedLine = line.replaceAll("(\\d+-\\d+-\\d+T\\d+:\\d+:\\d+.\\d\\d\\dZ)", "");
+
+            sanitisedThreadDumpText.append(sanitisedLine);
+            sanitisedThreadDumpText.append(System.getProperty("line.separator"));
+        }
+
+        return sanitisedThreadDumpText.toString();
+    }
+
+    private class WeightPanel {
+
+        private JPanel panel;
+
+        private double weighty;
+
+        public WeightPanel(JPanel panel, double weighty) {
+            super();
+            this.panel = panel;
+            this.weighty = weighty;
+        }
+
+        protected JPanel getPanel() {
+            return panel;
+        }
+
+        protected double getWeighty() {
+            return weighty;
+        }
+
+    }
 }

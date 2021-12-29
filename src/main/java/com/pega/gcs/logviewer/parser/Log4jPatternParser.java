@@ -4,8 +4,10 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.parser;
 
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,808 +49,921 @@ import com.pega.gcs.fringecommon.utilities.DateTimeUtilities;
 import com.pega.gcs.fringecommon.utilities.TimeZoneUtil;
 import com.pega.gcs.logviewer.logfile.LogFileType;
 import com.pega.gcs.logviewer.logfile.LogPattern;
+import com.pega.gcs.logviewer.model.HazelcastMemberInfo;
+import com.pega.gcs.logviewer.model.HazelcastMembership;
+import com.pega.gcs.logviewer.model.HazelcastMembership.HzMembershipEvent;
 import com.pega.gcs.logviewer.model.Log4jLogEntry;
 import com.pega.gcs.logviewer.model.Log4jLogEntryModel;
 import com.pega.gcs.logviewer.model.Log4jLogExceptionEntry;
+import com.pega.gcs.logviewer.model.Log4jLogHzMembershipEntry;
 import com.pega.gcs.logviewer.model.Log4jLogRequestorLockEntry;
 import com.pega.gcs.logviewer.model.Log4jLogSystemStartEntry;
 import com.pega.gcs.logviewer.model.Log4jLogThreadDumpEntry;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.SystemStart;
 
 public class Log4jPatternParser extends LogParser {
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(Log4jPatternParser.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(Log4jPatternParser.class);
 
-	private static final String NOSPACE_GROUP = "(\\s*?\\S*?\\s*?)";
-	private static final String DEFAULT_GROUP = "(.*?)";
-	private static final String GREEDY_GROUP = "(.*)";
-	private static final String LIMITING_GROUP = "(.{n,m})"; // (\\s*?.{5,5})
+    private static final String NOSPACE_GROUP = "(\\s*?\\S*?\\s*?)";
+    private static final String DEFAULT_GROUP = "(.*?)";
+    private static final String GREEDY_GROUP = "(.*)";
+    private static final String LIMITING_GROUP = "(.{n,m})"; // (\\s*?.{5,5})
+    private static final String LOG_LEVEL_GROUP = "([a-zA-Z\\s]{n,m})"; // (\\s*?.{5,5})
+    private static final String MULTIPLE_SPACES_REGEXP = "[ ]+";
+    private static final String OPTIONAL_GROUP = "(.*?)?";
 
-	private static final long THREADDUMP_TIMESTAMP_INTERVAL = 5 * 60 * 1000;
+    private static final long THREADDUMP_TIMESTAMP_INTERVAL = 5 * 60 * 1000;
 
-	private String regExp;
+    private static final int MATCHER_STR_LEN = 500;
 
-	private Pattern linePattern;
-	private Pattern requestorLockPattern;
-	private Pattern exceptionPattern;
-	private Pattern discardedMessagesPattern;
-	private Pattern systemDatepattern;
+    private String regExp;
 
-	private ArrayList<String> logEntryColumnList;
-	private ArrayList<String> logEntryColumnValueList;
-	private String logEntryText;
-	private ArrayList<String> additionalLines;
+    private Pattern linePattern;
+    private Pattern requestorLockPattern;
+    private Pattern exceptionPattern;
+    private Pattern discardedMessagesPattern;
+    private Pattern systemDatepattern;
+    private Pattern hzMemberspattern;
 
-	private int lineCount;
+    private ArrayList<String> logEntryColumnList;
+    private ArrayList<String> logEntryColumnValueList;
+    private String logEntryText;
+    private ArrayList<String> additionalLines;
 
-	private int logEntryIndex;
+    private int lineCount;
 
-	private String parseLine;
-	private int parseLineCount;
+    private int logEntryIndex;
 
-	private Log4jLogEntryModel log4jLogEntryModel;
+    private StringBuilder parseLine;
+    private int parseLineCount;
 
-	private int levelIndex;
-	private int timestampIndex;
-	private int loggerIndex;
-	private int messageIndex;
+    private Log4jLogEntryModel log4jLogEntryModel;
 
-	private TimeZone modelTimezone;
-	private TimeZone displayTimezone;
+    private int levelIndex;
+    private int timestampIndex;
+    private int loggerIndex;
+    private int messageIndex;
 
-	private Date prevLogEntryDate;
+    private TimeZone modelTimezone;
+    private TimeZone displayTimezone;
 
-	private int systemStartCounter;
-	private SystemStart systemStart;
+    private AtomicInteger systemStartCounter;
+    private SystemStart systemStart;
 
-	private Log4jLogThreadDumpEntry log4jLogThreadDumpEntry;
+    private AtomicInteger threadDumpEntryCounter;
+    private Log4jLogThreadDumpEntry log4jLogThreadDumpEntry;
 
-	public Log4jPatternParser(LogFileType logFileType, Locale locale, TimeZone displayTimezone) {
+    private AtomicInteger hzMembershipCounter;
+    private HazelcastMembership hazelcastMembership;
 
-		super(logFileType, locale);
+    public Log4jPatternParser(LogFileType logFileType, Charset charset, Locale locale, TimeZone displayTimezone) {
 
-		this.displayTimezone = displayTimezone;
+        super(logFileType, charset, locale);
 
-		logEntryIndex = 0;
-		parseLine = "";
-		parseLineCount = 1;
+        this.displayTimezone = displayTimezone;
 
-		levelIndex = -1;
-		timestampIndex = -1;
+        logEntryIndex = 0;
+        parseLine = null;
+        parseLineCount = 1;
 
-		modelTimezone = null;
-		prevLogEntryDate = null;
-		systemStartCounter = 1;
-		systemStart = null;
-		log4jLogThreadDumpEntry = null;
+        levelIndex = -1;
+        timestampIndex = -1;
 
-		logEntryColumnList = new ArrayList<String>();
-		logEntryColumnValueList = new ArrayList<String>();
-		logEntryText = null;
-		additionalLines = new ArrayList<String>();
+        modelTimezone = null;
 
-		String systemDateRegex = "System date:(?:.*?)\\d{2}\\:\\d{2}\\:\\d{2}(.*?)\\d{4}\\s+Total memory\\:(?:.*?)";
-		systemDatepattern = Pattern.compile(systemDateRegex);
+        // System Start
+        systemStartCounter = new AtomicInteger(0);
+        systemStart = null;
 
-		String threadRegEx = "(.*)Unable to synchronize on requestor (.+?) within (\\d{1,19}) seconds: \\(thisThread = (.+?)\\) \\(originally locked by = (.+?)\\) \\(finally locked by = (.+?)\\)(.*)";
+        // Thread Dump
+        threadDumpEntryCounter = new AtomicInteger(0);
+        log4jLogThreadDumpEntry = null;
 
-		requestorLockPattern = Pattern.compile(threadRegEx);
-		// exceptionPattern = Pattern.compile("([\\w\\.]*Exception|Error)");
-		exceptionPattern = Pattern.compile("([\\w\\.]+Exception)|([\\w\\.]+Error)");
+        // Hazelcast Membership
+        hzMembershipCounter = new AtomicInteger(0);
+        hazelcastMembership = null;
 
-		discardedMessagesPattern = Pattern.compile("Discarded (.+?) messages due to full event buffer(.*)");
+        logEntryColumnList = new ArrayList<String>();
+        logEntryColumnValueList = new ArrayList<String>();
+        logEntryText = null;
+        additionalLines = new ArrayList<String>();
 
-		generateRegExp();
+        String systemDateRegex = "System date:(?:.*?)\\d{2}\\:\\d{2}\\:\\d{2}(.*?)\\d{4}\\s+Total memory\\:(?:.*?)";
+        systemDatepattern = Pattern.compile(systemDateRegex);
 
-		log4jLogEntryModel = new Log4jLogEntryModel(getDateFormat(), getLocale(), displayTimezone);
+        // @formatter:off
+        // CHECKSTYLE:OFF
+        String threadRegEx = "(.*)Unable to synchronize on requestor (.+?) within (\\d{1,19}) seconds: \\(thisThread = (.+?)\\) \\(originally locked by = (.+?)\\) \\(finally locked by = (.+?)\\)(.*)";
+        // CHECKSTYLE:ON
+        // @formatter:on
 
-		log4jLogEntryModel.setLogEntryColumnList(logEntryColumnList);
+        requestorLockPattern = Pattern.compile(threadRegEx);
+        // exceptionPattern = Pattern.compile("([\\w\\.]*Exception|Error)");
+        exceptionPattern = Pattern.compile("([\\w\\.]+Exception)|([\\w\\.]+Error)");
 
-	}
+        discardedMessagesPattern = Pattern.compile("Discarded (.+?) messages due to full event buffer(.*)");
 
-	@Override
-	public String toString() {
-		return "Log4jPatternParser [regExp=" + regExp + ", log4jPattern=" + getLogFileType().getLogPattern() + "]";
-	}
+        hzMemberspattern = Pattern.compile("Members \\[(.+?)\\] \\{");
 
-	private void generateRegExp() {
+        generateRegExp();
 
-		lineCount = 0;
-		regExp = "";
+        log4jLogEntryModel = new Log4jLogEntryModel(getDateFormat(), displayTimezone);
 
-		LogFileType logFileType = getLogFileType();
-		LogPattern logPattern = logFileType.getLogPattern();
-
-		String logPatternStr = logPattern.getLogPatternString();
-		String pattern = OptionConverter.convertSpecialChars(logPatternStr);
-
-		LOG.info("generateRegExp - logPatternStr: " + logPatternStr);
-		PatternParser patternParser = new PatternParser("Converter");
-
-		List<PatternFormatter> patternFormatterList = patternParser.parse(pattern);
-
-		logEntryColumnList.add(LogEntryColumn.LINE.getColumnId());
-		logEntryColumnList.add(LogEntryColumn.DELTA.getColumnId());
-
-		for (PatternFormatter patternFormatter : patternFormatterList) {
-
-			String format = null;
-
-			PatternConverter patternConverter = patternFormatter.getConverter();
-			FormattingInfo formattingInfo = patternFormatter.getFormattingInfo();
-			int minLength = formattingInfo.getMinLength();
-
-			// TODO : are these the only set of converters?
-			if (patternConverter instanceof DatePatternConverter) {
-
-				format = getTimeStampFormat(logPatternStr);
-
-				format = format.replaceAll(Pattern.quote("+"), "[+]");
-
-				format = format.replaceAll(("[" + DateTimeUtilities.VALID_DATEFORMAT_CHARS + "]+"), "\\\\S+");
-
-				format = format.replaceAll(Pattern.quote("."), "\\\\.");
-
-				format = "(" + format + ")";
-
-				regExp = regExp + format;
-				logEntryColumnList.add(LogEntryColumn.TIMESTAMP.getColumnId());
-
-				// column list has additional LINE, DELTA column
-				timestampIndex = logEntryColumnList.size() - 3;
-
-			} else if (patternConverter instanceof MessagePatternConverter) {
-				format = GREEDY_GROUP;
-				regExp = regExp + format;
-				logEntryColumnList.add(LogEntryColumn.MESSAGE.getColumnId());
-				// column list has additional LINE, DELTA column
-				messageIndex = logEntryColumnList.size() - 3;
-			} else if (patternConverter instanceof LoggerPatternConverter) {
-				format = NOSPACE_GROUP;
-				regExp = regExp + format;
-				logEntryColumnList.add(LogEntryColumn.LOGGER.getColumnId());
-				// column list has additional LINE, DELTA column
-				loggerIndex = logEntryColumnList.size() - 3;
-			} else if (patternConverter instanceof ClassNamePatternConverter) {
-				format = DEFAULT_GROUP;
-				regExp = regExp + format;
-				logEntryColumnList.add(LogEntryColumn.CLASS.getColumnId());
-			} else if (patternConverter instanceof RelativeTimePatternConverter) {
-				format = DEFAULT_GROUP;
-				regExp = regExp + format;
-				logEntryColumnList.add(LogEntryColumn.RELATIVETIME.getColumnId());
-			} else if (patternConverter instanceof ThreadNamePatternConverter) {
-				format = DEFAULT_GROUP;
-				regExp = regExp + format;
-				logEntryColumnList.add(LogEntryColumn.THREAD.getColumnId());
-			} else if (patternConverter instanceof NdcPatternConverter) {
-				format = DEFAULT_GROUP;
-				regExp = regExp + format;
-				logEntryColumnList.add(LogEntryColumn.NDC.getColumnId());
-			} else if (patternConverter instanceof LiteralPatternConverter) {
-				format = ((LiteralPatternConverter) patternConverter).getLiteral();
-				// format = format.replaceAll(Pattern.quote("*"), ".*?");
-				format = escapeRegexChars(format);
-				// format = format.replaceAll(MULTIPLE_SPACES_REGEXP,
-				// MULTIPLE_SPACES_REGEXP);
-				regExp = regExp + format;
-			} else if (patternConverter instanceof SequenceNumberPatternConverter) {
-				format = DEFAULT_GROUP;
-				regExp = regExp + format;
-				logEntryColumnList.add(LogEntryColumn.LOG4JID.getColumnId());
-			} else if (patternConverter instanceof LevelPatternConverter) {
-
-				if (minLength > 0) {
-					format = LIMITING_GROUP;
-					// the Regex parsing is very slow if the max value is open
-					// ended like {5,} hence setting both min and max to min
-					// value because i assume that standard log levels are
-					// not going to be greater than 5 chars.
-					format = format.replace("n", String.valueOf(minLength));
-					format = format.replace("m", String.valueOf(minLength));
-
-				} else {
-					format = NOSPACE_GROUP;
-				}
-
-				regExp = regExp + format;
-				logEntryColumnList.add(LogEntryColumn.LEVEL.getColumnId());
-				// column list has additional LINE, DELTA column
-				levelIndex = logEntryColumnList.size() - 3;
-			} else if (patternConverter instanceof MethodLocationPatternConverter) {
-				format = DEFAULT_GROUP;
-				regExp = regExp + format;
-				logEntryColumnList.add(LogEntryColumn.METHOD.getColumnId());
-			} else if (patternConverter instanceof FullLocationPatternConverter) {
-				format = DEFAULT_GROUP;
-				regExp = regExp + format;
-				logEntryColumnList.add(LogEntryColumn.LOCATIONINFO.getColumnId());
-			} else if (patternConverter instanceof LineLocationPatternConverter) {
-				format = DEFAULT_GROUP;
-				regExp = regExp + format;
-				logEntryColumnList.add(LogEntryColumn.LINE.getColumnId());
-			} else if (patternConverter instanceof FileLocationPatternConverter) {
-				format = DEFAULT_GROUP;
-				regExp = regExp + format;
-				logEntryColumnList.add(LogEntryColumn.FILE.getColumnId());
-			} else if (patternConverter instanceof MdcPatternConverter) {
-				format = DEFAULT_GROUP;
-				regExp = regExp + format;
-				String patternConverterName = patternConverter.getName();
-				String propertyName = getMDCName(patternConverterName);
-				logEntryColumnList.add(propertyName.toUpperCase());
-			} else if (patternConverter instanceof MapPatternConverter) {
-				format = DEFAULT_GROUP;
-				regExp = regExp + format;
-				String patternConverterName = patternConverter.getName();
-				String propertyName = getMAPName(patternConverterName);
-				logEntryColumnList.add(propertyName.toUpperCase());
-			} else if (patternConverter instanceof LineSeparatorPatternConverter) {
-				lineCount++;
-			}
-
-		}
-
-		// LOG.info("loggerIndex: " + levelIndex);
-		LOG.info("generateRegExp - lineCount: " + lineCount);
-		LOG.info("generateRegExp - regExp: " + regExp);
-		LOG.info("generateRegExp - logEntryColumnList: " + logEntryColumnList);
-
-		linePattern = Pattern.compile(regExp);
-	}
-
-	private static String getMDCName(String patternConverterName) {
-
-		String propertyName = patternConverterName;
-		Pattern pattern = Pattern.compile("MDC\\{(.*?)\\}");
-
-		Matcher matcher = pattern.matcher(patternConverterName);
-
-		boolean found = matcher.find();
-
-		if (found) {
-			propertyName = matcher.group(1).trim();
-		}
-
-		return propertyName;
-	}
-
-	private static String getMAPName(String patternConverterName) {
-
-		String propertyName = patternConverterName;
-		Pattern pattern = Pattern.compile("MAP\\{(.*?)\\}");
-
-		Matcher matcher = pattern.matcher(patternConverterName);
-
-		boolean found = matcher.find();
-
-		if (found) {
-			propertyName = matcher.group(1).trim();
-		}
-
-		return propertyName;
-	}
-
-	private static String getPropertyName(String log4jPattern, int counter) {
-
-		String propertyName = null;
-
-		Pattern pattern = Pattern.compile("X\\{(.*?)\\}");
-
-		Matcher matcher = pattern.matcher(log4jPattern);
-
-		// counter is 0 based.
-		int index = 0;
-		while (matcher.find()) {
-
-			if (index == counter) {
-				propertyName = matcher.group(1);
-			}
-			index++;
-		}
+        log4jLogEntryModel.setLogEntryColumnList(logEntryColumnList);
 
-		return propertyName;
-	}
+    }
 
-	@Override
-	public void parse(String line) {
+    @Override
+    public String toString() {
+        return "Log4jPatternParser [regExp=" + regExp + ", log4jPattern=" + getLogFileType().getLogPattern() + "]";
+    }
+
+    private void generateRegExp() {
+
+        lineCount = 0;
+        regExp = "";
+
+        LogFileType logFileType = getLogFileType();
+        LogPattern logPattern = logFileType.getLogPattern();
+
+        String logPatternStr = logPattern.getPatternString();
+        String pattern = OptionConverter.convertSpecialChars(logPatternStr);
+
+        LOG.info("generateRegExp - logPatternStr: " + logPatternStr);
+        PatternParser patternParser = new PatternParser("Converter");
+
+        List<PatternFormatter> patternFormatterList = patternParser.parse(pattern);
+
+        logEntryColumnList.add(LogEntryColumn.LINE.getColumnId());
+
+        for (PatternFormatter patternFormatter : patternFormatterList) {
+
+            String format = null;
+
+            PatternConverter patternConverter = patternFormatter.getConverter();
+            FormattingInfo formattingInfo = patternFormatter.getFormattingInfo();
+            int minLength = formattingInfo.getMinLength();
+            int maxLength = formattingInfo.getMaxLength();
+
+            if (patternConverter instanceof DatePatternConverter) {
+
+                format = getTimeStampFormat(logPatternStr);
+
+                format = format.replaceAll(Pattern.quote("+"), "[+]");
+
+                format = format.replaceAll(("[" + DateTimeUtilities.VALID_DATEFORMAT_CHARS + "]+"), "\\\\S+");
+
+                format = format.replaceAll(Pattern.quote("."), "\\\\.");
+
+                format = "(" + format + ")";
+
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.TIMESTAMP.getColumnId());
+
+                // column list has additional LINE, column
+                timestampIndex = logEntryColumnList.size() - 2;
+
+            } else if (patternConverter instanceof MessagePatternConverter) {
+                format = GREEDY_GROUP;
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.MESSAGE.getColumnId());
+                // column list has additional LINE, column
+                messageIndex = logEntryColumnList.size() - 2;
+            } else if (patternConverter instanceof LoggerPatternConverter) {
+                format = NOSPACE_GROUP;
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.LOGGER.getColumnId());
+                // column list has additional LINE, column
+                loggerIndex = logEntryColumnList.size() - 2;
+            } else if (patternConverter instanceof ClassNamePatternConverter) {
+                format = DEFAULT_GROUP;
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.CLASS.getColumnId());
+            } else if (patternConverter instanceof RelativeTimePatternConverter) {
+                format = DEFAULT_GROUP;
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.RELATIVETIME.getColumnId());
+            } else if (patternConverter instanceof ThreadNamePatternConverter) {
+                format = DEFAULT_GROUP;
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.THREAD.getColumnId());
+            } else if (patternConverter instanceof NdcPatternConverter) {
+                format = DEFAULT_GROUP;
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.NDC.getColumnId());
+            } else if (patternConverter instanceof LiteralPatternConverter) {
+                // Pega log pattern contains literals '[' ']' that are also regex keywords.
+                // hence this conflicts, should i escape it or use it.
+                // At present I decided to just use * as regex literal. All other 'regex' literals are escaped.
+                // This change was done to accommodate cloud watch logs which has an additional timestamp on the front.
+                format = ((LiteralPatternConverter) patternConverter).getLiteral();
+
+                if (format.contains("*")) {
+                    format = format.replaceAll(Pattern.quote("*"), ".*?");
+                    format = format.replaceAll(MULTIPLE_SPACES_REGEXP, MULTIPLE_SPACES_REGEXP);
+                } else {
+                    format = escapeRegexChars(format);
+                }
+
+                regExp = regExp + format;
+            } else if (patternConverter instanceof SequenceNumberPatternConverter) {
+                format = DEFAULT_GROUP;
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.LOG4JID.getColumnId());
+            } else if (patternConverter instanceof LevelPatternConverter) {
+
+                if (minLength > 0) {
+                    format = LOG_LEVEL_GROUP;
+                    // the Regex parsing is very slow if the max value is open
+                    // ended like {5,} hence setting both min and max to min
+                    // value because i assume that standard log levels are
+                    // not going to be greater than 5 chars.
+                    format = format.replace("n", String.valueOf(minLength));
+
+                    if (maxLength != Integer.MAX_VALUE) {
+                        format = format.replace("m", String.valueOf(maxLength));
+                    } else {
+                        format = format.replace("m", String.valueOf(minLength));
+                    }
+                } else {
+                    format = NOSPACE_GROUP;
+                }
+
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.LEVEL.getColumnId());
+                // column list has additional LINE column
+                levelIndex = logEntryColumnList.size() - 2;
+            } else if (patternConverter instanceof MethodLocationPatternConverter) {
+                format = DEFAULT_GROUP;
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.METHOD.getColumnId());
+            } else if (patternConverter instanceof FullLocationPatternConverter) {
+                format = DEFAULT_GROUP;
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.LOCATIONINFO.getColumnId());
+            } else if (patternConverter instanceof LineLocationPatternConverter) {
+                format = DEFAULT_GROUP;
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.LINE.getColumnId());
+            } else if (patternConverter instanceof FileLocationPatternConverter) {
+                format = DEFAULT_GROUP;
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.FILE.getColumnId());
+            } else if (patternConverter instanceof MdcPatternConverter) {
+
+                if (minLength > 0) {
+                    format = LIMITING_GROUP;
+                    format = format.replace("n", String.valueOf(minLength));
+
+                    if ((maxLength > 0) && (maxLength < Integer.MAX_VALUE)) {
+                        format = format.replace("m", String.valueOf(maxLength));
+                    } else {
+                        format = format.replace("m", "");
+                    }
+                } else {
+                    format = OPTIONAL_GROUP;
+                }
+
+                regExp = regExp + format;
+                String patternConverterName = patternConverter.getName();
+                String propertyName = getMDCName(patternConverterName);
+                logEntryColumnList.add(propertyName.toUpperCase());
+            } else if (patternConverter instanceof MapPatternConverter) {
+                format = DEFAULT_GROUP;
+                regExp = regExp + format;
+                String patternConverterName = patternConverter.getName();
+                String propertyName = getMAPName(patternConverterName);
+                logEntryColumnList.add(propertyName.toUpperCase());
+            } else if (patternConverter instanceof LineSeparatorPatternConverter) {
+                lineCount++;
+            }
+
+        }
+
+        // LOG.info("loggerIndex: " + levelIndex);
+        LOG.info("generateRegExp - lineCount: " + lineCount);
+        LOG.info("generateRegExp - regExp: " + regExp);
+        LOG.info("generateRegExp - logEntryColumnList: " + logEntryColumnList);
+
+        linePattern = Pattern.compile(regExp);
+    }
+
+    private static String getMDCName(String patternConverterName) {
+
+        String propertyName = patternConverterName;
+        Pattern pattern = Pattern.compile("MDC\\{(.*?)\\}");
+
+        Matcher matcher = pattern.matcher(patternConverterName);
+
+        boolean found = matcher.find();
+
+        if (found) {
+            propertyName = matcher.group(1).trim();
+        }
+
+        return propertyName;
+    }
+
+    private static String getMAPName(String patternConverterName) {
+
+        String propertyName = patternConverterName;
+        Pattern pattern = Pattern.compile("MAP\\{(.*?)\\}");
+
+        Matcher matcher = pattern.matcher(patternConverterName);
+
+        boolean found = matcher.find();
+
+        if (found) {
+            propertyName = matcher.group(1).trim();
+        }
+
+        return propertyName;
+    }
+
+    @Override
+    public void parse(String line) {
+
+        if (parseLine == null) {
+            parseLine = new StringBuilder();
+        }
+
+        if (parseLineCount < lineCount) {
+            // accumulate
+            // parseLine = parseLine + System.getProperty("line.separator") + line;
+            parseLine.append(System.getProperty("line.separator"));
+            parseLine.append(line);
+            parseLineCount++;
+            return;
+
+        } else {
+            if (parseLineCount > 1) {
+                // parseLine = parseLine + System.getProperty("line.separator") + line;
+                parseLine.append(System.getProperty("line.separator"));
+                parseLine.append(line);
+
+            } else {
+                // parseLine = line;
+                parseLine.append(line);
+            }
+        }
 
-		if (parseLineCount < lineCount) {
-			// accumulate
-			parseLine = parseLine + System.getProperty("line.separator") + line;
-			parseLineCount++;
+        // performance change- pick only first 1000 chars for pattern matching, append
+        // the remaining to last group
 
-			return;
-		} else {
-			if (parseLineCount > 1) {
-				parseLine = parseLine + System.getProperty("line.separator") + line;
-			} else {
-				parseLine = line;
-			}
-		}
+        int parseLineLen = parseLine.length();
+        String matcherStr = null;
+        String balanceStr = null;
 
-		Matcher lineMatcher = linePattern.matcher(parseLine);
-		// capture the current one and build the previous one
-		if (lineMatcher.matches()) {
+        if (parseLineLen > MATCHER_STR_LEN) {
+            matcherStr = parseLine.substring(0, MATCHER_STR_LEN);
+            balanceStr = parseLine.substring(MATCHER_STR_LEN);
+        } else {
+            matcherStr = parseLine.toString();
+        }
 
-			buildLogEntry();
+        Matcher lineMatcher = linePattern.matcher(matcherStr);
+        // capture the current one and build the previous one
+        if (lineMatcher.matches()) {
 
-			logEntryText = parseLine;
+            buildLogEntry();
 
-			MatchResult result = lineMatcher.toMatchResult();
+            logEntryText = parseLine.toString();
 
-			for (int i = 1; i < result.groupCount() + 1; i++) {
-				// String key = logEntryColumnList.get(i - 1);
-				String value = result.group(i);
+            MatchResult result = lineMatcher.toMatchResult();
 
-				logEntryColumnValueList.add(value);
-			}
+            int groupCount = result.groupCount();
 
-		} else {
-			additionalLines.add(parseLine);
-		}
+            for (int i = 1; i <= groupCount; i++) {
 
-	}
+                StringBuilder valueSB = new StringBuilder(result.group(i));
 
-	// construct the last event when the are no more log lines
-	@Override
-	public void parseFinal() {
+                // if the original string was split, append
+                // the remaining to last group
+                if ((balanceStr != null) && (i == groupCount)) {
+                    valueSB.append(balanceStr);
+                }
 
-		buildLogEntry();
+                logEntryColumnValueList.add(valueSB.toString());
+            }
 
-		resetProcessedCount();
-	}
+        } else {
+            additionalLines.add(parseLine.toString());
+        }
 
-	@Override
-	public LogEntryModel getLogEntryModel() {
-		return log4jLogEntryModel;
-	}
+        parseLine = null;
+    }
 
-	private void buildLogEntry() {
+    // construct the last event when the are no more log lines
+    @Override
+    public void parseFinalInternal() {
 
-		if ((logEntryColumnValueList.size() == 0) && (additionalLines.size() > 0)) {
+        buildLogEntry();
+    }
 
-			LOG.info("found " + additionalLines.size() + " additional lines at the begining.");
+    @Override
+    public LogEntryModel getLogEntryModel() {
+        return log4jLogEntryModel;
+    }
 
-			logEntryIndex = logEntryIndex + additionalLines.size();
+    private void buildLogEntry() {
 
-			additionalLines.clear();
-		} else if (logEntryColumnValueList.size() > 0) {
+        if ((logEntryColumnValueList.size() == 0) && (additionalLines.size() > 0)) {
 
-			logEntryIndex = logEntryIndex + 1;
+            LOG.info("found " + additionalLines.size() + " additional lines at the begining.");
 
-			boolean sysdateEntry = false;
-			boolean systemStartEntry = false;
-			boolean threadDumpEntry = false;
-			boolean requestorLockEntry = false;
-			boolean exceptionsEntry = false;
+            logEntryIndex = logEntryIndex + additionalLines.size();
 
-			byte logLevelId = 0;
+            additionalLines.clear();
+        } else if (logEntryColumnValueList.size() > 0) {
 
-			LogEntryModel logEntryModel = getLogEntryModel();
+            logEntryIndex = logEntryIndex + 1;
 
-			String logger = logEntryColumnValueList.get(loggerIndex).toUpperCase();
+            boolean sysdateEntry = false;
+            boolean systemStartEntry = false;
+            boolean threadDumpEntry = false;
+            boolean requestorLockEntry = false;
+            boolean exceptionsEntry = false;
+            boolean hzMembershipEntry = false;
 
-			String message = logEntryColumnValueList.get(messageIndex);
-			message = message.trim();
+            byte logLevelId = 0;
 
-			// TODO: on some systems like GC, there are multiple
-			// spaces before '%m%n' pattern, for ex ' - %m%n'. this causes
-			// the system string to have a additional space in the front hence
-			// it is required to trim the message to match the entries below
+            LogEntryModel logEntryModel = getLogEntryModel();
 
-			if ((logger.endsWith("INTERNAL.ASYNC.AGENT")) || (logger.endsWith("ENGINE.CONTEXT.AGENT"))) {
+            String logger = logEntryColumnValueList.get(loggerIndex).toUpperCase();
 
-				if (message.startsWith("System date:")) {
+            String message = logEntryColumnValueList.get(messageIndex);
+            message = message.trim();
 
-					sysdateEntry = true;
+            if ((logger.endsWith("INTERNAL.ASYNC.AGENT")) || (logger.endsWith("ENGINE.CONTEXT.AGENT"))
+                    || (logger.endsWith("AGENTCONFIGURATION"))) {
 
-					if (modelTimezone == null) {
+                if (message.startsWith("System date:")) {
 
-						Matcher systemDateMatcher = systemDatepattern.matcher(message);
+                    sysdateEntry = true;
 
-						if (systemDateMatcher.matches()) {
+                    if (modelTimezone == null) {
 
-							String timezoneID = systemDateMatcher.group(1).trim();
-							LOG.info("Identified System Date timezoneID: " + timezoneID);
+                        Matcher systemDateMatcher = systemDatepattern.matcher(message);
 
-							modelTimezone = TimeZoneUtil.getTimeZoneFromAbbreviatedString(timezoneID);
+                        if (systemDateMatcher.matches()) {
 
-							if (modelTimezone == null) {
+                            String timezoneID = systemDateMatcher.group(1).trim();
+                            LOG.info("Identified System Date timezone Id: " + timezoneID);
 
-								TimeZone currTimezone = logEntryModel.getModelDateFormat().getTimeZone();
+                            modelTimezone = TimeZoneUtil.getTimeZoneFromAbbreviatedString(timezoneID);
 
-								LOG.error("Unable to detect timezone, using " + currTimezone,
-										new Exception("Unable to parse timezoneID: " + timezoneID));
+                            if (modelTimezone == null) {
 
-								modelTimezone = TimeZoneUtil.getTimeZoneFromAbbreviatedString("GMT");
+                                TimeZone currTimezone = logEntryModel.getModelDateFormat().getTimeZone();
 
-							} else {
-								LOG.info("Setting modelTimezone: " + modelTimezone);
-							}
+                                LOG.error("Unable to detect timezone, using " + currTimezone,
+                                        new Exception("Unable to parse timezoneID: " + timezoneID));
 
-							logEntryModel.setModelDateFormatTimeZone(modelTimezone);
+                                // modelTimezone = TimeZoneUtil.getTimeZoneFromAbbreviatedString("GMT");
+                                modelTimezone = TimeZone.getDefault();
 
-							if (displayTimezone == null) {
-								logEntryModel.setDisplayDateFormatTimeZone(modelTimezone);
-								LOG.info("Setting displayTimezone: " + displayTimezone);
-							}
-						} else {
-							LOG.info("attempt to extract system date modelTimezone failed");
-						}
-					}
-				}
-			} else if (logger.endsWith("ERVLET.WEBAPPLIFECYCLELISTENER")) {
+                            } else {
+                                LOG.info("Setting modelTimezone: " + modelTimezone);
+                            }
 
-				if ((systemStart == null) && (message.startsWith("System Start Date"))) {
+                            logEntryModel.setModelDateFormatTimeZone(modelTimezone);
 
-					systemStartEntry = true;
+                            if (displayTimezone == null) {
+                                logEntryModel.setDisplayDateFormatTimeZone(modelTimezone);
+                                LOG.info("Setting displayTimezone: " + displayTimezone);
+                            }
+                        } else {
+                            LOG.info("attempt to extract system date modelTimezone failed");
+                        }
+                    }
+                }
+            } else if (logger.endsWith("ERVLET.WEBAPPLIFECYCLELISTENER")) {
 
-				} else if ((systemStart != null) && (message.startsWith("System Start Date"))) {
-					// may end up here when jvm is killed and restarted.
-					LOG.info("Found a killed jvm and restart");
+                if ((systemStart == null) && (message.startsWith("System Start Date"))) {
 
-					Integer systemStartEndIndex = new Integer(logEntryIndex - 1);
-					systemStart.setEndIndex(systemStartEndIndex);
-					systemStart.setAbruptStop(true);
-					
-					systemStartEntry = true;
-					systemStart = null;
+                    systemStartEntry = true;
 
-				} else if (systemStart != null) {
+                } else if ((systemStart != null) && (message.startsWith("System Start Date"))) {
+                    // may end up here when jvm is killed and restarted.
+                    LOG.info("Found a killed jvm and restart");
 
-					if ((message.startsWith("Web Tier initialization is complete."))
-							|| (message.startsWith("Exception during startup processing"))
-							|| (message.startsWith("Thin Web Tier initialization is complete."))) {
+                    systemStart.setAbruptStop(true);
 
-						Integer systemStartEndIndex = new Integer(logEntryIndex);
-						systemStart.setEndIndex(systemStartEndIndex);
+                    systemStartEntry = true;
+                    systemStart = null;
 
-						// this systemStart is already added to the list.
-						systemStart = null;
-					}
-				}
-			} else if (logger.endsWith(".ENVIRONMENTDIAGNOSTICS")) {
+                } else if (systemStart != null) {
 
-				if (message.startsWith("--- Thread Dump Starts ---")) {
+                    if ((message.startsWith("Web Tier initialization is complete."))
+                            || (message.startsWith("Exception during startup processing"))
+                            || (message.startsWith("Thin Web Tier initialization is complete."))) {
 
-					threadDumpEntry = true;
+                        // this systemStart is already added to the list.
+                        systemStartEntry = false;
+                        systemStart = null;
+                    }
+                }
+            } else if (logger.endsWith(".ENVIRONMENTDIAGNOSTICS")) {
 
-					List<Integer> threadDumpLogEntryIndexList;
-					threadDumpLogEntryIndexList = log4jLogEntryModel.getThreadDumpLogEntryIndexList();
-					threadDumpLogEntryIndexList.add(logEntryIndex);
+                if (message.startsWith("--- Thread Dump Starts ---")) {
 
-				}
-			}
+                    threadDumpEntry = true;
+                }
 
-			String level = logEntryColumnValueList.get(levelIndex);
-			logLevelId = getLogLevelId(level.trim());
+            } else if (logger.endsWith("TIL.HAZELCASTMEMBERSHIPMANAGER")) {
 
-			// check only first 3 lines of the additional line set.
-			int exceptionLineCounter = 0;
+                if (hazelcastMembership == null) {
 
-			// construct log entry text
-			StringBuffer fullLogEntryTextSB = new StringBuffer();
-			fullLogEntryTextSB.append(logEntryText);
+                    hzMembershipEntry = true;
+                }
 
-			if (additionalLines.size() > 0) {
+            } else if (logger.endsWith(".UTIL.CLUSTERMEMBERSHIPMANAGER")) {
 
-				for (String line : additionalLines) {
+                // the members info is also printed on node start. currently not handling this scenario
+                if ((hazelcastMembership != null) && (message.trim().equals("}"))) {
 
-					fullLogEntryTextSB.append(System.getProperty("line.separator"));
-					fullLogEntryTextSB.append(line);
+                    // members block ended
+                    hazelcastMembership.postProcess();
 
-					Map<String, List<Integer>> errorLogEntryIndexMap = log4jLogEntryModel.getErrorLogEntryIndexMap();
+                    hazelcastMembership = null;
 
-					// in case of error log check if there is an exception in
-					// the lines
-					if ((logLevelId > 5) && (exceptionLineCounter < 3) && (!exceptionsEntry)) {
+                } else if (hazelcastMembership != null) {
 
-						Matcher matcher = exceptionPattern.matcher(line);
+                    Matcher hzMembersMatcher = hzMemberspattern.matcher(message);
 
-						if (matcher.find()) {
+                    if (hzMembersMatcher.matches()) {
+                        String memberCountStr = hzMembersMatcher.group(1);
 
-							String exception = matcher.group(0);
+                        try {
 
-							List<Integer> errorLogEntryIndexList;
-							errorLogEntryIndexList = errorLogEntryIndexMap.get(exception);
+                            int memberCount = Integer.parseInt(memberCountStr);
 
-							if (errorLogEntryIndexList == null) {
-								errorLogEntryIndexList = new ArrayList<Integer>();
-								errorLogEntryIndexMap.put(exception, errorLogEntryIndexList);
-							}
+                            hazelcastMembership.setMemberCount(memberCount);
 
-							errorLogEntryIndexList.add(logEntryIndex);
-							exceptionsEntry = true;
+                        } catch (NumberFormatException nfe) {
+                            LOG.error("Unable to parse Hz Member count: " + message);
+                        }
 
-						}
-						// if the exception is not found in the first 3
-						// additional
-						// lines, then search in the main text.
-					}
+                    } else {
+                        LogHzMemberInfoParser logHzMemberInfoParser = LogHzMemberInfoParser.getInstance();
 
-					exceptionLineCounter++;
-				}
-			}
+                        HazelcastMemberInfo hzMemberInfo = logHzMemberInfoParser.getHazelcastMemberInfo(message);
 
-			// if this is just an error entry, capture it in an empty group
-			if ((logLevelId > 5) && (!exceptionsEntry)) {
+                        if (hzMemberInfo != null) {
+                            hazelcastMembership.addHzMemberInfo(hzMemberInfo);
+                        } else {
+                            LOG.error("Unable to parse Hz Member Info: " + message);
+                        }
+                    }
+                }
+            }
 
-				Map<String, List<Integer>> errorLogEntryIndexMap = log4jLogEntryModel.getErrorLogEntryIndexMap();
+            String timestampStr = logEntryColumnValueList.get(timestampIndex);
 
-				Matcher matcher = exceptionPattern.matcher(message);
+            DateFormat modelDateFormat = logEntryModel.getModelDateFormat();
 
-				if (matcher.find()) {
+            long logEntryTime = -1;
+            try {
 
-					String exception = matcher.group(0);
+                Date logEntryDate = modelDateFormat.parse(timestampStr);
+                logEntryTime = logEntryDate.getTime();
 
-					List<Integer> errorLogEntryIndexList;
-					errorLogEntryIndexList = errorLogEntryIndexMap.get(exception);
+            } catch (ParseException e) {
+                LOG.error("Error parsing line: [" + logEntryIndex + "] logentry: [" + logEntryText + "]", e);
+            }
 
-					if (errorLogEntryIndexList == null) {
-						errorLogEntryIndexList = new ArrayList<Integer>();
-						errorLogEntryIndexMap.put(exception, errorLogEntryIndexList);
-					}
+            LogEntryKey logEntryKey = new LogEntryKey(logEntryIndex, logEntryTime);
 
-					errorLogEntryIndexList.add(logEntryIndex);
-				} else {
-					List<Integer> errorLogEntryIndexList;
-					errorLogEntryIndexList = errorLogEntryIndexMap.get("");
+            String level = logEntryColumnValueList.get(levelIndex);
+            logLevelId = getLogLevelId(level.trim());
 
-					if (errorLogEntryIndexList == null) {
-						errorLogEntryIndexList = new ArrayList<Integer>();
-						errorLogEntryIndexMap.put("", errorLogEntryIndexList);
-					}
+            // check only first 3 lines of the additional line set.
+            int exceptionLineCounter = 0;
 
-					errorLogEntryIndexList.add(logEntryIndex);
-				}
+            // construct log entry text
+            StringBuilder fullLogEntryTextSB = new StringBuilder();
+            fullLogEntryTextSB.append(logEntryText);
 
-				exceptionsEntry = true;
+            if (additionalLines.size() > 0) {
 
-			}
+                for (String line : additionalLines) {
 
-			String fullLogEntryText = fullLogEntryTextSB.toString();
+                    fullLogEntryTextSB.append(System.getProperty("line.separator"));
+                    fullLogEntryTextSB.append(line);
 
-			Log4jLogEntry log4jLogEntry;
-			String deltaStr = null;
+                    Map<String, List<LogEntryKey>> errorLogEntryIndexMap = log4jLogEntryModel
+                            .getErrorLogEntryIndexMap();
 
-			String timestampStr = logEntryColumnValueList.get(timestampIndex);
+                    // in case of error log check if there is an exception in
+                    // the lines
+                    if ((logLevelId > 5) && (exceptionLineCounter < 3) && (!exceptionsEntry)) {
 
-			DateFormat modelDateFormat = logEntryModel.getModelDateFormat();
+                        Matcher matcher = exceptionPattern.matcher(line);
 
-			Date logEntryDate = null;
-			try {
+                        if (matcher.find()) {
 
-				logEntryDate = modelDateFormat.parse(timestampStr);
+                            String exception = matcher.group(0);
 
-				if (prevLogEntryDate != null) {
+                            List<LogEntryKey> errorLogEntryIndexList;
+                            errorLogEntryIndexList = errorLogEntryIndexMap.get(exception);
 
-					long logEntryTime = logEntryDate.getTime();
-					long prevTime = prevLogEntryDate.getTime();
+                            if (errorLogEntryIndexList == null) {
+                                errorLogEntryIndexList = new ArrayList<LogEntryKey>();
+                                errorLogEntryIndexMap.put(exception, errorLogEntryIndexList);
+                            }
 
-					long delta = logEntryTime - prevTime;
+                            errorLogEntryIndexList.add(logEntryKey);
+                            exceptionsEntry = true;
 
-					deltaStr = Long.toString(delta);
-				}
+                        }
+                        // if the exception is not found in the first 3
+                        // additional
+                        // lines, then search in the main text.
+                    }
 
-				prevLogEntryDate = logEntryDate;
-			} catch (ParseException e) {
-				LOG.error("Error parsing line: [" + logEntryIndex + "] logentry: [" + logEntryText + "]", e);
-			}
+                    exceptionLineCounter++;
+                }
+            }
 
-			// if a thread dump is found earlier then look for 'Unable to
-			// synchronize' messages. also need to check that whether this
-			// message is within 5 minutes (using default setting) of the
-			// occurrence of thread dump
+            // if this is just an error entry, capture it in an empty group
+            if ((logLevelId > 5) && (!exceptionsEntry)) {
 
-			if ((!threadDumpEntry) && (log4jLogThreadDumpEntry != null) && (logEntryDate != null)) {
+                Map<String, List<LogEntryKey>> errorLogEntryIndexMap = log4jLogEntryModel.getErrorLogEntryIndexMap();
 
-				// check if we are within 5 minutes threshold
-				long threadDumpEntryLogEntryTime = log4jLogThreadDumpEntry.getLogEntryDate().getTime();
+                Matcher matcher = exceptionPattern.matcher(message);
 
-				long logEntryTime = logEntryDate.getTime();
+                if (matcher.find()) {
 
-				threadDumpEntryLogEntryTime = threadDumpEntryLogEntryTime + THREADDUMP_TIMESTAMP_INTERVAL;
+                    String exception = matcher.group(0);
 
-				if ((threadDumpEntryLogEntryTime > logEntryTime)) {
+                    List<LogEntryKey> errorLogEntryIndexList;
+                    errorLogEntryIndexList = errorLogEntryIndexMap.get(exception);
 
-					Matcher discardedMessagesPatternMatcher = discardedMessagesPattern.matcher(message);
-					boolean discardedLogMessage = discardedMessagesPatternMatcher.matches();
+                    if (errorLogEntryIndexList == null) {
+                        errorLogEntryIndexList = new ArrayList<>();
+                        errorLogEntryIndexMap.put(exception, errorLogEntryIndexList);
+                    }
 
-					int rleIndex = message.indexOf("com.pega.pegarules.pub.context.RequestorLockException");
+                    errorLogEntryIndexList.add(logEntryKey);
+                } else {
+                    List<LogEntryKey> errorLogEntryIndexList;
+                    errorLogEntryIndexList = errorLogEntryIndexMap.get("");
 
-					if ((!discardedLogMessage) && (rleIndex != -1)) {
+                    if (errorLogEntryIndexList == null) {
+                        errorLogEntryIndexList = new ArrayList<>();
+                        errorLogEntryIndexMap.put("", errorLogEntryIndexList);
+                    }
 
-						// also check the message "Unable to synchronize on
-						// requestor"
-						String syncMessage = additionalLines.get(0);
+                    errorLogEntryIndexList.add(logEntryKey);
+                }
 
-						int smIndex = syncMessage.indexOf("Unable to synchronize on requestor");
+                exceptionsEntry = true;
 
-						if (smIndex != -1) {
-							requestorLockEntry = true;
-						}
-					}
-				} else {
-					// we have passed the 5 minutes threshold. thread dump
-					// entry is not required now.
-					log4jLogThreadDumpEntry = null;
-				}
-			}
+            }
 
-			// add all last otherwise messes up the indexes
-			logEntryColumnValueList.add(0, String.valueOf(logEntryIndex));
-			logEntryColumnValueList.add(1, deltaStr);
+            String fullLogEntryText = fullLogEntryTextSB.toString();
 
-			if (threadDumpEntry) {
-				log4jLogThreadDumpEntry = new Log4jLogThreadDumpEntry(logEntryIndex, logEntryDate,
-						logEntryColumnValueList, fullLogEntryText, sysdateEntry, logLevelId);
+            Log4jLogEntry log4jLogEntry;
 
-				log4jLogEntry = log4jLogThreadDumpEntry;
+            // if a thread dump is found earlier then look for 'Unable to
+            // synchronize' messages. also need to check that whether this
+            // message is within 5 minutes (using default setting) of the
+            // occurrence of thread dump
 
-			} else if (requestorLockEntry) {
+            if ((!threadDumpEntry) && (log4jLogThreadDumpEntry != null) && (logEntryTime != -1)) {
 
-				Log4jLogRequestorLockEntry log4jLogRequestorLockEntry;
+                // check if we are within 5 minutes threshold
+                long threadDumpEntryLogEntryTime = log4jLogThreadDumpEntry.getKey().getTimestamp();
 
-				log4jLogRequestorLockEntry = new Log4jLogRequestorLockEntry(logEntryIndex, logEntryDate,
-						logEntryColumnValueList, fullLogEntryText, sysdateEntry, logLevelId);
+                threadDumpEntryLogEntryTime = threadDumpEntryLogEntryTime + THREADDUMP_TIMESTAMP_INTERVAL;
 
-				String requestorLockStr = additionalLines.get(0);
+                if ((threadDumpEntryLogEntryTime > logEntryTime)) {
 
-				parseRequestorLockString(requestorLockStr, log4jLogRequestorLockEntry);
+                    Matcher discardedMessagesPatternMatcher = discardedMessagesPattern.matcher(message);
+                    boolean discardedLogMessage = discardedMessagesPatternMatcher.matches();
 
-				List<Log4jLogRequestorLockEntry> log4jLogRequestorLockEntryList;
+                    int rleIndex = message.indexOf("com.pega.pegarules.pub.context.RequestorLockException");
 
-				log4jLogRequestorLockEntryList = log4jLogThreadDumpEntry.getLog4jLogRequestorLockEntryList();
+                    if ((!discardedLogMessage) && (rleIndex != -1) && (additionalLines.size() > 0)) {
 
-				log4jLogRequestorLockEntryList.add(log4jLogRequestorLockEntry);
+                        // also check the message "Unable to synchronize on
+                        // requestor"
+                        String syncMessage = additionalLines.get(0);
 
-				log4jLogEntry = log4jLogRequestorLockEntry;
+                        int smIndex = syncMessage.indexOf("Unable to synchronize on requestor");
 
-			} else if (systemStartEntry) {
-				log4jLogEntry = new Log4jLogSystemStartEntry(logEntryIndex, logEntryDate, logEntryColumnValueList,
-						fullLogEntryText, sysdateEntry, logLevelId);
-			} else if (exceptionsEntry) {
-				log4jLogEntry = new Log4jLogExceptionEntry(logEntryIndex, logEntryDate, logEntryColumnValueList,
-						fullLogEntryText, sysdateEntry, logLevelId);
-			} else {
-				log4jLogEntry = new Log4jLogEntry(logEntryIndex, logEntryDate, logEntryColumnValueList,
-						fullLogEntryText, sysdateEntry, logLevelId);
-			}
+                        if (smIndex != -1) {
+                            requestorLockEntry = true;
+                        }
+                    }
+                } else {
+                    // we have passed the 5 minutes threshold. thread dump
+                    // entry is not required now.
+                    log4jLogThreadDumpEntry = null;
+                }
+            }
 
-			// Log4jLogEntry log4jLogEntry = new Log4jLogEntry(logEntryIndex,
-			// logEntryColumnValueList, fullLogEntryText, sysdateEntry,
-			// systemStartEntry, threadDumpEntry, levelId);
+            // add all last otherwise messes up the indexes
+            logEntryColumnValueList.add(0, String.valueOf(logEntryIndex));
 
-			if (systemStartEntry) {
+            if (threadDumpEntry) {
 
-				DateFormat displayDateFormat = log4jLogEntryModel.getDisplayDateFormat();
+                int index = threadDumpEntryCounter.incrementAndGet();
 
-				systemStart = new SystemStart(systemStartCounter, displayDateFormat, log4jLogEntry);
+                log4jLogThreadDumpEntry = new Log4jLogThreadDumpEntry(index, logEntryKey, logEntryColumnValueList,
+                        fullLogEntryText, sysdateEntry, logLevelId);
 
-				List<SystemStart> systemStartList;
-				systemStartList = log4jLogEntryModel.getSystemStartList();
+                log4jLogEntry = log4jLogThreadDumpEntry;
 
-				systemStartList.add(systemStart);
-				systemStartCounter++;
+                List<LogEntryKey> threadDumpLogEntryIndexList;
+                threadDumpLogEntryIndexList = log4jLogEntryModel.getThreadDumpLogEntryKeyList();
+                threadDumpLogEntryIndexList.add(logEntryKey);
 
-			} else if (systemStart != null) {
-				Integer systemStartEndIndex = new Integer(logEntryIndex);
-				systemStart.setEndIndex(systemStartEndIndex);
-			}
+            } else if (requestorLockEntry) {
 
-			logEntryIndex = logEntryIndex + additionalLines.size();
+                Log4jLogRequestorLockEntry log4jLogRequestorLockEntry;
 
-			log4jLogEntryModel.addLogEntry(log4jLogEntry, logEntryColumnValueList);
+                log4jLogRequestorLockEntry = new Log4jLogRequestorLockEntry(logEntryKey, logEntryColumnValueList,
+                        fullLogEntryText, sysdateEntry, logLevelId);
 
-			// update the processed counter
-			incrementAndGetProcessedCount();
+                String requestorLockStr = additionalLines.get(0);
 
-			logEntryText = null;
-			logEntryColumnValueList.clear();
-			additionalLines.clear();
-		}
+                parseRequestorLockString(requestorLockStr, log4jLogRequestorLockEntry);
 
-	}
+                List<Log4jLogRequestorLockEntry> log4jLogRequestorLockEntryList;
 
-	private byte getLogLevelId(String level) {
+                log4jLogRequestorLockEntryList = log4jLogThreadDumpEntry.getLog4jLogRequestorLockEntryList();
 
-		byte levelId = 0;
+                log4jLogRequestorLockEntryList.add(log4jLogRequestorLockEntry);
 
-		if (level.equalsIgnoreCase("TRACE")) {
-			levelId = 1;
-		} else if (level.equalsIgnoreCase("DEBUG")) {
-			levelId = 2;
-		} else if (level.equalsIgnoreCase("INFO")) {
-			levelId = 3;
-		} else if (level.equalsIgnoreCase("WARN")) {
-			levelId = 4;
-		} else if (level.equalsIgnoreCase("ALERT")) {
-			levelId = 5;
-		} else if (level.equalsIgnoreCase("ERROR")) {
-			levelId = 6;
-		} else if (level.equalsIgnoreCase("FATAL")) {
-			levelId = 7;
-		}
+                log4jLogEntry = log4jLogRequestorLockEntry;
 
-		return levelId;
+            } else if (systemStartEntry) {
+                log4jLogEntry = new Log4jLogSystemStartEntry(logEntryKey, logEntryColumnValueList, fullLogEntryText,
+                        sysdateEntry, logLevelId);
+            } else if (exceptionsEntry) {
+                log4jLogEntry = new Log4jLogExceptionEntry(logEntryKey, logEntryColumnValueList, fullLogEntryText,
+                        sysdateEntry, logLevelId);
+            } else if (hzMembershipEntry) {
+                log4jLogEntry = new Log4jLogHzMembershipEntry(logEntryKey, logEntryColumnValueList, fullLogEntryText,
+                        sysdateEntry, logLevelId);
+            } else {
+                log4jLogEntry = new Log4jLogEntry(logEntryKey, logEntryColumnValueList, fullLogEntryText, sysdateEntry,
+                        logLevelId);
+            }
 
-	}
+            if (systemStartEntry) {
 
-	private void parseRequestorLockString(String requestorLockStr,
-			Log4jLogRequestorLockEntry log4jLogRequestorLockEntry) {
+                int index = systemStartCounter.incrementAndGet();
+                systemStart = new SystemStart(index, logEntryKey);
 
-		Matcher lineMatcher = requestorLockPattern.matcher(requestorLockStr);
+                List<SystemStart> systemStartList;
+                systemStartList = log4jLogEntryModel.getSystemStartList();
 
-		if (lineMatcher.matches()) {
+                systemStartList.add(systemStart);
 
-			int count = lineMatcher.groupCount();
+            } else if (systemStart != null) {
 
-			if (count >= 6) {
+                systemStart.addLogEntryKey(logEntryKey);
+            }
 
-				String requestorId = null;
-				Integer timeInterval = null;
-				String thisThreadName = null;
-				String originalLockThreadName = null;
-				String finallyLockThreadName = null;
+            if (hzMembershipEntry) {
 
-				requestorId = lineMatcher.group(2);
-				String timeIntervalStr = lineMatcher.group(3);
+                HzMembershipEvent hzMembershipEvent = null;
+                HazelcastMemberInfo hazelcastMemberInfo = null;
 
-				try {
-					timeInterval = Integer.parseInt(timeIntervalStr);
-				} catch (Exception e) {
-					LOG.error("Error parsing time interval: " + timeIntervalStr, e);
-				}
+                int index = hzMembershipCounter.incrementAndGet();
 
-				thisThreadName = lineMatcher.group(4);
-				originalLockThreadName = lineMatcher.group(5);
-				finallyLockThreadName = lineMatcher.group(6);
+                if (message.startsWith("New member has joined the cluster")) {
+                    hzMembershipEvent = HzMembershipEvent.MEMBER_ADDED;
+                } else {
+                    hzMembershipEvent = HzMembershipEvent.MEMBER_LEFT;
+                }
 
-				log4jLogRequestorLockEntry.setRequestorId(requestorId);
-				log4jLogRequestorLockEntry.setTimeInterval(timeInterval);
-				log4jLogRequestorLockEntry.setThisThreadName(thisThreadName);
-				log4jLogRequestorLockEntry.setOriginalLockThreadName(originalLockThreadName);
-				log4jLogRequestorLockEntry.setFinallyLockThreadName(finallyLockThreadName);
-			}
+                LogHzMemberInfoParser logHzMemberInfoParser = LogHzMemberInfoParser.getInstance();
+                hazelcastMemberInfo = logHzMemberInfoParser.getHazelcastMemberInfo(message);
 
-		}
-	}
+                hazelcastMembership = new HazelcastMembership(index, logEntryKey, hzMembershipEvent,
+                        hazelcastMemberInfo);
 
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		List<String> logLineList = new ArrayList<>();
+                List<HazelcastMembership> hazelcastMembershipList;
+                hazelcastMembershipList = log4jLogEntryModel.getHazelcastMembershipList();
 
-		logLineList.add(
-				"2017-05-04 22:39:49,345 [orkmanager_PRPC : 12] [  STANDARD] [     PegaRULES:07.10] (al.authorization.Authorization) DEBUG File.RWAOperatorListener|process|A3E07D4B2E67913EABBDC14E695AA7EC6|1493930054694000|RWAOperatorsPackage/RBG-Int-RWAOperators-/ProcessRWAOperators batchprocess@rabobank.com - pxReqServletName = /xvVsgsdbXM6xHWMgWNTRXVYCwM--oh4KDYhMzQmFsNBszM62iOq0-w%5B%5B*/!STANDARD");
+                hazelcastMembershipList.add(hazelcastMembership);
+            }
 
-		logLineList.add(
-				"2017-05-04 22:39:49,350 [orkmanager_PRPC : 12] [  STANDARD] [     PegaRULES:07.10] (.ManagedApplicationContextImpl) INFO  File.RWAOperatorListener|process|A3E07D4B2E67913EABBDC14E695AA7EC6|1493930054694000|RWAOperatorsPackage/RBG-Int-RWAOperators-/ProcessRWAOperators batchprocess@rabobank.com - Invalid configuration: application context defined by access Group(RBGRaboCollectionsImpl:Administrators) and Application:Version(RBGRaboCollectionsCurrent:01.01.01) defines one or more ruleset that override ruleset(s) in ancestor PegaRULES:[Pega-ProcessCommander:07-10, Pega-DeploymentDefaults:07-10, Pega-DecisionArchitect:07-10, Pega-LP-Mobile:07-10, Pega-LP-ProcessAndRules:07-10, Pega-LP-Integration:07-10, Pega-LP-Reports:07-10, Pega-LP-SystemSettings:07-10, Pega-LP-UserInterface:07-10, Pega-LP-OrgAndSecurity:07-10, Pega-LP-DataModel:07-10, Pega-LP-Application:07-10, Pega-LP:07-10, Pega-UpdateManager:07-10, Pega-SecurityVA:07-10, Pega-Feedback:07-10, Pega-AutoTest:07-10, Pega-AppDefinition:07-10, Pega-ImportExport:07-10, Pega-LocalizationTools:07-10, Pega-RuleRefactoring:07-10, Pega-ProcessArchitect:07-10, Pega-Portlet:07-10, Pega-Content:07-10, Pega-BigData:07-10, Pega-NLP:07-10, Pega-DecisionEngine:07-10, Pega-IntegrationArchitect:07-10, Pega-SystemArchitect:07-10, Pega-Desktop:07-10, Pega-EndUserUI:07-10, Pega-Social:07-10, Pega-API:07-10, Pega-EventProcessing:07-10, Pega-Reporting:07-10, Pega-UIDesign:07-10, Pega-Gadgets:07-10, Pega-UIEngine:07-10, Pega-ProcessEngine:07-10, Pega-SearchEngine:07-10, Pega-IntegrationEngine:07-10, Pega-RulesEngine:07-10, Pega-Engine:07-10, Pega-ProCom:07-10, Pega-IntSvcs:07-10, Pega-WB:07-10, Pega-RULES:07-10]\"; RuleSetList=[PrivateSale_nl:01-19, ServiceCustomer_nl:03-19, WorkInstructions_nl:01-16, RaboCollectionsFW_nl:03-21, RBGBusinessViews_nl:03-18, RBGSendLetter_Refactor_nl:03-02, RBGInt_nl:03-21, RBG_nl:03-21, Pega-ProcessCommander_nl:07-10, Pega-LP-ProcessAndRules_nl:07-10, Pega-LP-SystemSettings_nl:07-10, Pega-LP-UserInterface_nl:07-10, Pega-LP-OrgAndSecurity_nl:07-10, Pega-LP-DataModel_nl:07-10, Pega-LP-Application_nl:07-10, Pega-LP_nl:07-10, Pega-UpdateManager_nl:07-10, Pega-Feedback_nl:07-10, Pega-AutoTest_nl:07-10, Pega-AppDefinition_nl:07-10, Pega-ImportExport_nl:07-10, Pega-LocalizationTools_nl:07-10, Pega-RuleRefactoring_nl:07-10, Pega-ProcessArchitect_nl:07-10, Pega-IntegrationArchitect_nl:07-10, Pega-SystemArchitect_nl:07-10, Pega-Desktop_nl:07-10, Pega-EndUserUI_nl:07-10, Pega-Reporting_nl:07-10, Pega-UIDesign_nl:07-10, Pega-Gadgets_nl:07-10, Pega-ProcessEngine_nl:07-10, Pega-SearchEngine_nl:07-10, Pega-IntegrationEngine_nl:07-10, Pega-RulesEngine_nl:07-10, Pega-Engine_nl:07-10, Pega-ProCom_nl:07-10, Pega-IntSvcs_nl:07-10, Pega-WB_nl:07-10, Pega-RULES_nl:07-10, RBGRaboCollectionsCurrent:03-21, RBGRaboImpl:03-21, RBGMigrationScripts:03-02, Reminder:01-18, PrivateSale:01-19, Hospital:01-18, FallBackDossier:01-17, PaymentArrangement:01-19, ServiceCustomer:03-19, WorkInstructions:01-16, RaboCollectionsFW:03-21, RBGBusinessViews:03-18, RBGBusServPopulateCommObject:03-01, RBGBusServPreviewLetters:03-01, RBGSendLetter_Refactor:03-02, RBGIntPrintNet:03-19, SAMportal:03-18, BulkTransfer:03-18, RBGBusinessServices:03-21, RBGBusServGetFacilities:03-21, RBGBusServArchiveDocumentEKD:03-01, RBGBusServGetRelations:03-01, RBGBusServGetRelationsV2:03-01, RBGBusServGetDocumentEKD:03-01, RBGBusServGetEmployeeDetails:03-01, RBGBusServGetProductArrangementList:03-01, RBGBusServGetCollateralObject:03-16, RBGBusServGetCollateralArrangement:03-18, RBGBusServGetRelation:03-01, RBGBusServSendNotification:03-01, RBGBusServSendDefaultSignal:03-21, RBGBusServGetProductArrangement:03-17, RBGInt:03-21, RBGIntPrintNetFW:03-01, RBGRelationArrangementViewCRMI20Int:03-01, RBGArchiveDocumentInt:03-01, RBGGetRelationDocumentInt:03-02, RBGGetRelationCRMI19Int:03-02, RBGSearchCustomerCRMI18Int:03-01, RBGIntCPS69RaadplegenInstelling:03-18, RBGIntCPS31RaadplegenRegister:03-01, RBGIntCPS63SelecterenVerpanding:03-01, RBGIntCPS66SetBBInd:03-01, RBGIntCPS64SelecterenBorgtocht:03-01, RBGIntCPS62SelecterenHypotheek:03-01, RBGIntCPSArrears:03-18, RBGIntCPS32GetLoanDetails:03-02, RBGIntGloba:03-01, RBGGetDossierForce7Int:03-01, RBGGetFinancialDossierSAP6Int:03-02, RBGIntSAPArrears:03-02, RBGIntSAPLetters:03-01, RBGRWAOperators:03-20, RBGRWACaseBasedSecurity:03-02, RBGRWASSOInt:03-01, RBGGetSavingDepositDetailsAZS21Int:03-01, RBGIntCRMi59GetIDFromCrabNumber:03-01, RBGIntCRMi61GetArrangement:03-01, RBGIntCRMi67UpdateServiceRequest:03-01, RBGIntCRMi29CreateServiceRequest:03-01, RBGIntEKD28GetRelationDocument:03-01, RBGIntEKD42ArchiveDocument:03-01, RBGIntGetFacilities:03-21, RBGIntBatchStatus:03-02, RBGIntArrearsBatch:03-01, RBGIntCache:03-02, RBGIntBatch:03-01, RBGIntRWAFW:03-01, RBGIntGlobaFW:01-01, RBGIntEKDFW:03-01, RBGIntCRMiFW:03-01, RBGIntCPSFW:03-02, RBGIntFLFFW:03-21, RBGIntBatchFW:03-02, RBGIntAZSFW:01-01, RBGIntFW:03-03, InnovationCobol:03-01, RBGIntDSPFW:03-21, RBGIntDSP:03-21, RBGRabo:03-21, RBG:03-21, RBGArchivingUniqueId:03-19, RBGUtilities:03-17, DynamicClassReferencing:03-01, CommonFunctionLibrary:03-02, RBGDataModel:03-21, UI-Kit-7:03-01, SamSenses:01-18, PegaCPMFS:07-14, PegaCPMFSInt:07-14, PegaFSSCM:07-14, PegaNPVCalc:07-14, PegaLoanPmtCalc:07-14, Pega-DecisionArchitect:07-10, Pega-DecisionEngine:07-10, CPM:07-14, CPM-Social:07-14, CPM-Reports:07-14, PegaAppCA:07-14, PegaFW-Social:07-14, PegaKM:07-14, KMReports:07-14, PegaFW-NewsFeed:07-14, Pega-LP_CPM:07-14, PegaApp:07-14, PegaFW-Chat:07-14, Pega-Chat:07-14, Pega-CTI:07-13, Pega-ChannelServices:07-13, Pega-UITheme:07-14, PegaFSRequirements:07-15, PegaFS:07-15, PegaFSInt:07-15, PegaAccounting:07-15, PegaAccounting-Classes:07-15, PegaEQ:07-15, PegaEQInt:07-15, Pega-IAC:07-10, PegaRequirements:07-15, CMISPlus:07-15, PegaFSUI:07-15, PegaFWUI:07-13, PegaSCM:07-14, PegaSCMInt:07-14, Pega-ProcessCommander:07-10, Pega-DeploymentDefaults:07-10, Pega-LP-Mobile:07-10, Pega-LP-ProcessAndRules:07-10, Pega-LP-Integration:07-10, Pega-LP-Reports:07-10, Pega-LP-SystemSettings:07-10, Pega-LP-UserInterface:07-10, Pega-LP-OrgAndSecurity:07-10, Pega-LP-DataModel:07-10, Pega-LP-Application:07-10, Pega-LP:07-10, Pega-UpdateManager:07-10, Pega-SecurityVA:07-10, Pega-Feedback:07-10, Pega-AutoTest:07-10, Pega-AppDefinition:07-10, Pega-ImportExport:07-10, Pega-LocalizationTools:07-10, Pega-RuleRefactoring:07-10, Pega-ProcessArchitect:07-10, Pega-Portlet:07-10, Pega-Content:07-10, Pega-BigData:07-10, Pega-NLP:07-10, Pega-IntegrationArchitect:07-10, Pega-SystemArchitect:07-10, Pega-Desktop:07-10, Pega-EndUserUI:07-10, Pega-Social:07-10, Pega-API:07-10, Pega-EventProcessing:07-10, Pega-Reporting:07-10, Pega-UIDesign:07-10, Pega-Gadgets:07-10, Pega-UIEngine:07-10, Pega-ProcessEngine:07-10, Pega-SearchEngine:07-10, Pega-IntegrationEngine:07-10, Pega-RulesEngine:07-10, Pega-Engine:07-10, Pega-ProCom:07-10, Pega-IntSvcs:07-10, Pega-WB:07-10, Pega-RULES:07-10]");
+            logEntryIndex = logEntryIndex + additionalLines.size();
 
-		logLineList.add(
-				"2017-04-26 10:58:07,489 [    EMAIL-Thread-266] [  STANDARD] [         MWDSS:03.01] (yMails.MW_FW_UAPFW_Work.Action) INFO  EMAIL.DSSCSRListener.Listener|from(haripriyas@incessanttechnologies.com)|sub(New triage)|Email|DSSEmailDefault|MW-SD-DSS-WORK-Application|ProcessDSSEnquiryMails|A361D4FF08DDD162D9C290282C9629AC3 DSSBatchProcess -  WorkObject hit the devconTime:20170426T105807.489 GMT");
+            log4jLogEntryModel.addLogEntry(log4jLogEntry, logEntryColumnValueList, getCharset(), getLocale());
 
-		logLineList.add(
-				"2017-05-04 21:56:11,103 [workmanager_PRPC : 2] [  STANDARD] [     PegaRULES:07.10] (.ManagedApplicationContextImpl) INFO    - Invalid configuration: application context defined by access Group(RBGRaboCollectionsImpl:Administrators) and Application:Version(RBGRaboCollectionsCurrent:01.01.01) defines one or more ruleset that override ruleset(s) in ancestor PegaRULES:[Pega-ProcessCommander:07-10, Pega-DeploymentDefaults:07-10, Pega-DecisionArchitect:07-10, Pega-LP-Mobile:07-10, Pega-LP-ProcessAndRules:07-10, Pega-LP-Integration:07-10, Pega-LP-Reports:07-10, Pega-LP-SystemSettings:07-10, Pega-LP-UserInterface:07-10, Pega-LP-OrgAndSecurity:07-10, Pega-LP-DataModel:07-10, Pega-LP-Application:07-10, Pega-LP:07-10, Pega-UpdateManager:07-10, Pega-SecurityVA:07-10, Pega-Feedback:07-10, Pega-AutoTest:07-10, Pega-AppDefinition:07-10, Pega-ImportExport:07-10, Pega-LocalizationTools:07-10, Pega-RuleRefactoring:07-10, Pega-ProcessArchitect:07-10, Pega-Portlet:07-10, Pega-Content:07-10, Pega-BigData:07-10, Pega-NLP:07-10, Pega-DecisionEngine:07-10, Pega-IntegrationArchitect:07-10, Pega-SystemArchitect:07-10, Pega-Desktop:07-10, Pega-EndUserUI:07-10, Pega-Social:07-10, Pega-API:07-10, Pega-EventProcessing:07-10, Pega-Reporting:07-10, Pega-UIDesign:07-10, Pega-Gadgets:07-10, Pega-UIEngine:07-10, Pega-ProcessEngine:07-10, Pega-SearchEngine:07-10, Pega-IntegrationEngine:07-10, Pega-RulesEngine:07-10, Pega-Engine:07-10, Pega-ProCom:07-10, Pega-IntSvcs:07-10, Pega-WB:07-10, Pega-RULES:07-10]\"; RuleSetList=[PrivateSale_nl:01-19, ServiceCustomer_nl:03-19, WorkInstructions_nl:01-16, RaboCollectionsFW_nl:03-21, RBGBusinessViews_nl:03-18, RBGSendLetter_Refactor_nl:03-02, RBGInt_nl:03-21, RBG_nl:03-21, Pega-ProcessCommander_nl:07-10, Pega-LP-ProcessAndRules_nl:07-10, Pega-LP-SystemSettings_nl:07-10, Pega-LP-UserInterface_nl:07-10, Pega-LP-OrgAndSecurity_nl:07-10, Pega-LP-DataModel_nl:07-10, Pega-LP-Application_nl:07-10, Pega-LP_nl:07-10, Pega-UpdateManager_nl:07-10, Pega-Feedback_nl:07-10, Pega-AutoTest_nl:07-10, Pega-AppDefinition_nl:07-10, Pega-ImportExport_nl:07-10, Pega-LocalizationTools_nl:07-10, Pega-RuleRefactoring_nl:07-10, Pega-ProcessArchitect_nl:07-10, Pega-IntegrationArchitect_nl:07-10, Pega-SystemArchitect_nl:07-10, Pega-Desktop_nl:07-10, Pega-EndUserUI_nl:07-10, Pega-Reporting_nl:07-10, Pega-UIDesign_nl:07-10, Pega-Gadgets_nl:07-10, Pega-ProcessEngine_nl:07-10, Pega-SearchEngine_nl:07-10, Pega-IntegrationEngine_nl:07-10, Pega-RulesEngine_nl:07-10, Pega-Engine_nl:07-10, Pega-ProCom_nl:07-10, Pega-IntSvcs_nl:07-10, Pega-WB_nl:07-10, Pega-RULES_nl:07-10, Hospital_Branch_Jan-Jaap:, RBGRaboCollectionsCurrent:03-21, RBGRaboImpl:03-21, RBGMigrationScripts:03-02, Reminder:01-18, PrivateSale:01-19, Hospital:01-18, FallBackDossier:01-17, PaymentArrangement:01-19, ServiceCustomer:03-19, WorkInstructions:01-16, RaboCollectionsFW:03-21, RBGBusinessViews:03-18, RBGBusServPopulateCommObject:03-01, RBGBusServPreviewLetters:03-01, RBGSendLetter_Refactor:03-02, RBGIntPrintNet:03-19, SAMportal:03-18, BulkTransfer:03-18, RBGBusinessServices:03-21, RBGBusServGetFacilities:03-21, RBGBusServArchiveDocumentEKD:03-01, RBGBusServGetRelations:03-01, RBGBusServGetRelationsV2:03-01, RBGBusServGetDocumentEKD:03-01, RBGBusServGetEmployeeDetails:03-01, RBGBusServGetProductArrangementList:03-01, RBGBusServGetCollateralObject:03-16, RBGBusServGetCollateralArrangement:03-18, RBGBusServGetRelation:03-01, RBGBusServSendNotification:03-01, RBGBusServSendDefaultSignal:03-21, RBGBusServGetProductArrangement:03-17, RBGInt:03-21, RBGIntPrintNetFW:03-01, RBGRelationArrangementViewCRMI20Int:03-01, RBGArchiveDocumentInt:03-01, RBGGetRelationDocumentInt:03-02, RBGGetRelationCRMI19Int:03-02, RBGSearchCustomerCRMI18Int:03-01, RBGIntCPS69RaadplegenInstelling:03-18, RBGIntCPS31RaadplegenRegister:03-01, RBGIntCPS63SelecterenVerpanding:03-01, RBGIntCPS66SetBBInd:03-01, RBGIntCPS64SelecterenBorgtocht:03-01, RBGIntCPS62SelecterenHypotheek:03-01, RBGIntCPSArrears:03-18, RBGIntCPS32GetLoanDetails:03-02, RBGIntGloba:03-01, RBGGetDossierForce7Int:03-01, RBGGetFinancialDossierSAP6Int:03-02, RBGIntSAPArrears:03-02, RBGIntSAPLetters:03-01, RBGRWAOperators:03-20, RBGRWACaseBasedSecurity:03-02, RBGRWASSOInt:03-01, RBGGetSavingDepositDetailsAZS21Int:03-01, RBGIntCRMi59GetIDFromCrabNumber:03-01, RBGIntCRMi61GetArrangement:03-01, RBGIntCRMi67UpdateServiceRequest:03-01, RBGIntCRMi29CreateServiceRequest:03-01, RBGIntEKD28GetRelationDocument:03-01, RBGIntEKD42ArchiveDocument:03-01, RBGIntGetFacilities:03-21, RBGIntBatchStatus:03-02, RBGIntArrearsBatch:03-01, RBGIntCache:03-02, RBGIntBatch:03-01, RBGIntRWAFW:03-01, RBGIntGlobaFW:01-01, RBGIntEKDFW:03-01, RBGIntCRMiFW:03-01, RBGIntCPSFW:03-02, RBGIntFLFFW:03-21, RBGIntBatchFW:03-02, RBGIntAZSFW:01-01, RBGIntFW:03-03, InnovationCobol:03-01, RBGIntDSPFW:03-21, RBGIntDSP:03-21, RBGRabo:03-21, RBG:03-21, RBGArchivingUniqueId:03-19, RBGUtilities:03-17, DynamicClassReferencing:03-01, CommonFunctionLibrary:03-02, RBGDataModel:03-21, UI-Kit-7:03-01, SamSenses:01-18, PegaCPMFS:07-14, PegaCPMFSInt:07-14, PegaFSSCM:07-14, PegaNPVCalc:07-14, PegaLoanPmtCalc:07-14, CPM:07-14, CPM-Social:07-14, CPM-Reports:07-14, PegaAppCA:07-14, PegaFW-Social:07-14, PegaKM:07-14, KMReports:07-14, PegaFW-NewsFeed:07-14, PegaApp:07-14, PegaFW-Chat:07-14, PegaFSRequirements:07-15, PegaFS:07-15, PegaFSInt:07-15, PegaAccounting:07-15, PegaAccounting-Classes:07-15, PegaEQ:07-15, PegaEQInt:07-15, PegaRequirements:07-15, CMISPlus:07-15, PegaFSUI:07-15, PegaFWUI:07-13, PegaSCM:07-14, PegaSCMInt:07-14, Pega-DecisionArchitect:07-10, Pega-DecisionEngine:07-10, Pega-LP_CPM:07-14, Pega-Chat:07-14, Pega-CTI:07-13, Pega-ChannelServices:07-13, Pega-UITheme:07-14, Pega-IAC:07-10, Pega-ProcessCommander:07-10, Pega-DeploymentDefaults:07-10, Pega-LP-Mobile:07-10, Pega-LP-ProcessAndRules:07-10, Pega-LP-Integration:07-10, Pega-LP-Reports:07-10, Pega-LP-SystemSettings:07-10, Pega-LP-UserInterface:07-10, Pega-LP-OrgAndSecurity:07-10, Pega-LP-DataModel:07-10, Pega-LP-Application:07-10, Pega-LP:07-10, Pega-UpdateManager:07-10, Pega-SecurityVA:07-10, Pega-Feedback:07-10, Pega-AutoTest:07-10, Pega-AppDefinition:07-10, Pega-ImportExport:07-10, Pega-LocalizationTools:07-10, Pega-RuleRefactoring:07-10, Pega-ProcessArchitect:07-10, Pega-Portlet:07-10, Pega-Content:07-10, Pega-BigData:07-10, Pega-NLP:07-10, Pega-IntegrationArchitect:07-10, Pega-SystemArchitect:07-10, Pega-Desktop:07-10, Pega-EndUserUI:07-10, Pega-Social:07-10, Pega-API:07-10, Pega-EventProcessing:07-10, Pega-Reporting:07-10, Pega-UIDesign:07-10, Pega-Gadgets:07-10, Pega-UIEngine:07-10, Pega-ProcessEngine:07-10, Pega-SearchEngine:07-10, Pega-IntegrationEngine:07-10, Pega-RulesEngine:07-10, Pega-Engine:07-10, Pega-ProCom:07-10, Pega-IntSvcs:07-10, Pega-WB:07-10, Pega-RULES:07-10]");
-		// String regex = "(\\S+-\\S+-\\S+
-		// \\S+:\\S+:\\S+,\\S+)\\s\\[(.*?)\\]\\s\\[(.*?)\\]\\s\\[(.*?)\\]\\s\\((\\s*?\\S*?\\s*?)\\)\\s(.{5,5})\\s(.*?)\\s(.*?)\\s\\-\\s(.*)";
-		String regex = "(\\S+-\\S+-\\S+ \\S+:\\S+:\\S+,\\S+)\\s\\[(.*?)\\]\\s\\[(.*)\\]\\s\\[(.*)\\]\\s\\((\\s*?\\S*?\\s*?)\\)\\s(.{5,5})\\s(.*)\\s(.*)\\s\\-\\s(.*)";
-		// String regex = "(\\S+-\\S+-\\S+
-		// \\S+:\\S+:\\S+,\\S+)\\s\\[(.*?)\\]\\s\\[(.*?)\\]\\s\\[(.*?)\\]\\s\\((\\s*?\\S*?\\s*?)\\)\\s(\\s*?\\S*?\\s*?)\\s(.*?)\\s(.*?)\\s\\-\\s(.*)";
-		Pattern pattern = Pattern.compile(regex);
+            // update the processed counter
+            incrementAndGetProcessedCount();
 
-		for (String logLine : logLineList) {
-			Matcher matcher = pattern.matcher(logLine);
-			if (matcher.matches()) {
-				System.out.println("Match");
-				for (int i = 1; i <= matcher.groupCount(); i++) {
-					System.out.println("Group " + i + ". " + matcher.group(i));
-				}
-			} else {
-				System.out.println("No Match");
-			}
-		}
-	}
+            logEntryText = null;
+            logEntryColumnValueList.clear();
+            additionalLines.clear();
+        }
+
+    }
+
+    private byte getLogLevelId(String level) {
+
+        byte levelId = 0;
+
+        if (level.equalsIgnoreCase("TRACE")) {
+            levelId = 1;
+        } else if (level.equalsIgnoreCase("DEBUG")) {
+            levelId = 2;
+        } else if (level.equalsIgnoreCase("INFO")) {
+            levelId = 3;
+        } else if (level.equalsIgnoreCase("WARN")) {
+            levelId = 4;
+        } else if (level.equalsIgnoreCase("ALERT")) {
+            levelId = 5;
+        } else if (level.equalsIgnoreCase("ERROR")) {
+            levelId = 6;
+        } else if (level.equalsIgnoreCase("FATAL")) {
+            levelId = 7;
+        }
+
+        return levelId;
+
+    }
+
+    private void parseRequestorLockString(String requestorLockStr,
+            Log4jLogRequestorLockEntry log4jLogRequestorLockEntry) {
+
+        Matcher lineMatcher = requestorLockPattern.matcher(requestorLockStr);
+
+        if (lineMatcher.matches()) {
+
+            int count = lineMatcher.groupCount();
+
+            if (count >= 6) {
+
+                String requestorId = null;
+                Integer timeInterval = null;
+                String thisThreadName = null;
+                String originalLockThreadName = null;
+                String finallyLockThreadName = null;
+
+                requestorId = lineMatcher.group(2);
+                String timeIntervalStr = lineMatcher.group(3);
+
+                try {
+                    timeInterval = Integer.parseInt(timeIntervalStr);
+                } catch (Exception e) {
+                    LOG.error("Error parsing time interval: " + timeIntervalStr, e);
+                }
+
+                thisThreadName = lineMatcher.group(4);
+                originalLockThreadName = lineMatcher.group(5);
+                finallyLockThreadName = lineMatcher.group(6);
+
+                log4jLogRequestorLockEntry.setRequestorId(requestorId);
+                log4jLogRequestorLockEntry.setTimeInterval(timeInterval);
+                log4jLogRequestorLockEntry.setThisThreadName(thisThreadName);
+                log4jLogRequestorLockEntry.setOriginalLockThreadName(originalLockThreadName);
+                log4jLogRequestorLockEntry.setFinallyLockThreadName(finallyLockThreadName);
+            }
+
+        }
+    }
+
+    public static void main(String[] args) {
+
+        List<String> logLineList = new ArrayList<>();
+
+        // @formatter:off
+        // CHECKSTYLE:OFF
+        logLineList.add("2017-05-04 22:39:49,345 [orkmanager_PRPC : 12] [  STANDARD] [     PegaRULES:07.10] (al.authorization.Authorization) DEBUG File.RWAOperatorListener|process|A3E07D4B2E67913EABBDC14E695AA7EC6|1493930054694000|RWAOperatorsPackage/RBG-Int-RWAOperators-/ProcessRWAOperators batchprocess@rabobank.com - pxReqServletName = /xvVsgsdbXM6xHWMgWNTRXVYCwM--oh4KDYhMzQmFsNBszM62iOq0-w%5B%5B*/!STANDARD");
+        logLineList.add("2017-05-04 22:39:49,350 [orkmanager_PRPC : 12] [  STANDARD] [     PegaRULES:07.10] (.ManagedApplicationContextImpl) INFO  File.RWAOperatorListener|process|A3E07D4B2E67913EABBDC14E695AA7EC6|1493930054694000|RWAOperatorsPackage/RBG-Int-RWAOperators-/ProcessRWAOperators batchprocess@rabobank.com - Invalid configuration: application context defined by access Group(RBGRaboCollectionsImpl:Administrators) and Application:Version(RBGRaboCollectionsCurrent:01.01.01) defines one or more ruleset that override ruleset(s) in ancestor PegaRULES:[Pega-ProcessCommander:07-10, Pega-DeploymentDefaults:07-10, Pega-DecisionArchitect:07-10, Pega-LP-Mobile:07-10, Pega-LP-ProcessAndRules:07-10, Pega-LP-Integration:07-10, Pega-LP-Reports:07-10, Pega-LP-SystemSettings:07-10, Pega-LP-UserInterface:07-10, Pega-LP-OrgAndSecurity:07-10, Pega-LP-DataModel:07-10, Pega-LP-Application:07-10, Pega-LP:07-10, Pega-UpdateManager:07-10, Pega-SecurityVA:07-10, Pega-Feedback:07-10, Pega-AutoTest:07-10, Pega-AppDefinition:07-10, Pega-ImportExport:07-10, Pega-LocalizationTools:07-10, Pega-RuleRefactoring:07-10, Pega-ProcessArchitect:07-10, Pega-Portlet:07-10, Pega-Content:07-10, Pega-BigData:07-10, Pega-NLP:07-10, Pega-DecisionEngine:07-10, Pega-IntegrationArchitect:07-10, Pega-SystemArchitect:07-10, Pega-Desktop:07-10, Pega-EndUserUI:07-10, Pega-Social:07-10, Pega-API:07-10, Pega-EventProcessing:07-10, Pega-Reporting:07-10, Pega-UIDesign:07-10, Pega-Gadgets:07-10, Pega-UIEngine:07-10, Pega-ProcessEngine:07-10, Pega-SearchEngine:07-10, Pega-IntegrationEngine:07-10, Pega-RulesEngine:07-10, Pega-Engine:07-10, Pega-ProCom:07-10, Pega-IntSvcs:07-10, Pega-WB:07-10, Pega-RULES:07-10]\"; RuleSetList=[PrivateSale_nl:01-19, ServiceCustomer_nl:03-19, WorkInstructions_nl:01-16, RaboCollectionsFW_nl:03-21, RBGBusinessViews_nl:03-18, RBGSendLetter_Refactor_nl:03-02, RBGInt_nl:03-21, RBG_nl:03-21, Pega-ProcessCommander_nl:07-10, Pega-LP-ProcessAndRules_nl:07-10, Pega-LP-SystemSettings_nl:07-10, Pega-LP-UserInterface_nl:07-10, Pega-LP-OrgAndSecurity_nl:07-10, Pega-LP-DataModel_nl:07-10, Pega-LP-Application_nl:07-10, Pega-LP_nl:07-10, Pega-UpdateManager_nl:07-10, Pega-Feedback_nl:07-10, Pega-AutoTest_nl:07-10, Pega-AppDefinition_nl:07-10, Pega-ImportExport_nl:07-10, Pega-LocalizationTools_nl:07-10, Pega-RuleRefactoring_nl:07-10, Pega-ProcessArchitect_nl:07-10, Pega-IntegrationArchitect_nl:07-10, Pega-SystemArchitect_nl:07-10, Pega-Desktop_nl:07-10, Pega-EndUserUI_nl:07-10, Pega-Reporting_nl:07-10, Pega-UIDesign_nl:07-10, Pega-Gadgets_nl:07-10, Pega-ProcessEngine_nl:07-10, Pega-SearchEngine_nl:07-10, Pega-IntegrationEngine_nl:07-10, Pega-RulesEngine_nl:07-10, Pega-Engine_nl:07-10, Pega-ProCom_nl:07-10, Pega-IntSvcs_nl:07-10, Pega-WB_nl:07-10, Pega-RULES_nl:07-10, RBGRaboCollectionsCurrent:03-21, RBGRaboImpl:03-21, RBGMigrationScripts:03-02, Reminder:01-18, PrivateSale:01-19, Hospital:01-18, FallBackDossier:01-17, PaymentArrangement:01-19, ServiceCustomer:03-19, WorkInstructions:01-16, RaboCollectionsFW:03-21, RBGBusinessViews:03-18, RBGBusServPopulateCommObject:03-01, RBGBusServPreviewLetters:03-01, RBGSendLetter_Refactor:03-02, RBGIntPrintNet:03-19, SAMportal:03-18, BulkTransfer:03-18, RBGBusinessServices:03-21, RBGBusServGetFacilities:03-21, RBGBusServArchiveDocumentEKD:03-01, RBGBusServGetRelations:03-01, RBGBusServGetRelationsV2:03-01, RBGBusServGetDocumentEKD:03-01, RBGBusServGetEmployeeDetails:03-01, RBGBusServGetProductArrangementList:03-01, RBGBusServGetCollateralObject:03-16, RBGBusServGetCollateralArrangement:03-18, RBGBusServGetRelation:03-01, RBGBusServSendNotification:03-01, RBGBusServSendDefaultSignal:03-21, RBGBusServGetProductArrangement:03-17, RBGInt:03-21, RBGIntPrintNetFW:03-01, RBGRelationArrangementViewCRMI20Int:03-01, RBGArchiveDocumentInt:03-01, RBGGetRelationDocumentInt:03-02, RBGGetRelationCRMI19Int:03-02, RBGSearchCustomerCRMI18Int:03-01, RBGIntCPS69RaadplegenInstelling:03-18, RBGIntCPS31RaadplegenRegister:03-01, RBGIntCPS63SelecterenVerpanding:03-01, RBGIntCPS66SetBBInd:03-01, RBGIntCPS64SelecterenBorgtocht:03-01, RBGIntCPS62SelecterenHypotheek:03-01, RBGIntCPSArrears:03-18, RBGIntCPS32GetLoanDetails:03-02, RBGIntGloba:03-01, RBGGetDossierForce7Int:03-01, RBGGetFinancialDossierSAP6Int:03-02, RBGIntSAPArrears:03-02, RBGIntSAPLetters:03-01, RBGRWAOperators:03-20, RBGRWACaseBasedSecurity:03-02, RBGRWASSOInt:03-01, RBGGetSavingDepositDetailsAZS21Int:03-01, RBGIntCRMi59GetIDFromCrabNumber:03-01, RBGIntCRMi61GetArrangement:03-01, RBGIntCRMi67UpdateServiceRequest:03-01, RBGIntCRMi29CreateServiceRequest:03-01, RBGIntEKD28GetRelationDocument:03-01, RBGIntEKD42ArchiveDocument:03-01, RBGIntGetFacilities:03-21, RBGIntBatchStatus:03-02, RBGIntArrearsBatch:03-01, RBGIntCache:03-02, RBGIntBatch:03-01, RBGIntRWAFW:03-01, RBGIntGlobaFW:01-01, RBGIntEKDFW:03-01, RBGIntCRMiFW:03-01, RBGIntCPSFW:03-02, RBGIntFLFFW:03-21, RBGIntBatchFW:03-02, RBGIntAZSFW:01-01, RBGIntFW:03-03, InnovationCobol:03-01, RBGIntDSPFW:03-21, RBGIntDSP:03-21, RBGRabo:03-21, RBG:03-21, RBGArchivingUniqueId:03-19, RBGUtilities:03-17, DynamicClassReferencing:03-01, CommonFunctionLibrary:03-02, RBGDataModel:03-21, UI-Kit-7:03-01, SamSenses:01-18, PegaCPMFS:07-14, PegaCPMFSInt:07-14, PegaFSSCM:07-14, PegaNPVCalc:07-14, PegaLoanPmtCalc:07-14, Pega-DecisionArchitect:07-10, Pega-DecisionEngine:07-10, CPM:07-14, CPM-Social:07-14, CPM-Reports:07-14, PegaAppCA:07-14, PegaFW-Social:07-14, PegaKM:07-14, KMReports:07-14, PegaFW-NewsFeed:07-14, Pega-LP_CPM:07-14, PegaApp:07-14, PegaFW-Chat:07-14, Pega-Chat:07-14, Pega-CTI:07-13, Pega-ChannelServices:07-13, Pega-UITheme:07-14, PegaFSRequirements:07-15, PegaFS:07-15, PegaFSInt:07-15, PegaAccounting:07-15, PegaAccounting-Classes:07-15, PegaEQ:07-15, PegaEQInt:07-15, Pega-IAC:07-10, PegaRequirements:07-15, CMISPlus:07-15, PegaFSUI:07-15, PegaFWUI:07-13, PegaSCM:07-14, PegaSCMInt:07-14, Pega-ProcessCommander:07-10, Pega-DeploymentDefaults:07-10, Pega-LP-Mobile:07-10, Pega-LP-ProcessAndRules:07-10, Pega-LP-Integration:07-10, Pega-LP-Reports:07-10, Pega-LP-SystemSettings:07-10, Pega-LP-UserInterface:07-10, Pega-LP-OrgAndSecurity:07-10, Pega-LP-DataModel:07-10, Pega-LP-Application:07-10, Pega-LP:07-10, Pega-UpdateManager:07-10, Pega-SecurityVA:07-10, Pega-Feedback:07-10, Pega-AutoTest:07-10, Pega-AppDefinition:07-10, Pega-ImportExport:07-10, Pega-LocalizationTools:07-10, Pega-RuleRefactoring:07-10, Pega-ProcessArchitect:07-10, Pega-Portlet:07-10, Pega-Content:07-10, Pega-BigData:07-10, Pega-NLP:07-10, Pega-IntegrationArchitect:07-10, Pega-SystemArchitect:07-10, Pega-Desktop:07-10, Pega-EndUserUI:07-10, Pega-Social:07-10, Pega-API:07-10, Pega-EventProcessing:07-10, Pega-Reporting:07-10, Pega-UIDesign:07-10, Pega-Gadgets:07-10, Pega-UIEngine:07-10, Pega-ProcessEngine:07-10, Pega-SearchEngine:07-10, Pega-IntegrationEngine:07-10, Pega-RulesEngine:07-10, Pega-Engine:07-10, Pega-ProCom:07-10, Pega-IntSvcs:07-10, Pega-WB:07-10, Pega-RULES:07-10]");
+        logLineList.add("2017-04-26 10:58:07,489 [    EMAIL-Thread-266] [  STANDARD] [         MWDSS:03.01] (yMails.MW_FW_UAPFW_Work.Action) INFO  EMAIL.DSSCSRListener.Listener|from(haripriyas@incessanttechnologies.com)|sub(New triage)|Email|DSSEmailDefault|MW-SD-DSS-WORK-Application|ProcessDSSEnquiryMails|A361D4FF08DDD162D9C290282C9629AC3 DSSBatchProcess -  WorkObject hit the devconTime:20170426T105807.489 GMT");
+        logLineList.add("2017-05-04 21:56:11,103 [workmanager_PRPC : 2] [  STANDARD] [     PegaRULES:07.10] (.ManagedApplicationContextImpl) INFO    - Invalid configuration: application context defined by access Group(RBGRaboCollectionsImpl:Administrators) and Application:Version(RBGRaboCollectionsCurrent:01.01.01) defines one or more ruleset that override ruleset(s) in ancestor PegaRULES:[Pega-ProcessCommander:07-10, Pega-DeploymentDefaults:07-10, Pega-DecisionArchitect:07-10, Pega-LP-Mobile:07-10, Pega-LP-ProcessAndRules:07-10, Pega-LP-Integration:07-10, Pega-LP-Reports:07-10, Pega-LP-SystemSettings:07-10, Pega-LP-UserInterface:07-10, Pega-LP-OrgAndSecurity:07-10, Pega-LP-DataModel:07-10, Pega-LP-Application:07-10, Pega-LP:07-10, Pega-UpdateManager:07-10, Pega-SecurityVA:07-10, Pega-Feedback:07-10, Pega-AutoTest:07-10, Pega-AppDefinition:07-10, Pega-ImportExport:07-10, Pega-LocalizationTools:07-10, Pega-RuleRefactoring:07-10, Pega-ProcessArchitect:07-10, Pega-Portlet:07-10, Pega-Content:07-10, Pega-BigData:07-10, Pega-NLP:07-10, Pega-DecisionEngine:07-10, Pega-IntegrationArchitect:07-10, Pega-SystemArchitect:07-10, Pega-Desktop:07-10, Pega-EndUserUI:07-10, Pega-Social:07-10, Pega-API:07-10, Pega-EventProcessing:07-10, Pega-Reporting:07-10, Pega-UIDesign:07-10, Pega-Gadgets:07-10, Pega-UIEngine:07-10, Pega-ProcessEngine:07-10, Pega-SearchEngine:07-10, Pega-IntegrationEngine:07-10, Pega-RulesEngine:07-10, Pega-Engine:07-10, Pega-ProCom:07-10, Pega-IntSvcs:07-10, Pega-WB:07-10, Pega-RULES:07-10]\"; RuleSetList=[PrivateSale_nl:01-19, ServiceCustomer_nl:03-19, WorkInstructions_nl:01-16, RaboCollectionsFW_nl:03-21, RBGBusinessViews_nl:03-18, RBGSendLetter_Refactor_nl:03-02, RBGInt_nl:03-21, RBG_nl:03-21, Pega-ProcessCommander_nl:07-10, Pega-LP-ProcessAndRules_nl:07-10, Pega-LP-SystemSettings_nl:07-10, Pega-LP-UserInterface_nl:07-10, Pega-LP-OrgAndSecurity_nl:07-10, Pega-LP-DataModel_nl:07-10, Pega-LP-Application_nl:07-10, Pega-LP_nl:07-10, Pega-UpdateManager_nl:07-10, Pega-Feedback_nl:07-10, Pega-AutoTest_nl:07-10, Pega-AppDefinition_nl:07-10, Pega-ImportExport_nl:07-10, Pega-LocalizationTools_nl:07-10, Pega-RuleRefactoring_nl:07-10, Pega-ProcessArchitect_nl:07-10, Pega-IntegrationArchitect_nl:07-10, Pega-SystemArchitect_nl:07-10, Pega-Desktop_nl:07-10, Pega-EndUserUI_nl:07-10, Pega-Reporting_nl:07-10, Pega-UIDesign_nl:07-10, Pega-Gadgets_nl:07-10, Pega-ProcessEngine_nl:07-10, Pega-SearchEngine_nl:07-10, Pega-IntegrationEngine_nl:07-10, Pega-RulesEngine_nl:07-10, Pega-Engine_nl:07-10, Pega-ProCom_nl:07-10, Pega-IntSvcs_nl:07-10, Pega-WB_nl:07-10, Pega-RULES_nl:07-10, Hospital_Branch_Jan-Jaap:, RBGRaboCollectionsCurrent:03-21, RBGRaboImpl:03-21, RBGMigrationScripts:03-02, Reminder:01-18, PrivateSale:01-19, Hospital:01-18, FallBackDossier:01-17, PaymentArrangement:01-19, ServiceCustomer:03-19, WorkInstructions:01-16, RaboCollectionsFW:03-21, RBGBusinessViews:03-18, RBGBusServPopulateCommObject:03-01, RBGBusServPreviewLetters:03-01, RBGSendLetter_Refactor:03-02, RBGIntPrintNet:03-19, SAMportal:03-18, BulkTransfer:03-18, RBGBusinessServices:03-21, RBGBusServGetFacilities:03-21, RBGBusServArchiveDocumentEKD:03-01, RBGBusServGetRelations:03-01, RBGBusServGetRelationsV2:03-01, RBGBusServGetDocumentEKD:03-01, RBGBusServGetEmployeeDetails:03-01, RBGBusServGetProductArrangementList:03-01, RBGBusServGetCollateralObject:03-16, RBGBusServGetCollateralArrangement:03-18, RBGBusServGetRelation:03-01, RBGBusServSendNotification:03-01, RBGBusServSendDefaultSignal:03-21, RBGBusServGetProductArrangement:03-17, RBGInt:03-21, RBGIntPrintNetFW:03-01, RBGRelationArrangementViewCRMI20Int:03-01, RBGArchiveDocumentInt:03-01, RBGGetRelationDocumentInt:03-02, RBGGetRelationCRMI19Int:03-02, RBGSearchCustomerCRMI18Int:03-01, RBGIntCPS69RaadplegenInstelling:03-18, RBGIntCPS31RaadplegenRegister:03-01, RBGIntCPS63SelecterenVerpanding:03-01, RBGIntCPS66SetBBInd:03-01, RBGIntCPS64SelecterenBorgtocht:03-01, RBGIntCPS62SelecterenHypotheek:03-01, RBGIntCPSArrears:03-18, RBGIntCPS32GetLoanDetails:03-02, RBGIntGloba:03-01, RBGGetDossierForce7Int:03-01, RBGGetFinancialDossierSAP6Int:03-02, RBGIntSAPArrears:03-02, RBGIntSAPLetters:03-01, RBGRWAOperators:03-20, RBGRWACaseBasedSecurity:03-02, RBGRWASSOInt:03-01, RBGGetSavingDepositDetailsAZS21Int:03-01, RBGIntCRMi59GetIDFromCrabNumber:03-01, RBGIntCRMi61GetArrangement:03-01, RBGIntCRMi67UpdateServiceRequest:03-01, RBGIntCRMi29CreateServiceRequest:03-01, RBGIntEKD28GetRelationDocument:03-01, RBGIntEKD42ArchiveDocument:03-01, RBGIntGetFacilities:03-21, RBGIntBatchStatus:03-02, RBGIntArrearsBatch:03-01, RBGIntCache:03-02, RBGIntBatch:03-01, RBGIntRWAFW:03-01, RBGIntGlobaFW:01-01, RBGIntEKDFW:03-01, RBGIntCRMiFW:03-01, RBGIntCPSFW:03-02, RBGIntFLFFW:03-21, RBGIntBatchFW:03-02, RBGIntAZSFW:01-01, RBGIntFW:03-03, InnovationCobol:03-01, RBGIntDSPFW:03-21, RBGIntDSP:03-21, RBGRabo:03-21, RBG:03-21, RBGArchivingUniqueId:03-19, RBGUtilities:03-17, DynamicClassReferencing:03-01, CommonFunctionLibrary:03-02, RBGDataModel:03-21, UI-Kit-7:03-01, SamSenses:01-18, PegaCPMFS:07-14, PegaCPMFSInt:07-14, PegaFSSCM:07-14, PegaNPVCalc:07-14, PegaLoanPmtCalc:07-14, CPM:07-14, CPM-Social:07-14, CPM-Reports:07-14, PegaAppCA:07-14, PegaFW-Social:07-14, PegaKM:07-14, KMReports:07-14, PegaFW-NewsFeed:07-14, PegaApp:07-14, PegaFW-Chat:07-14, PegaFSRequirements:07-15, PegaFS:07-15, PegaFSInt:07-15, PegaAccounting:07-15, PegaAccounting-Classes:07-15, PegaEQ:07-15, PegaEQInt:07-15, PegaRequirements:07-15, CMISPlus:07-15, PegaFSUI:07-15, PegaFWUI:07-13, PegaSCM:07-14, PegaSCMInt:07-14, Pega-DecisionArchitect:07-10, Pega-DecisionEngine:07-10, Pega-LP_CPM:07-14, Pega-Chat:07-14, Pega-CTI:07-13, Pega-ChannelServices:07-13, Pega-UITheme:07-14, Pega-IAC:07-10, Pega-ProcessCommander:07-10, Pega-DeploymentDefaults:07-10, Pega-LP-Mobile:07-10, Pega-LP-ProcessAndRules:07-10, Pega-LP-Integration:07-10, Pega-LP-Reports:07-10, Pega-LP-SystemSettings:07-10, Pega-LP-UserInterface:07-10, Pega-LP-OrgAndSecurity:07-10, Pega-LP-DataModel:07-10, Pega-LP-Application:07-10, Pega-LP:07-10, Pega-UpdateManager:07-10, Pega-SecurityVA:07-10, Pega-Feedback:07-10, Pega-AutoTest:07-10, Pega-AppDefinition:07-10, Pega-ImportExport:07-10, Pega-LocalizationTools:07-10, Pega-RuleRefactoring:07-10, Pega-ProcessArchitect:07-10, Pega-Portlet:07-10, Pega-Content:07-10, Pega-BigData:07-10, Pega-NLP:07-10, Pega-IntegrationArchitect:07-10, Pega-SystemArchitect:07-10, Pega-Desktop:07-10, Pega-EndUserUI:07-10, Pega-Social:07-10, Pega-API:07-10, Pega-EventProcessing:07-10, Pega-Reporting:07-10, Pega-UIDesign:07-10, Pega-Gadgets:07-10, Pega-UIEngine:07-10, Pega-ProcessEngine:07-10, Pega-SearchEngine:07-10, Pega-IntegrationEngine:07-10, Pega-RulesEngine:07-10, Pega-Engine:07-10, Pega-ProCom:07-10, Pega-IntSvcs:07-10, Pega-WB:07-10, Pega-RULES:07-10]");
+        // String regex = "(\\S+-\\S+-\\S+
+        // \\S+:\\S+:\\S+,\\S+)\\s\\[(.*?)\\]\\s\\[(.*?)\\]\\s\\[(.*?)\\]\\s\\((\\s*?\\S*?\\s*?)\\)\\s(.{5,5})\\s(.*?)\\s(.*?)\\s\\-\\s(.*)";
+        String regex = "(\\S+-\\S+-\\S+ \\S+:\\S+:\\S+,\\S+)\\s\\[(.*?)\\]\\s\\[(.*)\\]\\s\\[(.*)\\]\\s\\((\\s*?\\S*?\\s*?)\\)\\s(.{5,5})\\s(.*)\\s(.*)\\s\\-\\s(.*)";
+        // String regex = "(\\S+-\\S+-\\S+
+        // \\S+:\\S+:\\S+,\\S+)\\s\\[(.*?)\\]\\s\\[(.*?)\\]\\s\\[(.*?)\\]\\s\\((\\s*?\\S*?\\s*?)\\)\\s(\\s*?\\S*?\\s*?)\\s(.*?)\\s(.*?)\\s\\-\\s(.*)";
+        // CHECKSTYLE:ON
+        // @formatter:on
+
+        Pattern pattern = Pattern.compile(regex);
+
+        for (String logLine : logLineList) {
+            Matcher matcher = pattern.matcher(logLine);
+            if (matcher.matches()) {
+                System.out.println("Match");
+                for (int i = 1; i <= matcher.groupCount(); i++) {
+                    System.out.println("Group " + i + ". " + matcher.group(i));
+                }
+            } else {
+                System.out.println("No Match");
+            }
+        }
+    }
 }

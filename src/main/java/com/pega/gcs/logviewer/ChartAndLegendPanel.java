@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.BasicStroke;
@@ -15,14 +16,14 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.io.File;
 import java.text.DateFormat;
-import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 import javax.swing.BorderFactory;
@@ -36,26 +37,25 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
 
-import org.jfree.chart.ChartPanel;
-import org.jfree.chart.ChartUtilities;
+import org.jfree.chart.ChartUtils;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.CategoryAxis;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.ValueAxis;
-import org.jfree.chart.plot.CategoryPlot;
-import org.jfree.chart.plot.CombinedDomainCategoryPlot;
 import org.jfree.chart.plot.CombinedDomainXYPlot;
 import org.jfree.chart.plot.IntervalMarker;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.title.TextTitle;
-import org.jfree.ui.HorizontalAlignment;
+import org.jfree.chart.ui.HorizontalAlignment;
 
 import com.pega.gcs.fringecommon.guiutilities.NavigationTableController;
+import com.pega.gcs.fringecommon.guiutilities.RecentFile;
 import com.pega.gcs.fringecommon.guiutilities.search.SearchPanel;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.logviewer.model.LogEntry;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.LogIntervalMarker;
 import com.pega.gcs.logviewer.model.LogSeries;
@@ -63,804 +63,827 @@ import com.pega.gcs.logviewer.model.LogSeriesCollection;
 
 public class ChartAndLegendPanel extends JPanel implements ListSelectionListener, TableModelListener {
 
-	private static final long serialVersionUID = 459528916499269469L;
+    private static final long serialVersionUID = 459528916499269469L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(ChartAndLegendPanel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(ChartAndLegendPanel.class);
 
-	private String filename;
+    private LogTable logTable;
 
-	private LogTable logTable;
+    private SearchPanel<LogEntryKey> searchPanel;
 
-	private SearchPanel<Integer> searchPanel;
+    private NavigationTableController<LogEntryKey> navigationTableController;
 
-	private CombinedDomainXYPlot combinedDomainXYPlot;
+    private CombinedDomainXYPlot combinedDomainXYPlot;
 
-	private HashMap<String, XYPlot> xyPlotMap;
+    private HashMap<String, XYPlot> xyPlotMap;
 
-	private HashMap<String, CategoryPlot> categoryPlotMap;
+    // private HashMap<String, CategoryPlot> categoryPlotMap;
 
-	// private HashMap<String, LogIntervalMarker> logIntervalMarkerMap;
+    private HashMap<String, LogSeriesCollectionCheckBoxPanel> logSeriesCollectionCheckBoxPanelMap;
 
-	private HashMap<String, LogSeriesCollectionCheckBoxPanel> logSeriesCollectionCheckBoxPanelMap;
+    // private CombinedDomainCategoryPlot combinedBoxAndWiskerCategoryPlot;
 
-	private CombinedDomainCategoryPlot combinedBoxAndWiskerCategoryPlot;
+    private CustomChartPanel customChartPanel;
 
-	private ChartPanel chartPanel;
+    // private ChartPanel boxAndWiskerPanel;
 
-	private ChartPanel boxAndWiskerPanel;
+    private JPanel legendPanel;
 
-	private JPanel legendPanel;
+    private boolean dataUpdated;
 
-	private boolean dataUpdated;
+    private List<IntervalMarker> manualIntervalMarkerList;
 
-	private List<IntervalMarker> manualIntervalMarkerList;
+    public ChartAndLegendPanel(LogTable logTable, SearchPanel<LogEntryKey> searchPanel,
+            NavigationTableController<LogEntryKey> navigationTableController) {
 
-	// prevent the last plot legend to uncheck by keeping track.
-	// private List<LogSeriesCollectionCheckBoxPanel> plotLegendPanelList;
+        super();
 
-	public ChartAndLegendPanel(String filename, LogTable logTable, SearchPanel<Integer> searchPanel) {
+        this.logTable = logTable;
+        this.searchPanel = searchPanel;
+        this.navigationTableController = navigationTableController;
 
-		super();
+        this.xyPlotMap = new HashMap<>();
+        // this.categoryPlotMap = new HashMap<>();
+        this.logSeriesCollectionCheckBoxPanelMap = new HashMap<>();
 
-		this.filename = filename;
-		this.logTable = logTable;
-		this.searchPanel = searchPanel;
+        this.dataUpdated = false;
+        this.manualIntervalMarkerList = new ArrayList<IntervalMarker>();
 
-		this.xyPlotMap = new HashMap<>();
-		this.categoryPlotMap = new HashMap<>();
-		// this.logIntervalMarkerMap = new HashMap<>();
-		this.logSeriesCollectionCheckBoxPanelMap = new HashMap<>();
+        ListSelectionModel lsm = logTable.getSelectionModel();
+        lsm.addListSelectionListener(this);
 
-		this.dataUpdated = false;
-		this.manualIntervalMarkerList = new LinkedList<IntervalMarker>();
+        setLayout(new GridBagLayout());
 
-		ListSelectionModel lsm = logTable.getSelectionModel();
-		lsm.addListSelectionListener(this);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-		setLayout(new GridBagLayout());
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 1;
+        gbc2.gridy = 0;
+        gbc2.weightx = 0.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+        // GridBagConstraints gbc3 = new GridBagConstraints();
+        // gbc3.gridx = 2;
+        // gbc3.gridy = 0;
+        // gbc3.weightx = 0.0D;
+        // gbc3.weighty = 1.0D;
+        // gbc3.fill = GridBagConstraints.BOTH;
+        // gbc3.anchor = GridBagConstraints.NORTHWEST;
+        // gbc3.insets = new Insets(0, 0, 0, 0);
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 1;
-		gbc2.gridy = 0;
-		gbc2.weightx = 0.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+        JPanel chartPanel = getCustomChartPanel();
+        // JPanel boxAndWiskerPanel = getBoxAndWiskerPanel();
+        JPanel legendCompositeJPanel = getLegendCompositeJPanel();
 
-		GridBagConstraints gbc3 = new GridBagConstraints();
-		gbc3.gridx = 2;
-		gbc3.gridy = 0;
-		gbc3.weightx = 0.0D;
-		gbc3.weighty = 1.0D;
-		gbc3.fill = GridBagConstraints.BOTH;
-		gbc3.anchor = GridBagConstraints.NORTHWEST;
-		gbc3.insets = new Insets(0, 0, 0, 0);
+        add(chartPanel, gbc1);
+        // add(boxAndWiskerPanel, gbc2);
+        add(legendCompositeJPanel, gbc2);
+    }
 
-		JPanel chartPanel = getChartPanel();
-		JPanel boxAndWiskerPanel = getBoxAndWiskerPanel();
-		JPanel legendCompositeJPanel = getLegendCompositeJPanel();
+    private CombinedDomainXYPlot getCombinedDomainXYPlot() {
 
-		add(chartPanel, gbc1);
-		add(boxAndWiskerPanel, gbc2);
-		add(legendCompositeJPanel, gbc3);
-	}
+        if (combinedDomainXYPlot == null) {
+            DateAxis domainAxis = new DateAxis("Time (-NA-)");
+            domainAxis.setLowerMargin(0.02);
+            domainAxis.setUpperMargin(0.02);
 
-	/**
-	 * @return the combinedDomainXYPlot
-	 */
-	private CombinedDomainXYPlot getCombinedDomainXYPlot() {
+            Font labelFont = new Font("Arial", Font.PLAIN, 10);
+            domainAxis.setLabelFont(labelFont);
 
-		if (combinedDomainXYPlot == null) {
-			DateAxis domainAxis = new DateAxis("Time (-NA-)");
-			domainAxis.setLowerMargin(0.02);
-			domainAxis.setUpperMargin(0.02);
+            combinedDomainXYPlot = new CombinedDomainXYPlot(domainAxis);
+            combinedDomainXYPlot.setGap(5.0);
+            combinedDomainXYPlot.setOrientation(PlotOrientation.VERTICAL);
+        }
+
+        return combinedDomainXYPlot;
+    }
+
+    // private CombinedDomainCategoryPlot getCombinedBoxAndWiskerCategoryPlot() {
+    //
+    // if (combinedBoxAndWiskerCategoryPlot == null) {
+    //
+    // CategoryAxis categoryAxis = new CategoryAxis("Box Plot");
+    // categoryAxis.setLowerMargin(0.01);
+    // categoryAxis.setUpperMargin(0.01);
+    // categoryAxis.setCategoryLabelPositionOffset(14);
+    //
+    // combinedBoxAndWiskerCategoryPlot = new CombinedDomainCategoryPlot(categoryAxis);
+    // combinedBoxAndWiskerCategoryPlot.setGap(5.0);
+    // combinedBoxAndWiskerCategoryPlot.setOrientation(PlotOrientation.VERTICAL);
+    // }
+    //
+    // return combinedBoxAndWiskerCategoryPlot;
+    // }
+
+    private CustomChartPanel getCustomChartPanel() {
+
+        if (customChartPanel == null) {
+
+            CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
+
+            LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+            RecentFile recentFile = logTableModel.getRecentFile();
+
+            String filePath = recentFile.getPath();
+            File file = new File(filePath);
+            String name = FileUtilities.getNameWithoutExtension(file);
+            File parentDir = file.getParentFile();
+
+            JFreeChart chart = new JFreeChart(name, JFreeChart.DEFAULT_TITLE_FONT, combinedDomainXYPlot, false);
+
+            ChartUtils.applyCurrentTheme(chart);
+
+            // customise the title position and font
+            TextTitle textTitle = chart.getTitle();
+            textTitle.setHorizontalAlignment(HorizontalAlignment.CENTER);
+            textTitle.setPaint(Color.DARK_GRAY);
+            textTitle.setFont(new Font("Arial", Font.BOLD, 12));
+            textTitle.setPadding(10, 10, 5, 10);
+
+            customChartPanel = new CustomChartPanel(chart);
+
+            customChartPanel.setMinimumDrawWidth(0);
+            customChartPanel.setMinimumDrawHeight(0);
+            customChartPanel.setMaximumDrawWidth(Integer.MAX_VALUE);
+            customChartPanel.setMaximumDrawHeight(Integer.MAX_VALUE);
+            customChartPanel.setMouseWheelEnabled(true);
+            customChartPanel.setRangeZoomable(false);
+            customChartPanel.setDefaultDirectoryForSaveAs(parentDir);
+
+            // LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+            // LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
+
+            //// NavigationTableController<Integer> navigationTableController;
+            //// navigationTableController = new
+            //// NavigationTableController<Integer>(logTableModel);
+            //// navigationTableController.addCustomJTable(logTable);
+
+            // chartPanel.addChartMouseListener(
+            // new CombinedDomainXYPlotMouseListener(chartPanel, logEntryModel, navigationTableController));
+
+            customChartPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        }
+
+        return customChartPanel;
+    }
+
+    // LogTableModel doesn't setup LogEntryModel upfront, hence setting up after LogDataMainPanel.completeLoad
+    public void setChartMouseListener(LogEntryModel logEntryModel) {
+        CustomChartPanel customChartPanel = getCustomChartPanel();
+
+        customChartPanel.addChartMouseListener(
+                new CombinedDomainXYPlotMouseListener(customChartPanel, logEntryModel, navigationTableController));
+    }
+
+    // private ChartPanel getBoxAndWiskerPanel() {
+    //
+    // if (boxAndWiskerPanel == null) {
+    //
+    // CombinedDomainCategoryPlot combinedBoxAndWiskerCategoryPlot = getCombinedBoxAndWiskerCategoryPlot();
+    //
+    // JFreeChart chart = new JFreeChart(" ", JFreeChart.DEFAULT_TITLE_FONT, combinedBoxAndWiskerCategoryPlot,
+    // false);
+    //
+    // ChartUtilities.applyCurrentTheme(chart);
+    //
+    // TextTitle textTitle = chart.getTitle();
+    // textTitle.setHorizontalAlignment(HorizontalAlignment.CENTER);
+    // textTitle.setPaint(Color.DARK_GRAY);
+    // textTitle.setFont(new Font("Arial", Font.BOLD, 12));
+    // textTitle.setPadding(10, 10, 5, 10);
+    //
+    // boxAndWiskerPanel = new ChartPanel(chart);
+    //
+    // Dimension preferredSize = new Dimension(140, 200);
+    //
+    // boxAndWiskerPanel.setMinimumSize(preferredSize);
+    // boxAndWiskerPanel.setPreferredSize(preferredSize);
+    //
+    // boxAndWiskerPanel.setMinimumDrawWidth(0);
+    // boxAndWiskerPanel.setMinimumDrawHeight(0);
+    // boxAndWiskerPanel.setMaximumDrawWidth(Integer.MAX_VALUE);
+    // boxAndWiskerPanel.setMaximumDrawHeight(Integer.MAX_VALUE);
+    // boxAndWiskerPanel.setMouseWheelEnabled(true);
+    //
+    // boxAndWiskerPanel.addChartMouseListener(new CombinedDomainCategoryPlotMouseListener(chartPanel, logTable));
+    //
+    // boxAndWiskerPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+    //
+    // // TODO revert when functionality done
+    // boxAndWiskerPanel.setVisible(true);
+    //
+    // }
+    //
+    // return boxAndWiskerPanel;
+    // }
+
+    private JPanel getLegendPanel() {
+
+        if (legendPanel == null) {
+            legendPanel = new JPanel();
+
+            legendPanel.setLayout(new GridBagLayout());
+
+            Dimension preferredSize = new Dimension(160, 200);
+
+            legendPanel.setMinimumSize(preferredSize);
+            legendPanel.setPreferredSize(preferredSize);
+
+        }
+
+        return legendPanel;
+    }
+
+    private JPanel getLegendCompositeJPanel() {
+
+        JPanel legendCompositeJPanel = new JPanel();
+
+        legendCompositeJPanel.setLayout(new GridBagLayout());
+
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-			Font labelFont = new Font("Arial", Font.PLAIN, 10);
-			domainAxis.setLabelFont(labelFont);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-			combinedDomainXYPlot = new CombinedDomainXYPlot(domainAxis);
-			combinedDomainXYPlot.setGap(5.0);
-			combinedDomainXYPlot.setOrientation(PlotOrientation.VERTICAL);
-		}
+        JPanel legendHeaderPanel = getLegendHeaderPanel();
+        JPanel legendPanel = getLegendPanel();
 
-		return combinedDomainXYPlot;
-	}
+        legendCompositeJPanel.add(legendHeaderPanel, gbc1);
+        legendCompositeJPanel.add(legendPanel, gbc2);
 
-	/**
-	 * @return the combinedBoxAndWiskerCategoryPlot
-	 */
-	private CombinedDomainCategoryPlot getCombinedBoxAndWiskerCategoryPlot() {
+        return legendCompositeJPanel;
+    }
 
-		if (combinedBoxAndWiskerCategoryPlot == null) {
+    /*
+     * (non-Javadoc)
+     * 
+     * @see javax.swing.JComponent#setVisible(boolean)
+     */
+    @Override
+    public void setVisible(boolean visible) {
 
-			CategoryAxis categoryAxis = new CategoryAxis("Box Plot");
-			categoryAxis.setLowerMargin(0.01);
-			categoryAxis.setUpperMargin(0.01);
-			categoryAxis.setCategoryLabelPositionOffset(14);
+        super.setVisible(visible);
 
-			combinedBoxAndWiskerCategoryPlot = new CombinedDomainCategoryPlot(categoryAxis);
-			combinedBoxAndWiskerCategoryPlot.setGap(5.0);
-			combinedBoxAndWiskerCategoryPlot.setOrientation(PlotOrientation.VERTICAL);
-		}
+        if (visible && dataUpdated) {
+            LogTableModel ltm = (LogTableModel) logTable.getModel();
+            refreshChart(ltm);
 
-		return combinedBoxAndWiskerCategoryPlot;
-	}
+        }
+    }
 
-	private ChartPanel getChartPanel() {
+    @SuppressWarnings("unchecked")
+    @Override
+    public void valueChanged(ListSelectionEvent listSelectionEvent) {
 
-		if (chartPanel == null) {
+        if (!listSelectionEvent.getValueIsAdjusting()) {
 
-			CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
+            searchPanel.updateSearchNavIndexDetails();
 
-			JFreeChart jFreeChart = new JFreeChart(filename, JFreeChart.DEFAULT_TITLE_FONT, combinedDomainXYPlot,
-					false);
+            LogTableModel ltm = (LogTableModel) logTable.getModel();
 
-			ChartUtilities.applyCurrentTheme(jFreeChart);
+            int[] selectedRows = logTable.getSelectedRows();
 
-			// customise the title position and font
-			TextTitle t = jFreeChart.getTitle();
-			t.setHorizontalAlignment(HorizontalAlignment.CENTER);
-			t.setPaint(Color.DARK_GRAY);
-			t.setFont(new Font("Arial", Font.BOLD, 12));
-			t.setPadding(10, 10, 5, 10);
+            CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
 
-			chartPanel = new ChartPanel(jFreeChart);
+            for (IntervalMarker im : manualIntervalMarkerList) {
 
-			chartPanel.setMinimumDrawWidth(0);
-			chartPanel.setMinimumDrawHeight(0);
-			chartPanel.setMaximumDrawWidth(Integer.MAX_VALUE);
-			chartPanel.setMaximumDrawHeight(Integer.MAX_VALUE);
-			chartPanel.setMouseWheelEnabled(true);
+                for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
 
-			LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+                    subPlot.removeDomainMarker(im);
+                }
+            }
 
-			NavigationTableController<Integer> navigationTableController;
-			navigationTableController = new NavigationTableController<Integer>(logTableModel);
-			navigationTableController.addCustomJTable(logTable);
+            manualIntervalMarkerList.clear();
 
-			chartPanel.addChartMouseListener(
-					new CombinedDomainXYPlotMouseListener(chartPanel, logTableModel, navigationTableController));
+            for (int row : selectedRows) {
 
-			chartPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
-		}
+                try {
 
-		return chartPanel;
-	}
+                    LogEntry logEntry = (LogEntry) ltm.getValueAt(row, 0);
 
-	/**
-	 * @return the boxAndWiskerPanel
-	 */
-	private ChartPanel getBoxAndWiskerPanel() {
+                    long logEntryTime = logEntry.getKey().getTimestamp();
 
-		if (boxAndWiskerPanel == null) {
+                    if (logEntryTime != -1) {
 
-			CombinedDomainCategoryPlot combinedBoxAndWiskerCategoryPlot = getCombinedBoxAndWiskerCategoryPlot();
+                        Color color = Color.BLACK;
 
-			JFreeChart jFreeChart = new JFreeChart("  ", JFreeChart.DEFAULT_TITLE_FONT,
-					combinedBoxAndWiskerCategoryPlot, false);
+                        IntervalMarker im;
+                        // im = new IntervalMarker(logEntryTime, logEntryTime);
+                        im = new IntervalMarker(logEntryTime, logEntryTime, color, new BasicStroke(0.6f), color,
+                                new BasicStroke(0.6f), 0.8f);
 
-			ChartUtilities.applyCurrentTheme(jFreeChart);
+                        for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
 
-			TextTitle t = jFreeChart.getTitle();
-			t.setHorizontalAlignment(HorizontalAlignment.CENTER);
-			t.setPaint(Color.DARK_GRAY);
-			t.setFont(new Font("Arial", Font.BOLD, 12));
-			t.setPadding(10, 10, 5, 10);
+                            subPlot.addDomainMarker(im);
+                        }
 
-			boxAndWiskerPanel = new ChartPanel(jFreeChart);
+                        manualIntervalMarkerList.add(im);
+                    }
+                } catch (Exception e1) {
+                    LOG.error("Error adding interval marker.", e1);
+                }
+            }
 
-			Dimension preferredSize = new Dimension(140, 200);
+        }
 
-			boxAndWiskerPanel.setMinimumSize(preferredSize);
-			boxAndWiskerPanel.setPreferredSize(preferredSize);
+    }
 
-			boxAndWiskerPanel.setMinimumDrawWidth(0);
-			boxAndWiskerPanel.setMinimumDrawHeight(0);
-			boxAndWiskerPanel.setMaximumDrawWidth(Integer.MAX_VALUE);
-			boxAndWiskerPanel.setMaximumDrawHeight(Integer.MAX_VALUE);
-			boxAndWiskerPanel.setMouseWheelEnabled(true);
+    @Override
+    public void tableChanged(TableModelEvent tableModelEvent) {
 
-			boxAndWiskerPanel.addChartMouseListener(new CombinedDomainCategoryPlotMouseListener(chartPanel, logTable));
+        if (tableModelEvent.getType() == TableModelEvent.UPDATE) {
+            LogTableModel logTableModel = (LogTableModel) tableModelEvent.getSource();
 
-			boxAndWiskerPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+            if (isVisible()) {
+                refreshChart(logTableModel);
+            } else {
+                dataUpdated = true;
+            }
+        }
+    }
 
-			// TODO revert when functionality done
-			boxAndWiskerPanel.setVisible(true);
+    private void processLogSeriesCollectionCheckBoxPanelMap() {
 
-		}
+        int counter = 0;
+        LogSeriesCollectionCheckBoxPanel lastLogSeriesCollectionCheckBoxPanel = null;
 
-		return boxAndWiskerPanel;
-	}
+        for (String logSeriesCollectionName : logSeriesCollectionCheckBoxPanelMap.keySet()) {
 
-	/**
-	 * @return the legendPanel
-	 */
-	private JPanel getLegendPanel() {
+            LogSeriesCollectionCheckBoxPanel logSeriesCollectionCheckBoxPanel = logSeriesCollectionCheckBoxPanelMap
+                    .get(logSeriesCollectionName);
 
-		if (legendPanel == null) {
-			legendPanel = new JPanel();
+            JCheckBox checkbox = logSeriesCollectionCheckBoxPanel.getCheckBox();
 
-			legendPanel.setLayout(new GridBagLayout());
+            if (checkbox.isSelected()) {
+                counter++;
+                lastLogSeriesCollectionCheckBoxPanel = logSeriesCollectionCheckBoxPanel;
+            }
+        }
 
-			Dimension preferredSize = new Dimension(160, 200);
+        if ((counter == 1) && (lastLogSeriesCollectionCheckBoxPanel != null)) {
 
-			legendPanel.setMinimumSize(preferredSize);
-			legendPanel.setPreferredSize(preferredSize);
+            JCheckBox checkbox = lastLogSeriesCollectionCheckBoxPanel.getCheckBox();
+            checkbox.setEnabled(false);
 
-		}
+        } else {
 
-		return legendPanel;
-	}
+            for (String logSeriesCollectionName : logSeriesCollectionCheckBoxPanelMap.keySet()) {
 
-	private JPanel getLegendCompositeJPanel() {
+                LogSeriesCollectionCheckBoxPanel logSeriesCollectionCheckBoxPanel = logSeriesCollectionCheckBoxPanelMap
+                        .get(logSeriesCollectionName);
 
-		JPanel legendCompositeJPanel = new JPanel();
+                JCheckBox checkbox = logSeriesCollectionCheckBoxPanel.getCheckBox();
 
-		legendCompositeJPanel.setLayout(new GridBagLayout());
+                checkbox.setEnabled(true);
+            }
+        }
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+    }
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = 1;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+    private JPanel getLegendHeaderPanel() {
 
-		JPanel legendHeaderPanel = getLegendHeaderPanel();
-		JPanel legendPanel = getLegendPanel();
+        JPanel legendHeaderPanel = new JPanel();
 
-		legendCompositeJPanel.add(legendHeaderPanel, gbc1);
-		legendCompositeJPanel.add(legendPanel, gbc2);
+        legendHeaderPanel.setLayout(new GridBagLayout());
 
-		return legendCompositeJPanel;
-	}
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 0.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see javax.swing.JComponent#setVisible(boolean)
-	 */
-	@Override
-	public void setVisible(boolean aFlag) {
-		super.setVisible(aFlag);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 1;
+        gbc2.gridy = 0;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		if (aFlag && dataUpdated) {
-			LogTableModel ltm = (LogTableModel) logTable.getModel();
-			refreshChart(ltm);
+        GridBagConstraints gbc3 = new GridBagConstraints();
+        gbc3.gridx = 2;
+        gbc3.gridy = 0;
+        gbc3.weightx = 0.0D;
+        gbc3.weighty = 1.0D;
+        gbc3.fill = GridBagConstraints.BOTH;
+        gbc3.anchor = GridBagConstraints.NORTHWEST;
+        gbc3.insets = new Insets(0, 0, 0, 0);
 
-		}
-	}
+        JPanel legendHeaderCheckBoxJPanel = getLegendHeaderCheckBoxJPanel();
+        JPanel legendHeaderLegendJPanel = getLegendHeaderLegendJPanel();
+        JPanel legendHeaderCountJPanel = getLegendHeaderCountJPanel();
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public void valueChanged(ListSelectionEvent e) {
+        legendHeaderPanel.add(legendHeaderCheckBoxJPanel, gbc1);
+        legendHeaderPanel.add(legendHeaderLegendJPanel, gbc2);
+        legendHeaderPanel.add(legendHeaderCountJPanel, gbc3);
 
-		if (!e.getValueIsAdjusting()) {
+        Dimension preferredSize = new Dimension(160, 30);
 
-			searchPanel.updateSearchNavIndexDetails();
+        legendHeaderPanel.setMinimumSize(preferredSize);
+        legendHeaderPanel.setPreferredSize(preferredSize);
 
-			LogTableModel ltm = (LogTableModel) logTable.getModel();
+        return legendHeaderPanel;
+    }
 
-			int[] selectedRows = logTable.getSelectedRows();
+    private JPanel getLegendHeaderCheckBoxJPanel() {
 
-			CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
+        JPanel legendHeaderCheckBoxJPanel = new JPanel();
 
-			for (IntervalMarker im : manualIntervalMarkerList) {
+        legendHeaderCheckBoxJPanel.setLayout(new GridBagLayout());
 
-				for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(3, 3, 3, 3);
 
-					subPlot.removeDomainMarker(im);
-				}
-			}
+        JCheckBox legendHeaderCheckBox = new JCheckBox();
+        legendHeaderCheckBox.setSelected(true);
 
-			manualIntervalMarkerList.clear();
+        legendHeaderCheckBox.addItemListener(new ItemListener() {
 
-			for (int row : selectedRows) {
+            @Override
+            public void itemStateChanged(ItemEvent itemEvent) {
 
-				try {
+                boolean selected = false;
 
-					LogEntry logEntry = (LogEntry) ltm.getValueAt(row, 0);
+                if (itemEvent.getStateChange() == ItemEvent.DESELECTED) {
+                    selected = false;
+                } else {
+                    selected = true;
+                }
 
-					Date logEntryDate = logEntry.getLogEntryDate();
+                for (String logSeriesCollectionName : logSeriesCollectionCheckBoxPanelMap.keySet()) {
 
-					if (logEntryDate != null) {
-						long logEntryTime = logEntryDate.getTime();
-						Color color = Color.BLACK;
+                    LogSeriesCollectionCheckBoxPanel logSeriesCollectionCheckBoxPanel = logSeriesCollectionCheckBoxPanelMap
+                            .get(logSeriesCollectionName);
 
-						IntervalMarker im;
-						// im = new IntervalMarker(logEntryTime, logEntryTime);
-						im = new IntervalMarker(logEntryTime, logEntryTime, color, new BasicStroke(0.6f), color,
-								new BasicStroke(0.6f), 0.8f);
+                    JCheckBox checkbox = logSeriesCollectionCheckBoxPanel.getCheckBox();
+                    checkbox.setSelected(selected);
+                }
 
-						for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
+            }
+        });
+        legendHeaderCheckBoxJPanel.add(legendHeaderCheckBox, gbc1);
 
-							subPlot.addDomainMarker(im);
-						}
+        legendHeaderCheckBoxJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-						manualIntervalMarkerList.add(im);
-					}
-				} catch (Exception e1) {
-					LOG.error("Error adding interval marker.", e1);
-				}
-			}
+        return legendHeaderCheckBoxJPanel;
+    }
 
-		}
+    private JPanel getLegendHeaderLegendJPanel() {
 
-	}
+        JPanel legendHeaderLegendJPanel = new JPanel();
 
-	@Override
-	public void tableChanged(TableModelEvent e) {
+        legendHeaderLegendJPanel.setLayout(new GridBagLayout());
 
-		if (e.getType() == TableModelEvent.UPDATE) {
-			LogTableModel logTableModel = (LogTableModel) e.getSource();
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 3, 0, 3);
 
-			if (isVisible()) {
-				refreshChart(logTableModel);
-			} else {
-				dataUpdated = true;
-			}
-		}
-	}
+        JLabel legendJLabel = new JLabel("Legend");
+        legendJLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-	protected void processLogSeriesCollectionCheckBoxPanelMap() {
+        legendHeaderLegendJPanel.add(legendJLabel, gbc1);
 
-		int counter = 0;
-		LogSeriesCollectionCheckBoxPanel lastLogSeriesCollectionCheckBoxPanel = null;
+        legendHeaderLegendJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		for (String logSeriesCollectionName : logSeriesCollectionCheckBoxPanelMap.keySet()) {
+        return legendHeaderLegendJPanel;
+    }
 
-			LogSeriesCollectionCheckBoxPanel logSeriesCollectionCheckBoxPanel = logSeriesCollectionCheckBoxPanelMap
-					.get(logSeriesCollectionName);
+    private JPanel getLegendHeaderCountJPanel() {
 
-			JCheckBox checkbox = logSeriesCollectionCheckBoxPanel.getjCheckBox();
+        JPanel legendHeaderCountJPanel = new JPanel();
 
-			if (checkbox.isSelected()) {
-				counter++;
-				lastLogSeriesCollectionCheckBoxPanel = logSeriesCollectionCheckBoxPanel;
-			}
-		}
+        legendHeaderCountJPanel.setLayout(new GridBagLayout());
 
-		if ((counter == 1) && (lastLogSeriesCollectionCheckBoxPanel != null)) {
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 0.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 5, 0, 5);
 
-			JCheckBox checkbox = lastLogSeriesCollectionCheckBoxPanel.getjCheckBox();
-			checkbox.setEnabled(false);
+        JLabel countJLabel = new JLabel("Count");
 
-		} else {
+        Dimension dim = new Dimension(35, Integer.MAX_VALUE);
+        countJLabel.setPreferredSize(dim);
+        countJLabel.setMinimumSize(dim);
+        countJLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-			for (String logSeriesCollectionName : logSeriesCollectionCheckBoxPanelMap.keySet()) {
+        legendHeaderCountJPanel.add(countJLabel, gbc1);
 
-				LogSeriesCollectionCheckBoxPanel logSeriesCollectionCheckBoxPanel = logSeriesCollectionCheckBoxPanelMap
-						.get(logSeriesCollectionName);
+        legendHeaderCountJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-				JCheckBox checkbox = logSeriesCollectionCheckBoxPanel.getjCheckBox();
+        return legendHeaderCountJPanel;
+    }
 
-				checkbox.setEnabled(true);
-			}
-		}
+    @SuppressWarnings("unchecked")
+    private void refreshChart(LogTableModel logTableModel) {
 
-	}
+        try {
 
-	private JPanel getLegendHeaderPanel() {
+            LOG.info("Refresh chart - start");
 
-		JPanel legendHeaderPanel = new JPanel();
+            LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-		legendHeaderPanel.setLayout(new GridBagLayout());
+            DateFormat modelDateFormat = logEntryModel.getModelDateFormat();
+            Locale locale = logTableModel.getLocale();
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 0.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+            JPanel legendPanel = getLegendPanel();
+            CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
+            // CombinedDomainCategoryPlot combinedBoxAndWiskerCategoryPlot = getCombinedBoxAndWiskerCategoryPlot();
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 1;
-		gbc2.gridy = 0;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+            ValueAxis domainAxis = logEntryModel.getDomainAxis();
 
-		GridBagConstraints gbc3 = new GridBagConstraints();
-		gbc3.gridx = 2;
-		gbc3.gridy = 0;
-		gbc3.weightx = 0.0D;
-		gbc3.weighty = 1.0D;
-		gbc3.fill = GridBagConstraints.BOTH;
-		gbc3.anchor = GridBagConstraints.NORTHWEST;
-		gbc3.insets = new Insets(0, 0, 0, 0);
+            combinedDomainXYPlot.setDomainAxis(domainAxis);
 
-		JPanel legendHeaderCheckBoxJPanel = getLegendHeaderCheckBoxJPanel();
-		JPanel legendHeaderLegendJPanel = getLegendHeaderLegendJPanel();
-		JPanel legendHeaderCountJPanel = getLegendHeaderCountJPanel();
+            // add the dummy plot (with logfile time start and end time already set) to
+            // setup the actual log time range. this is due to limitation in jfreechart
+            // where making mouse movement to reset the chart zoom will set autorange to
+            // true. hence forcing the graph to show only the time range limited to the data
+            // set.
 
-		legendHeaderPanel.add(legendHeaderCheckBoxJPanel, gbc1);
-		legendHeaderPanel.add(legendHeaderLegendJPanel, gbc2);
-		legendHeaderPanel.add(legendHeaderCountJPanel, gbc3);
+            // BUG Fix - first xyplot doesn't show the graph, unless its refreshed. Moving
+            // the dummy plot to beginning solves this.
 
-		Dimension preferredSize = new Dimension(160, 30);
+            XYPlot logXYPlot = xyPlotMap.get("LogXYPlot");
 
-		legendHeaderPanel.setMinimumSize(preferredSize);
-		legendHeaderPanel.setPreferredSize(preferredSize);
+            if (logXYPlot == null) {
 
-		return legendHeaderPanel;
-	}
+                long lowerDomainRange = logEntryModel.getLowerDomainRange();
+                long upperDomainRange = logEntryModel.getUpperDomainRange();
 
-	private JPanel getLegendHeaderCheckBoxJPanel() {
+                logXYPlot = LogViewerUtil.getLogXYPlot(lowerDomainRange, upperDomainRange, modelDateFormat, locale);
 
-		JPanel legendHeaderCheckBoxJPanel = new JPanel();
+                combinedDomainXYPlot.add(logXYPlot);
+                xyPlotMap.put("LogXYPlot", logXYPlot);
 
-		legendHeaderCheckBoxJPanel.setLayout(new GridBagLayout());
+                logXYPlot.setWeight(0);
+            }
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(3, 3, 3, 3);
+            List<String> logSeriesCollectionNameArray = new ArrayList<>();
 
-		JCheckBox legendHeaderCheckBox = new JCheckBox();
-		legendHeaderCheckBox.setSelected(true);
+            boolean isAnyColumnFiltered = logTableModel.isAnyColumnFiltered();
 
-		legendHeaderCheckBox.addItemListener(new ItemListener() {
+            Set<LogSeriesCollection> logTimeSeriesCollectionSet;
+            logTimeSeriesCollectionSet = logEntryModel.getLogTimeSeriesCollectionSet(isAnyColumnFiltered, locale);
 
-			@Override
-			public void itemStateChanged(ItemEvent e) {
+            Iterator<LogSeriesCollection> logSeriesCollectionIt = logTimeSeriesCollectionSet.iterator();
 
-				boolean selected = false;
+            while (logSeriesCollectionIt.hasNext()) {
 
-				if (e.getStateChange() == ItemEvent.DESELECTED) {
-					selected = false;
-				} else {
-					selected = true;
-				}
+                LogSeriesCollection logSeriesCollection = logSeriesCollectionIt.next();
 
-				for (String logSeriesCollectionName : logSeriesCollectionCheckBoxPanelMap.keySet()) {
+                String logSeriesCollectionName = logSeriesCollection.getName();
+                Collection<LogSeries> logSeriesList = logSeriesCollection.getLogSeriesList();
 
-					LogSeriesCollectionCheckBoxPanel logSeriesCollectionCheckBoxPanel = logSeriesCollectionCheckBoxPanelMap
-							.get(logSeriesCollectionName);
+                logSeriesCollectionNameArray.add(logSeriesCollectionName);
 
-					JCheckBox checkbox = logSeriesCollectionCheckBoxPanel.getjCheckBox();
-					checkbox.setSelected(selected);
-				}
+                XYPlot xyPlot = xyPlotMap.get(logSeriesCollectionName);
+                // CategoryPlot categoryPlot = categoryPlotMap.get(logSeriesCollectionName);
+                LogSeriesCollectionCheckBoxPanel lsccbp = logSeriesCollectionCheckBoxPanelMap
+                        .get(logSeriesCollectionName);
 
-			}
-		});
-		legendHeaderCheckBoxJPanel.add(legendHeaderCheckBox, gbc1);
+                if (xyPlot == null) {
 
-		legendHeaderCheckBoxJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+                    final XYPlot lscXYPlot = new XYPlot();
+                    lscXYPlot.setDomainCrosshairVisible(false);
+                    lscXYPlot.setDomainCrosshairLockedOnData(false);
+                    lscXYPlot.setRangeCrosshairVisible(false);
+                    lscXYPlot.setRangeCrosshairLockedOnData(false);
 
-		return legendHeaderCheckBoxJPanel;
-	}
+                    // final CategoryPlot lscCategoryPlot = new CategoryPlot();
+                    // lscCategoryPlot.setDomainCrosshairVisible(false);
+                    // lscCategoryPlot.setRangeCrosshairVisible(false);
+                    // lscCategoryPlot.setRangeCrosshairLockedOnData(false);
 
-	private JPanel getLegendHeaderLegendJPanel() {
+                    // add to main plot
+                    combinedDomainXYPlot.add(lscXYPlot);
+                    // combinedBoxAndWiskerCategoryPlot.add(lscCategoryPlot);
 
-		JPanel legendHeaderLegendJPanel = new JPanel();
+                    xyPlotMap.put(logSeriesCollectionName, lscXYPlot);
+                    // categoryPlotMap.put(logSeriesCollectionName, lscCategoryPlot);
 
-		legendHeaderLegendJPanel.setLayout(new GridBagLayout());
+                    lsccbp = new LogSeriesCollectionCheckBoxPanel(logSeriesList);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 3, 0, 3);
+                    JCheckBox checkbox = lsccbp.getCheckBox();
 
-		JLabel legendJLabel = new JLabel("Legend");
-		legendJLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                    checkbox.addItemListener(new ItemListener() {
 
-		legendHeaderLegendJPanel.add(legendJLabel, gbc1);
+                        @Override
+                        public void itemStateChanged(ItemEvent itemEvent) {
 
-		legendHeaderLegendJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+                            if (itemEvent.getStateChange() == ItemEvent.DESELECTED) {
+                                lscXYPlot.setWeight(0);
+                                // lscCategoryPlot.setWeight(0);
+                            } else {
+                                lscXYPlot.setWeight(1);
+                                // lscCategoryPlot.setWeight(1);
+                            }
 
-		return legendHeaderLegendJPanel;
-	}
+                            processLogSeriesCollectionCheckBoxPanelMap();
+                        }
+                    });
 
-	private JPanel getLegendHeaderCountJPanel() {
+                    logSeriesCollectionCheckBoxPanelMap.put(logSeriesCollectionName, lsccbp);
 
-		JPanel legendHeaderCountJPanel = new JPanel();
+                    int yindex = logSeriesCollectionCheckBoxPanelMap.size() - 1;
 
-		legendHeaderCountJPanel.setLayout(new GridBagLayout());
+                    GridBagConstraints gbc1 = new GridBagConstraints();
+                    gbc1.gridx = 0;
+                    gbc1.gridy = yindex;
+                    gbc1.weightx = 1.0D;
+                    gbc1.weighty = 1.0D;
+                    gbc1.fill = GridBagConstraints.BOTH;
+                    gbc1.anchor = GridBagConstraints.NORTHWEST;
+                    gbc1.insets = new Insets(0, 0, 0, 0);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 0.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 5, 0, 5);
+                    legendPanel.add(lsccbp, gbc1);
 
-		JLabel countJLabel = new JLabel("Count");
+                    xyPlot = lscXYPlot;
+                    // categoryPlot = lscCategoryPlot;
+                }
 
-		Dimension dim = new Dimension(35, Integer.MAX_VALUE);
-		countJLabel.setPreferredSize(dim);
-		countJLabel.setMinimumSize(dim);
-		countJLabel.setHorizontalAlignment(SwingConstants.CENTER);
+                // check if plot needs to be visible based on whether it was
+                // unchecked before
+                if (lsccbp.getCheckBox().isSelected()) {
+                    xyPlot.setWeight(1);
+                    // categoryPlot.setWeight(1);
+                } else {
+                    xyPlot.setWeight(0);
+                    // categoryPlot.setWeight(0);
+                }
 
-		legendHeaderCountJPanel.add(countJLabel, gbc1);
+                LogViewerUtil.updatePlots(xyPlot, /* categoryPlot */ null, logSeriesCollection, modelDateFormat, locale,
+                        false);
 
-		legendHeaderCountJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+                lsccbp.updatelogSeriesCounts(logSeriesList);
 
-		return legendHeaderCountJPanel;
-	}
+            }
 
-	@SuppressWarnings("unchecked")
-	private void refreshChart(LogTableModel logTableModel) {
+            // setup Permanent markers
 
-		try {
+            // clear permanent markers as plot as constant now.
+            for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
+                subPlot.clearDomainMarkers();
+            }
 
-			LOG.info("Refresh chart - start");
+            Set<LogIntervalMarker> logIntervalMarkerSet = logEntryModel.getLogIntervalMarkerSet();
 
-			LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
+            if (logIntervalMarkerSet != null) {
+                Iterator<LogIntervalMarker> logIntervalMarkerIt = logIntervalMarkerSet.iterator();
 
-			DateFormat modelDateFormat = logEntryModel.getModelDateFormat();
-			NumberFormat numberFormat = logEntryModel.getNumberFormat();
+                while (logIntervalMarkerIt.hasNext()) {
 
-			CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
-			CombinedDomainCategoryPlot combinedBoxAndWiskerCategoryPlot = getCombinedBoxAndWiskerCategoryPlot();
+                    final LogIntervalMarker logIntervalMarker = logIntervalMarkerIt.next();
 
-			ValueAxis domainAxis = logEntryModel.getDomainAxis();
+                    String logIntervalMarkerName = logIntervalMarker.getName();
 
-			combinedDomainXYPlot.setDomainAxis(domainAxis);
+                    LogSeriesCollectionCheckBoxPanel lsccbp = logSeriesCollectionCheckBoxPanelMap
+                            .get(logIntervalMarkerName);
 
-			List<String> logSeriesCollectionNameArray = new ArrayList<>();
+                    if (lsccbp == null) {
 
-			Set<LogSeriesCollection> logTimeSeriesCollectionSet = logEntryModel.getLogTimeSeriesCollectionSet(true);
+                        List<LogSeries> logIntervalMarkerList = new ArrayList<>();
+                        logIntervalMarkerList.add(logIntervalMarker);
 
-			Iterator<LogSeriesCollection> logSeriesCollectionIt = logTimeSeriesCollectionSet.iterator();
+                        lsccbp = new LogSeriesCollectionCheckBoxPanel(logIntervalMarkerList);
 
-			while (logSeriesCollectionIt.hasNext()) {
+                        JCheckBox checkbox = lsccbp.getCheckBox();
 
-				LogSeriesCollection logSeriesCollection = logSeriesCollectionIt.next();
+                        checkbox.addItemListener(new ItemListener() {
 
-				String logSeriesCollectionName = logSeriesCollection.getName();
-				List<LogSeries> logSeriesList = logSeriesCollection.getLogSeriesList();
+                            @Override
+                            public void itemStateChanged(ItemEvent itemEvent) {
 
-				logSeriesCollectionNameArray.add(logSeriesCollectionName);
+                                if (itemEvent.getStateChange() == ItemEvent.DESELECTED) {
 
-				XYPlot xyPlot = xyPlotMap.get(logSeriesCollectionName);
-				CategoryPlot categoryPlot = categoryPlotMap.get(logSeriesCollectionName);
-				LogSeriesCollectionCheckBoxPanel lsccbp = logSeriesCollectionCheckBoxPanelMap
-						.get(logSeriesCollectionName);
+                                    List<ValueMarker> valueMarkerList = logIntervalMarker.getValueMarkerList();
 
-				if (xyPlot == null) {
+                                    for (ValueMarker valueMarker : valueMarkerList) {
 
-					final XYPlot lscXYPlot = new XYPlot();
-					lscXYPlot.setDomainCrosshairVisible(false);
-					lscXYPlot.setDomainCrosshairLockedOnData(false);
-					lscXYPlot.setRangeCrosshairVisible(false);
-					lscXYPlot.setRangeCrosshairLockedOnData(false);
+                                        for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
+                                            subPlot.removeDomainMarker(valueMarker);
+                                        }
+                                    }
 
-					final CategoryPlot lscCategoryPlot = new CategoryPlot();
-					lscCategoryPlot.setDomainCrosshairVisible(false);
-					lscCategoryPlot.setRangeCrosshairVisible(false);
-					lscCategoryPlot.setRangeCrosshairLockedOnData(false);
+                                } else {
 
-					// add to main plot
-					combinedDomainXYPlot.add(lscXYPlot);
-					combinedBoxAndWiskerCategoryPlot.add(lscCategoryPlot);
+                                    List<ValueMarker> valueMarkerList = logIntervalMarker.getValueMarkerList();
 
-					xyPlotMap.put(logSeriesCollectionName, lscXYPlot);
-					categoryPlotMap.put(logSeriesCollectionName, lscCategoryPlot);
+                                    for (ValueMarker valueMarker : valueMarkerList) {
 
-					lsccbp = new LogSeriesCollectionCheckBoxPanel(logSeriesList);
+                                        for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
+                                            subPlot.addDomainMarker(valueMarker);
+                                        }
+                                    }
+                                }
+                            }
+                        });
 
-					JCheckBox checkbox = lsccbp.getjCheckBox();
+                        if (logIntervalMarker.isDefaultShowLogTimeSeries()) {
 
-					checkbox.addItemListener(new ItemListener() {
+                            List<ValueMarker> valueMarkerList = logIntervalMarker.getValueMarkerList();
 
-						@Override
-						public void itemStateChanged(ItemEvent e) {
+                            for (ValueMarker valueMarker : valueMarkerList) {
 
-							if (e.getStateChange() == ItemEvent.DESELECTED) {
-								lscXYPlot.setWeight(0);
-								lscCategoryPlot.setWeight(0);
-							} else {
-								lscXYPlot.setWeight(1);
-								lscCategoryPlot.setWeight(1);
-							}
+                                for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
+                                    subPlot.addDomainMarker(valueMarker);
+                                }
+                            }
+                        }
 
-							processLogSeriesCollectionCheckBoxPanelMap();
-						}
-					});
+                        logSeriesCollectionCheckBoxPanelMap.put(logIntervalMarkerName, lsccbp);
 
-					logSeriesCollectionCheckBoxPanelMap.put(logSeriesCollectionName, lsccbp);
+                        int yindex = logSeriesCollectionCheckBoxPanelMap.size() - 1;
 
-					int yIndex = logSeriesCollectionCheckBoxPanelMap.size() - 1;
+                        GridBagConstraints gbc1 = new GridBagConstraints();
+                        gbc1.gridx = 0;
+                        gbc1.gridy = yindex;
+                        gbc1.weightx = 1.0D;
+                        gbc1.weighty = 1.0D;
+                        gbc1.fill = GridBagConstraints.BOTH;
+                        gbc1.anchor = GridBagConstraints.NORTHWEST;
+                        gbc1.insets = new Insets(0, 0, 0, 0);
 
-					GridBagConstraints gbc1 = new GridBagConstraints();
-					gbc1.gridx = 0;
-					gbc1.gridy = yIndex;
-					gbc1.weightx = 1.0D;
-					gbc1.weighty = 1.0D;
-					gbc1.fill = GridBagConstraints.BOTH;
-					gbc1.anchor = GridBagConstraints.NORTHWEST;
-					gbc1.insets = new Insets(0, 0, 0, 0);
+                        legendPanel.add(lsccbp, gbc1);
+                    } else if (lsccbp.getCheckBox().isSelected()) {
 
-					legendPanel.add(lsccbp, gbc1);
+                        List<ValueMarker> valueMarkerList = logIntervalMarker.getValueMarkerList();
 
-					xyPlot = lscXYPlot;
-					categoryPlot = lscCategoryPlot;
-				}
+                        for (ValueMarker valueMarker : valueMarkerList) {
 
-				// check if plot needs to be visible based on whether it was
-				// unchecked before
-				if (lsccbp.getjCheckBox().isSelected()) {
-					xyPlot.setWeight(1);
-					categoryPlot.setWeight(1);
-				} else {
-					xyPlot.setWeight(0);
-					categoryPlot.setWeight(0);
-				}
+                            for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
+                                subPlot.addDomainMarker(valueMarker);
+                            }
+                        }
+                    }
+                }
+            }
 
-				LogViewerUtil.updatePlots(xyPlot, categoryPlot, logSeriesCollection, modelDateFormat, numberFormat,
-						false);
+            // disable the plots that are not in the latest LogSeriesCollection
+            for (String logSeriesCollectionName : xyPlotMap.keySet()) {
 
-				lsccbp.updatelogSeriesCounts(logSeriesList);
+                if (!logSeriesCollectionNameArray.contains(logSeriesCollectionName)) {
 
-			}
+                    XYPlot xyPlot = xyPlotMap.get(logSeriesCollectionName);
+                    // CategoryPlot categoryPlot = categoryPlotMap.get(logSeriesCollectionName);
 
-			// add the dummy plot (with logfile time start and end time already set) to
-			// setup the actual log time range. this is due to limitation in jfreechart
-			// where making mouse movement to reset the chart zoom will set autorange to
-			// true. hence forcing the graph to show only the time range limited to the data
-			// set.
+                    if (xyPlot != null) {
+                        xyPlot.setWeight(0);
+                    }
 
-			XYPlot logXYPlot = xyPlotMap.get("LogXYPlot");
+                    // if (categoryPlot != null) {
+                    // categoryPlot.setWeight(0);
+                    // }
+                }
+            }
 
-			if (logXYPlot == null) {
+        } catch (Exception e) {
+            LOG.info("Error refreshing chart", e);
+        } finally {
+            dataUpdated = false;
+            revalidate();
 
-				logXYPlot = LogViewerUtil.getLogXYPlot(logEntryModel);
-
-				combinedDomainXYPlot.add(logXYPlot);
-				xyPlotMap.put("LogXYPlot", logXYPlot);
-
-				logXYPlot.setWeight(0);
-			}
-
-			// setup Permanent markers
-
-			// clear permanent markers as plot as constant now.
-			for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
-				subPlot.clearDomainMarkers();
-			}
-
-			Set<LogIntervalMarker> logIntervalMarkerSet = logEntryModel.getLogIntervalMarkerSet();
-
-			if (logIntervalMarkerSet != null) {
-				Iterator<LogIntervalMarker> logIntervalMarkerIt = logIntervalMarkerSet.iterator();
-
-				while (logIntervalMarkerIt.hasNext()) {
-
-					final LogIntervalMarker logIntervalMarker = logIntervalMarkerIt.next();
-
-					String logIntervalMarkerName = logIntervalMarker.getName();
-
-					LogSeriesCollectionCheckBoxPanel lsccbp = logSeriesCollectionCheckBoxPanelMap
-							.get(logIntervalMarkerName);
-
-					if ((lsccbp == null) || ((lsccbp != null) && (lsccbp.getjCheckBox().isSelected()))) {
-
-						List<ValueMarker> valueMarkerList = logIntervalMarker.getValueMarkerList();
-
-						for (ValueMarker valueMarker : valueMarkerList) {
-
-							for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
-								subPlot.addDomainMarker(valueMarker);
-							}
-						}
-					}
-
-					if (lsccbp == null) {
-
-						List<LogSeries> logIntervalMarkerList = new ArrayList<>();
-						logIntervalMarkerList.add(logIntervalMarker);
-
-						lsccbp = new LogSeriesCollectionCheckBoxPanel(logIntervalMarkerList);
-
-						JCheckBox checkbox = lsccbp.getjCheckBox();
-
-						checkbox.addItemListener(new ItemListener() {
-
-							@Override
-							public void itemStateChanged(ItemEvent e) {
-
-								if (e.getStateChange() == ItemEvent.DESELECTED) {
-
-									List<ValueMarker> valueMarkerList = logIntervalMarker.getValueMarkerList();
-
-									for (ValueMarker valueMarker : valueMarkerList) {
-
-										for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
-											subPlot.removeDomainMarker(valueMarker);
-										}
-									}
-
-								} else {
-
-									List<ValueMarker> valueMarkerList = logIntervalMarker.getValueMarkerList();
-
-									for (ValueMarker valueMarker : valueMarkerList) {
-
-										for (XYPlot subPlot : (List<XYPlot>) combinedDomainXYPlot.getSubplots()) {
-											subPlot.addDomainMarker(valueMarker);
-										}
-									}
-								}
-							}
-						});
-
-						logSeriesCollectionCheckBoxPanelMap.put(logIntervalMarkerName, lsccbp);
-
-						int yIndex = logSeriesCollectionCheckBoxPanelMap.size() - 1;
-
-						GridBagConstraints gbc1 = new GridBagConstraints();
-						gbc1.gridx = 0;
-						gbc1.gridy = yIndex;
-						gbc1.weightx = 1.0D;
-						gbc1.weighty = 1.0D;
-						gbc1.fill = GridBagConstraints.BOTH;
-						gbc1.anchor = GridBagConstraints.NORTHWEST;
-						gbc1.insets = new Insets(0, 0, 0, 0);
-
-						legendPanel.add(lsccbp, gbc1);
-					}
-				}
-			}
-
-			// disable the plots that are not in the latest LogSeriesCollection
-			for (String logSeriesCollectionName : xyPlotMap.keySet()) {
-
-				if (!logSeriesCollectionNameArray.contains(logSeriesCollectionName)) {
-
-					XYPlot xyPlot = xyPlotMap.get(logSeriesCollectionName);
-					CategoryPlot categoryPlot = categoryPlotMap.get(logSeriesCollectionName);
-
-					if (xyPlot != null) {
-						xyPlot.setWeight(0);
-					}
-
-					if (categoryPlot != null) {
-						categoryPlot.setWeight(0);
-					}
-				}
-			}
-
-		} catch (Exception e) {
-			LOG.info("Error refreshing chart", e);
-		} finally {
-			dataUpdated = false;
-			revalidate();
-
-			LOG.info("Refresh chart - end");
-		}
-	}
+            LOG.info("Refresh chart - end");
+        }
+    }
 }

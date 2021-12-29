@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alert;
 
 import java.awt.Component;
@@ -17,8 +18,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -30,190 +31,189 @@ import javax.swing.table.TableColumn;
 import com.pega.gcs.fringecommon.guiutilities.BaseFrame;
 import com.pega.gcs.fringecommon.guiutilities.NavigationTableController;
 import com.pega.gcs.fringecommon.guiutilities.RightClickMenuItem;
+import com.pega.gcs.logviewer.LogTableModel;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 
 public class AlertMessageReportTableMouseListener extends MouseAdapter {
 
-	private String alertModelName;
+    private LogTableModel logTableModel;
 
-	private NavigationTableController<Integer> navigationTableController;
+    private NavigationTableController<LogEntryKey> navigationTableController;
 
-	private Component mainWindow;
+    private Component mainWindow;
 
-	private Map<String, JFrame> alertMessageReportEntryFrameMap;
+    private Map<String, JFrame> alertMessageReportEntryFrameMap;
 
-	public AlertMessageReportTableMouseListener(String alertModelName,
-			NavigationTableController<Integer> navigationTableController, Component mainWindow) {
+    public AlertMessageReportTableMouseListener(LogTableModel logTableModel,
+            NavigationTableController<LogEntryKey> navigationTableController, Component mainWindow) {
 
-		this.alertModelName = alertModelName;
-		this.navigationTableController = navigationTableController;
-		this.mainWindow = mainWindow;
+        this.logTableModel = logTableModel;
+        this.navigationTableController = navigationTableController;
 
-		alertMessageReportEntryFrameMap = new HashMap<String, JFrame>();
-	}
+        this.mainWindow = mainWindow;
 
-	protected Component getMainWindow() {
-		return mainWindow;
-	}
+        alertMessageReportEntryFrameMap = new HashMap<String, JFrame>();
+    }
 
-	private Map<String, JFrame> getAlertMessageReportEntryFrameMap() {
-		return alertMessageReportEntryFrameMap;
-	}
+    private Map<String, JFrame> getAlertMessageReportEntryFrameMap() {
+        return alertMessageReportEntryFrameMap;
+    }
 
-	@Override
-	public void mouseClicked(MouseEvent e) {
+    @Override
+    public void mouseClicked(MouseEvent mouseEvent) {
 
-		if (SwingUtilities.isRightMouseButton(e)) {
+        if (SwingUtilities.isRightMouseButton(mouseEvent)) {
 
-			Point point = e.getPoint();
+            Point point = mouseEvent.getPoint();
 
-			final List<Integer> selectedRowList = new LinkedList<Integer>();
+            final List<Integer> selectedRowList = new ArrayList<Integer>();
 
-			final AlertMessageReportTable source = (AlertMessageReportTable) e.getSource();
+            final AlertMessageReportTable source = (AlertMessageReportTable) mouseEvent.getSource();
 
-			int[] selectedRows = source.getSelectedRows();
+            int[] selectedRows = source.getSelectedRows();
 
-			// in case the row was not selected when right clicking then based
-			// on the point, select the row.
-			if ((selectedRows != null) && (selectedRows.length <= 1)) {
+            // in case the row was not selected when right clicking then based
+            // on the point, select the row.
+            if ((selectedRows != null) && (selectedRows.length <= 1)) {
 
-				int selectedRow = source.rowAtPoint(point);
+                int selectedRow = source.rowAtPoint(point);
 
-				if (selectedRow != -1) {
-					// select the row first
-					source.setRowSelectionInterval(selectedRow, selectedRow);
-					selectedRows = new int[] { selectedRow };
-				}
-			}
+                if (selectedRow != -1) {
+                    // select the row first
+                    source.setRowSelectionInterval(selectedRow, selectedRow);
+                    selectedRows = new int[] { selectedRow };
+                }
+            }
 
-			for (int selectedRow : selectedRows) {
-				selectedRowList.add(selectedRow);
-			}
+            for (int selectedRow : selectedRows) {
+                selectedRowList.add(selectedRow);
+            }
 
-			if (selectedRowList.size() > 0) {
+            if (selectedRowList.size() > 0) {
 
-				final JPopupMenu popupMenu = new JPopupMenu();
+                final JPopupMenu popupMenu = new JPopupMenu();
 
-				final RightClickMenuItem copyMenuItem = new RightClickMenuItem("Copy");
+                final RightClickMenuItem copyMenuItem = new RightClickMenuItem("Copy");
 
-				copyMenuItem.addActionListener(new ActionListener() {
+                copyMenuItem.addActionListener(new ActionListener() {
 
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    @Override
+                    public void actionPerformed(ActionEvent actionEvent) {
+                        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 
-						AlertMessageReportModel alertMessageReportModel = (AlertMessageReportModel) source.getModel();
+                        AlertMessageReportModel alertMessageReportModel = (AlertMessageReportModel) source.getModel();
 
-						int columnCount = alertMessageReportModel.getColumnCount();
+                        int columnCount = alertMessageReportModel.getColumnCount();
 
-						StringBuffer alertMessageReportEntrySB = new StringBuffer();
+                        StringBuilder alertMessageReportEntrySB = new StringBuilder();
 
-						// get the header row
-						for (int column = 0; column < columnCount; column++) {
+                        // get the header row
+                        for (int column = 0; column < columnCount; column++) {
 
-							TableColumn tableColumn = source.getTableHeader().getColumnModel().getColumn(column);
-							String columnValue = tableColumn.getHeaderValue().toString();
+                            TableColumn tableColumn = source.getTableHeader().getColumnModel().getColumn(column);
+                            String columnValue = tableColumn.getHeaderValue().toString();
 
-							alertMessageReportEntrySB.append(columnValue);
-							alertMessageReportEntrySB.append("\t");
-						}
+                            alertMessageReportEntrySB.append(columnValue);
+                            alertMessageReportEntrySB.append("\t");
+                        }
 
-						alertMessageReportEntrySB.append(System.getProperty("line.separator"));
+                        alertMessageReportEntrySB.append(System.getProperty("line.separator"));
 
-						for (int selectedRow : selectedRowList) {
+                        for (int selectedRow : selectedRowList) {
 
-							for (int column = 0; column < columnCount; column++) {
+                            for (int column = 0; column < columnCount; column++) {
 
-								String columnValue = (String) alertMessageReportModel.getValueAt(selectedRow, column);
+                                String columnValue = (String) alertMessageReportModel.getValueAt(selectedRow, column);
 
-								alertMessageReportEntrySB.append(columnValue);
-								alertMessageReportEntrySB.append("\t");
-							}
+                                alertMessageReportEntrySB.append(columnValue);
+                                alertMessageReportEntrySB.append("\t");
+                            }
 
-							alertMessageReportEntrySB.append(System.getProperty("line.separator"));
-						}
+                            alertMessageReportEntrySB.append(System.getProperty("line.separator"));
+                        }
 
-						clipboard.setContents(new StringSelection(alertMessageReportEntrySB.toString()), copyMenuItem);
+                        clipboard.setContents(new StringSelection(alertMessageReportEntrySB.toString()), copyMenuItem);
 
-						popupMenu.setVisible(false);
+                        popupMenu.setVisible(false);
 
-					}
-				});
+                    }
+                });
 
-				popupMenu.add(copyMenuItem);
+                popupMenu.add(copyMenuItem);
 
-				if (selectedRowList.size() == 1) {
+                if (selectedRowList.size() == 1) {
 
-					RightClickMenuItem addBookmarkMenuItem = new RightClickMenuItem("Open Entry");
+                    RightClickMenuItem addBookmarkMenuItem = new RightClickMenuItem("Open Entry");
 
-					addBookmarkMenuItem.addActionListener(new ActionListener() {
+                    addBookmarkMenuItem.addActionListener(new ActionListener() {
 
-						@Override
-						public void actionPerformed(ActionEvent e) {
+                        @Override
+                        public void actionPerformed(ActionEvent actionEvent) {
 
-							invokeAlertMessageReportEntryFrame(source);
+                            invokeAlertMessageReportEntryFrame(source);
 
-						}
-					});
+                        }
+                    });
 
-					popupMenu.add(addBookmarkMenuItem);
+                    popupMenu.add(addBookmarkMenuItem);
 
-				}
+                }
 
-				popupMenu.show(e.getComponent(), e.getX(), e.getY());
-			}
+                popupMenu.show(mouseEvent.getComponent(), mouseEvent.getX(), mouseEvent.getY());
+            }
 
-		} else if (e.getClickCount() == 2) {
+        } else if (mouseEvent.getClickCount() == 2) {
 
-			AlertMessageReportTable source = (AlertMessageReportTable) e.getSource();
+            AlertMessageReportTable source = (AlertMessageReportTable) mouseEvent.getSource();
 
-			invokeAlertMessageReportEntryFrame(source);
-		} else {
-			super.mouseClicked(e);
-		}
-	}
+            invokeAlertMessageReportEntryFrame(source);
+        } else {
+            super.mouseClicked(mouseEvent);
+        }
+    }
 
-	private void invokeAlertMessageReportEntryFrame(AlertMessageReportTable alertMessageReportTable) {
+    private void invokeAlertMessageReportEntryFrame(AlertMessageReportTable alertMessageReportTable) {
 
-		int selectedRow = alertMessageReportTable.getSelectedRow();
+        int selectedRow = alertMessageReportTable.getSelectedRow();
 
-		AlertMessageReportModel alertMessageReportModel = (AlertMessageReportModel) alertMessageReportTable.getModel();
+        AlertMessageReportModel alertMessageReportModel = (AlertMessageReportModel) alertMessageReportTable.getModel();
 
-		AlertMessageReportEntry alertMessageReportEntry = alertMessageReportModel
-				.getAlertMessageReportEntry(selectedRow);
+        AlertMessageReportEntry alertMessageReportEntry = (AlertMessageReportEntry) alertMessageReportModel
+                .getValueAt(selectedRow, 0);
 
-		String alertMessageReportEntryKey = alertMessageReportEntry.getAlertMessageReportEntryKey();
+        String alertMessageReportEntryKey = alertMessageReportEntry.getAlertMessageReportEntryKey();
 
-		JFrame alertMessageReportEntryFrame = alertMessageReportEntryFrameMap.get(alertMessageReportEntryKey);
+        JFrame alertMessageReportEntryFrame = alertMessageReportEntryFrameMap.get(alertMessageReportEntryKey);
 
-		if (alertMessageReportEntryFrame == null) {
+        if (alertMessageReportEntryFrame == null) {
 
-			alertMessageReportEntryFrame = new AlertMessageReportEntryFrame(alertModelName, alertMessageReportEntry,
-					alertMessageReportModel, navigationTableController, BaseFrame.getAppIcon(),
-					mainWindow);
+            alertMessageReportEntryFrame = new AlertMessageReportEntryFrame(selectedRow + 1, alertMessageReportEntry,
+                    alertMessageReportModel, logTableModel, navigationTableController, BaseFrame.getAppIcon(),
+                    mainWindow);
 
-			alertMessageReportEntryFrame.addWindowListener(new WindowAdapter() {
+            alertMessageReportEntryFrame.addWindowListener(new WindowAdapter() {
 
-				@Override
-				public void windowClosed(WindowEvent e) {
-					Map<String, JFrame> alertMessageReportEntryFrameMap = getAlertMessageReportEntryFrameMap();
-					alertMessageReportEntryFrameMap.remove(alertMessageReportEntryKey);
-				}
+                @Override
+                public void windowClosed(WindowEvent windowEvent) {
+                    Map<String, JFrame> alertMessageReportEntryFrameMap = getAlertMessageReportEntryFrameMap();
+                    alertMessageReportEntryFrameMap.remove(alertMessageReportEntryKey);
+                }
 
-			});
+            });
 
-			alertMessageReportEntryFrameMap.put(alertMessageReportEntryKey, alertMessageReportEntryFrame);
-		} else {
-			alertMessageReportEntryFrame.toFront();
-		}
-	}
+            alertMessageReportEntryFrameMap.put(alertMessageReportEntryKey, alertMessageReportEntryFrame);
+        } else {
+            alertMessageReportEntryFrame.toFront();
+        }
+    }
 
-	public void clearFrameMap() {
+    public void clearFrameMap() {
 
-		for (JFrame alertMessageReportEntryFrame : alertMessageReportEntryFrameMap.values()) {
-			alertMessageReportEntryFrame.dispose();
-		}
+        for (JFrame alertMessageReportEntryFrame : alertMessageReportEntryFrameMap.values()) {
+            alertMessageReportEntryFrame.dispose();
+        }
 
-		alertMessageReportEntryFrameMap.clear();
+        alertMessageReportEntryFrameMap.clear();
 
-	}
+    }
 }

@@ -4,123 +4,116 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alert;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.SwingConstants;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.logviewer.model.AlertLogEntry;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
+import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 
 public class PEGA0087ReportModel extends AlertMessageReportModel {
 
-	private static final long serialVersionUID = -8889727175209305065L;
+    private static final long serialVersionUID = -8889727175209305065L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0087ReportModel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0087ReportModel.class);
 
-	private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
+    private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
 
-	private Pattern pattern;
+    private Pattern pattern;
 
-	public PEGA0087ReportModel(long thresholdKPI, String kpiUnit, AlertLogEntryModel alertLogEntryModel) {
+    public PEGA0087ReportModel(AlertMessage alertMessage, long thresholdKPI, AlertLogEntryModel alertLogEntryModel,
+            Locale locale) {
 
-		super("PEGA0087", thresholdKPI, kpiUnit, alertLogEntryModel);
+        super(alertMessage, thresholdKPI, alertLogEntryModel, locale);
 
-		String regex = "(.*?) Service (.*?)circuit breaker tripped due to";
-		pattern = Pattern.compile(regex);
-	}
+        String regex = "(.*?) Service (.*?)circuit breaker tripped due to";
+        pattern = Pattern.compile(regex);
+    }
 
-	@Override
-	protected List<AlertBoxAndWhiskerReportColumn> getAlertMessageReportColumnList() {
+    @Override
+    protected List<AlertBoxAndWhiskerReportColumn> getAlertMessageReportColumnList() {
 
-		if (alertMessageReportColumnList == null) {
-			alertMessageReportColumnList = new ArrayList<AlertBoxAndWhiskerReportColumn>();
+        if (alertMessageReportColumnList == null) {
+            alertMessageReportColumnList = new ArrayList<AlertBoxAndWhiskerReportColumn>();
 
-			String displayName;
-			int prefColWidth;
-			int hAlignment;
-			boolean filterable;
-			AlertBoxAndWhiskerReportColumn amReportColumn = null;
+            String displayName;
+            int prefColWidth;
+            int horizontalAlignment;
+            boolean filterable;
 
-			// first column data is the key
-			displayName = "Service Type - Service InsName";
-			prefColWidth = 500;
-			hAlignment = SwingConstants.LEFT;
-			filterable = true;
-			amReportColumn = new AlertBoxAndWhiskerReportColumn(AlertBoxAndWhiskerReportColumn.KEY, displayName, prefColWidth, hAlignment, filterable);
+            // first column data is the key
+            displayName = "Alert Subject (\"Service Type - Service InsName\")";
+            prefColWidth = 500;
+            horizontalAlignment = SwingConstants.LEFT;
+            filterable = true;
 
-			alertMessageReportColumnList.add(amReportColumn);
+            AlertBoxAndWhiskerReportColumn amReportColumn;
+            amReportColumn = new AlertBoxAndWhiskerReportColumn(AlertBoxAndWhiskerReportColumn.KEY, displayName,
+                    prefColWidth, horizontalAlignment, filterable);
 
-			List<AlertBoxAndWhiskerReportColumn> defaultAlertMessageReportColumnList = AlertBoxAndWhiskerReportColumn.getDefaultAlertMessageReportColumnList();
+            alertMessageReportColumnList.add(amReportColumn);
 
-			alertMessageReportColumnList.addAll(defaultAlertMessageReportColumnList);
-		}
+            List<AlertBoxAndWhiskerReportColumn> defaultAlertMessageReportColumnList = AlertBoxAndWhiskerReportColumn
+                    .getDefaultAlertMessageReportColumnList();
 
-		return alertMessageReportColumnList;
-	}
+            alertMessageReportColumnList.addAll(defaultAlertMessageReportColumnList);
+        }
 
-	@Override
-	public String getAlertMessageReportEntryKey(AlertLogEntry alertLogEntry, ArrayList<String> logEntryValueList) {
+        return alertMessageReportColumnList;
+    }
 
-		String alertMessageReportEntryKey = null;
+    @Override
+    public String getAlertMessageReportEntryKey(String dataText) {
 
-		AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
+        String alertMessageReportEntryKey = null;
 
-		List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
+        Matcher patternMatcher = pattern.matcher(dataText);
+        boolean matches = patternMatcher.find();
 
-		int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
-		String message = logEntryValueList.get(messageIndex);
+        if (matches) {
+            String nodeId = patternMatcher.group(1).trim();
+            String service = patternMatcher.group(2).trim();
 
-		Matcher patternMatcher = pattern.matcher(message);
-		boolean matches = patternMatcher.find();
+            StringBuilder sb = new StringBuilder();
+            sb.append(nodeId);
+            sb.append(" - ");
+            sb.append(service);
 
-		if (matches) {
-			String nodeId = patternMatcher.group(1).trim();
-			String service = patternMatcher.group(2).trim();
+            alertMessageReportEntryKey = sb.toString();
+        }
 
-			StringBuffer sb = new StringBuffer();
-			sb.append(nodeId);
-			sb.append(" - ");
-			sb.append(service);
+        return alertMessageReportEntryKey;
 
-			alertMessageReportEntryKey = sb.toString();
-		}
+    }
 
-		if (alertMessageReportEntryKey == null) {
-			LOG.info("PEGA0087ReportModel - Could'nt match - [" + message + "]");
-		}
+    @Override
+    public String getAlertMessageReportEntryKey(ArrayList<String> logEntryValueList) {
 
-		return alertMessageReportEntryKey;
-	}
+        String alertMessageReportEntryKey = null;
 
-	public static void main(String[] args) {
+        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
 
-		long before = System.currentTimeMillis();
-		String message = "serviceType Service serviceInsName circuit breaker tripped due to maxConsecutiveFailures consecutive timeouts.";
+        List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
 
-		String regex = "(.*?) Service (.*?)circuit breaker tripped due to";
+        int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
+        String message = logEntryValueList.get(messageIndex);
 
-		Pattern pattern = Pattern.compile(regex);
+        alertMessageReportEntryKey = getAlertMessageReportEntryKey(message);
 
-		Matcher patternMatcher = pattern.matcher(message);
-		boolean matches = patternMatcher.find();
-		System.out.println(matches);
+        if (alertMessageReportEntryKey == null) {
+            LOG.info("PEGA0087ReportModel - Could'nt match - [" + message + "]");
+        }
 
-		if (matches) {
-			System.out.println(patternMatcher.groupCount());
-			System.out.println(patternMatcher.group(1));
-			System.out.println(patternMatcher.group(2));
-		}
-
-		long after = System.currentTimeMillis();
-
-		System.out.println(after - before);
-	}
+        return alertMessageReportEntryKey;
+    }
 
 }

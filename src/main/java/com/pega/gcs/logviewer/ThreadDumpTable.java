@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.Point;
@@ -14,7 +15,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JPopupMenu;
@@ -27,96 +28,96 @@ import com.pega.gcs.logviewer.model.ThreadDumpThreadInfo;
 
 public class ThreadDumpTable extends FilterTable<String> {
 
-	private static final long serialVersionUID = -1999857450475975767L;
+    private static final long serialVersionUID = -1999857450475975767L;
 
-	public ThreadDumpTable(ThreadDumpTableModel threadDumpTableModel) {
+    public ThreadDumpTable(ThreadDumpTableModel threadDumpTableModel) {
 
-		super(threadDumpTableModel);
+        super(threadDumpTableModel);
 
-		setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-		addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent mouseEvent) {
 
-				if (SwingUtilities.isRightMouseButton(e)) {
+                if (SwingUtilities.isRightMouseButton(mouseEvent)) {
 
-					Point point = e.getPoint();
+                    Point point = mouseEvent.getPoint();
 
-					final List<Integer> selectedRowList = new LinkedList<Integer>();
+                    final List<Integer> selectedRowList = new ArrayList<Integer>();
 
-					final ThreadDumpTable source = (ThreadDumpTable) e.getSource();
+                    final ThreadDumpTable source = (ThreadDumpTable) mouseEvent.getSource();
 
-					int[] selectedRows = source.getSelectedRows();
+                    int[] selectedRows = source.getSelectedRows();
 
-					// in case the row was not selected when right clicking then
-					// based
-					// on the point, select the row.
-					if ((selectedRows != null) && (selectedRows.length <= 1)) {
+                    // in case the row was not selected when right clicking then
+                    // based
+                    // on the point, select the row.
+                    if ((selectedRows != null) && (selectedRows.length <= 1)) {
 
-						int selectedRow = source.rowAtPoint(point);
+                        int selectedRow = source.rowAtPoint(point);
 
-						if (selectedRow != -1) {
-							// select the row first
-							source.setRowSelectionInterval(selectedRow, selectedRow);
-							selectedRows = new int[] { selectedRow };
-						}
-					}
+                        if (selectedRow != -1) {
+                            // select the row first
+                            source.setRowSelectionInterval(selectedRow, selectedRow);
+                            selectedRows = new int[] { selectedRow };
+                        }
+                    }
 
-					for (int selectedRow : selectedRows) {
-						selectedRowList.add(selectedRow);
-					}
+                    for (int selectedRow : selectedRows) {
+                        selectedRowList.add(selectedRow);
+                    }
 
-					final int size = selectedRowList.size();
+                    final int size = selectedRowList.size();
 
-					if (size > 0) {
+                    if (size > 0) {
 
-						final JPopupMenu popupMenu = new JPopupMenu();
-						String menuItemStr = "Copy Thread Info";
+                        final JPopupMenu popupMenu = new JPopupMenu();
+                        String menuItemStr = "Copy Thread Info";
 
-						final RightClickMenuItem copyThreadInfoMenuItem = new RightClickMenuItem(menuItemStr);
+                        final RightClickMenuItem copyThreadInfoMenuItem = new RightClickMenuItem(menuItemStr);
 
-						copyThreadInfoMenuItem.addActionListener(new ActionListener() {
+                        copyThreadInfoMenuItem.addActionListener(new ActionListener() {
 
-							@Override
-							public void actionPerformed(ActionEvent e) {
-								Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                            @Override
+                            public void actionPerformed(ActionEvent actionEvent) {
+                                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 
-								ThreadDumpTableModel threadDumpTableModel;
-								threadDumpTableModel = (ThreadDumpTableModel) source.getModel();
+                                ThreadDumpTableModel threadDumpTableModel;
+                                threadDumpTableModel = (ThreadDumpTableModel) source.getModel();
 
-								StringBuffer logEntryTextSB = new StringBuffer();
+                                StringBuilder logEntryTextSB = new StringBuilder();
 
-								for (int selectedRow : selectedRowList) {
+                                for (int selectedRow : selectedRowList) {
 
-									ThreadDumpThreadInfo threadDumpThreadInfo = threadDumpTableModel
-											.getThreadDumpThreadInfo(selectedRow);
+                                    ThreadDumpThreadInfo threadDumpThreadInfo = threadDumpTableModel
+                                            .getThreadDumpThreadInfo(selectedRow);
 
-									if (threadDumpThreadInfo != null) {
-										logEntryTextSB.append(threadDumpThreadInfo.getThreadDumpString());
-										logEntryTextSB.append(System.getProperty("line.separator"));
+                                    if (threadDumpThreadInfo != null) {
+                                        logEntryTextSB.append(threadDumpThreadInfo.getThreadDumpString());
+                                        logEntryTextSB.append(System.getProperty("line.separator"));
 
-									}
-								}
+                                    }
+                                }
 
-								clipboard.setContents(new StringSelection(logEntryTextSB.toString()),
-										copyThreadInfoMenuItem);
+                                clipboard.setContents(new StringSelection(logEntryTextSB.toString()),
+                                        copyThreadInfoMenuItem);
 
-								popupMenu.setVisible(false);
+                                popupMenu.setVisible(false);
 
-							}
-						});
+                            }
+                        });
 
-						popupMenu.add(copyThreadInfoMenuItem);
+                        popupMenu.add(copyThreadInfoMenuItem);
 
-						popupMenu.show(e.getComponent(), e.getX(), e.getY());
-					}
+                        popupMenu.show(mouseEvent.getComponent(), mouseEvent.getX(), mouseEvent.getY());
+                    }
 
-				} else {
-					super.mouseClicked(e);
-				}
-			}
-		});
+                } else {
+                    super.mouseClicked(mouseEvent);
+                }
+            }
+        });
 
-	}
+    }
 }

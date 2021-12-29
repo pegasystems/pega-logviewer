@@ -4,11 +4,12 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 import javax.swing.SwingWorker;
@@ -17,243 +18,196 @@ import com.pega.gcs.fringecommon.guiutilities.ModalProgressMonitor;
 import com.pega.gcs.fringecommon.guiutilities.ProgressTaskInfo;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.model.LogEntry;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 
-public class LogTableSearchTask extends SwingWorker<List<Integer>, ProgressTaskInfo> {
+public class LogTableSearchTask extends SwingWorker<List<LogEntryKey>, ProgressTaskInfo> {
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(LogTableSearchTask.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(LogTableSearchTask.class);
 
-	private LogTableModel logTableModel;
+    private LogTableModel logTableModel;
 
-	private ModalProgressMonitor mProgressMonitor;
+    private ModalProgressMonitor modalProgressMonitor;
 
-	private Object searchStrObj;
+    private Object searchStrObj;
 
-	public LogTableSearchTask(ModalProgressMonitor mProgressMonitor, LogTableModel logTableModel, Object searchStrObj) {
-		super();
-		this.mProgressMonitor = mProgressMonitor;
-		this.logTableModel = logTableModel;
-		this.searchStrObj = searchStrObj;
-	}
+    public LogTableSearchTask(ModalProgressMonitor modalProgressMonitor, LogTableModel logTableModel,
+            Object searchStrObj) {
+        super();
+        this.modalProgressMonitor = modalProgressMonitor;
+        this.logTableModel = logTableModel;
+        this.searchStrObj = searchStrObj;
+    }
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see javax.swing.SwingWorker#doInBackground()
-	 */
-	@Override
-	protected List<Integer> doInBackground() throws Exception {
+    /*
+     * (non-Javadoc)
+     * 
+     * @see javax.swing.SwingWorker#doInBackground()
+     */
+    @Override
+    protected List<LogEntryKey> doInBackground() throws Exception {
 
-		List<Integer> searchResultList = new LinkedList<Integer>();
+        List<LogEntryKey> searchResultList = null;
 
-		if (logTableModel != null) {
+        if (logTableModel != null) {
 
-			searchResultList = logTableModel.getSearchModel().getSearchResultList(searchStrObj);
+            searchResultList = logTableModel.getSearchModel().getSearchResultList(searchStrObj);
 
-			if (searchResultList == null) {
-				searchResultList = search();
-			} else {
-				searchResultList = update(searchResultList);
-			}
+            if (searchResultList == null) {
+                searchResultList = search();
+            } else {
+                searchResultList = update(searchResultList);
+            }
 
-		}
+        }
 
-		return searchResultList;
-	}
+        return searchResultList;
+    }
 
-	private List<Integer> search() {
+    private List<LogEntryKey> search() {
 
-		List<Integer> searchResultList = new LinkedList<Integer>();
+        ArrayList<LogEntryKey> searchResultList = new ArrayList<>();
 
-		long before = System.currentTimeMillis();
+        long before = System.currentTimeMillis();
 
-		try {
+        try {
 
-			int logEntryCount = 0;
+            int logEntryCount = 0;
 
-			List<Integer> filteredList = logTableModel.getFtmEntryKeyList();
+            List<LogEntryKey> filteredList = logTableModel.getFtmEntryKeyList();
 
-			int totalSize = filteredList.size();
+            int totalSize = filteredList.size();
 
-			Iterator<Integer> fListIterator = filteredList.iterator();
+            ProgressTaskInfo progressTaskInfo = new ProgressTaskInfo(totalSize, logEntryCount);
+            publish(progressTaskInfo);
 
-			while ((!isCancelled()) && (fListIterator.hasNext())) {
+            Iterator<LogEntryKey> filteredListIterator = filteredList.iterator();
 
-				if (mProgressMonitor.isCanceled()) {
-					cancel(true);
-				}
+            while ((!isCancelled()) && (filteredListIterator.hasNext())) {
 
-				Integer key = fListIterator.next();
+                if (modalProgressMonitor.isCanceled()) {
+                    cancel(true);
+                }
 
-				boolean found = logTableModel.search(key, searchStrObj);
+                LogEntryKey key = filteredListIterator.next();
 
-				if (found) {
-					searchResultList.add(key);
-				}
+                boolean found = logTableModel.search(key, searchStrObj);
 
-				logEntryCount++;
+                if (found) {
+                    searchResultList.add(key);
+                }
 
-				ProgressTaskInfo progressTaskInfo = new ProgressTaskInfo(totalSize, logEntryCount);
-				publish(progressTaskInfo);
+                logEntryCount++;
 
-			}
+                progressTaskInfo = new ProgressTaskInfo(totalSize, logEntryCount);
+                publish(progressTaskInfo);
 
-		} finally {
-			long diff = System.currentTimeMillis() - before;
+            }
 
-			int secs = (int) Math.ceil((double) diff / 1E3);
+        } finally {
+            long diff = System.currentTimeMillis() - before;
 
-			LOG.info("Search '" + searchStrObj + "' completed in " + secs + " secs. " + searchResultList.size()
-					+ " results found.");
-		}
+            int secs = (int) Math.ceil((double) diff / 1E3);
 
-		return searchResultList;
-	}
+            LOG.info("Search '" + searchStrObj + "' completed in " + secs + " secs. " + searchResultList.size()
+                    + " results found.");
+        }
 
-	private List<Integer> update(List<Integer> searchResultList) {
+        return searchResultList;
+    }
 
-		long before = System.currentTimeMillis();
+    private List<LogEntryKey> update(List<LogEntryKey> searchResultList) {
 
-		try {
+        long before = System.currentTimeMillis();
 
-			int logEntryCount = 0;
+        try {
 
-			List<Integer> filteredList = logTableModel.getFtmEntryKeyList();
+            int logEntryCount = 0;
 
-			int totalSize = filteredList.size() + searchResultList.size();
+            List<LogEntryKey> filteredList = logTableModel.getFtmEntryKeyList();
 
-			Iterator<Integer> fListIterator = filteredList.iterator();
+            int totalSize = filteredList.size() + searchResultList.size();
 
-			while ((!isCancelled()) && (fListIterator.hasNext())) {
+            ProgressTaskInfo progressTaskInfo = new ProgressTaskInfo(totalSize, logEntryCount);
+            publish(progressTaskInfo);
 
-				if (mProgressMonitor.isCanceled()) {
-					cancel(true);
-				}
+            Iterator<LogEntryKey> filteredListIterator = filteredList.iterator();
 
-				Integer key = fListIterator.next();
+            while ((!isCancelled()) && (filteredListIterator.hasNext())) {
 
-				// set false for all searches
-				LogEntry logEntry = logTableModel.getEventForKey(key);
-				logEntry.setSearchFound(false);
+                if (modalProgressMonitor.isCanceled()) {
+                    cancel(true);
+                }
 
-				logEntryCount++;
+                LogEntryKey key = filteredListIterator.next();
 
-				ProgressTaskInfo progressTaskInfo = new ProgressTaskInfo(totalSize, logEntryCount);
-				publish(progressTaskInfo);
+                // set false for all searches
+                LogEntry logEntry = logTableModel.getEventForKey(key);
+                logEntry.setSearchFound(false);
 
-			}
+                logEntryCount++;
 
-			// now update the log entries from search result list
-			Iterator<Integer> sListIterator = searchResultList.iterator();
+                progressTaskInfo = new ProgressTaskInfo(totalSize, logEntryCount);
+                publish(progressTaskInfo);
 
-			while ((!isCancelled()) && (sListIterator.hasNext())) {
+            }
 
-				if (mProgressMonitor.isCanceled()) {
-					cancel(true);
-				}
+            // now update the log entries from search result list
+            Iterator<LogEntryKey> searchResultListIterator = searchResultList.iterator();
 
-				Integer key = sListIterator.next();
+            while ((!isCancelled()) && (searchResultListIterator.hasNext())) {
 
-				// set false for all searches
-				LogEntry logEntry = logTableModel.getEventForKey(key);
-				logEntry.setSearchFound(true);
+                if (modalProgressMonitor.isCanceled()) {
+                    cancel(true);
+                }
 
-				logEntryCount++;
+                LogEntryKey key = searchResultListIterator.next();
 
-				ProgressTaskInfo progressTaskInfo = new ProgressTaskInfo(totalSize, logEntryCount);
-				publish(progressTaskInfo);
-			}
+                // set false for all searches
+                LogEntry logEntry = logTableModel.getEventForKey(key);
+                logEntry.setSearchFound(true);
 
-		} finally {
-			long diff = System.currentTimeMillis() - before;
+                logEntryCount++;
 
-			int secs = (int) Math.ceil((double) diff / 1E3);
+                progressTaskInfo = new ProgressTaskInfo(totalSize, logEntryCount);
+                publish(progressTaskInfo);
+            }
 
-			LOG.info("Search updated '" + searchStrObj + "' completed in " + secs + " secs. "
-					+ searchResultList.size() + " results found.");
-		}
+        } finally {
+            long diff = System.currentTimeMillis() - before;
 
-		return searchResultList;
-	}
+            int secs = (int) Math.ceil((double) diff / 1E3);
 
-	private List<Integer> update_old() {
+            LOG.info("Search updated '" + searchStrObj + "' completed in " + secs + " secs. " + searchResultList.size()
+                    + " results found.");
+        }
 
-		long before = System.currentTimeMillis();
+        return searchResultList;
+    }
 
-		List<Integer> searchResultList = logTableModel.getSearchModel().getSearchResultList(searchStrObj);
+    /*
+     * (non-Javadoc)
+     * 
+     * @see javax.swing.SwingWorker#process(java.util.List)
+     */
+    @Override
+    protected void process(List<ProgressTaskInfo> chunks) {
+        if ((isDone()) || (isCancelled()) || (chunks == null) || (chunks.size() == 0)) {
+            return;
+        }
 
-		try {
+        Collections.sort(chunks);
 
-			int logEntryCount = 0;
+        ProgressTaskInfo progressTaskInfo = chunks.get(chunks.size() - 1);
 
-			List<Integer> filteredList = logTableModel.getFtmEntryKeyList();
+        long total = progressTaskInfo.getTotal();
+        long count = progressTaskInfo.getCount();
 
-			int totalSize = filteredList.size();
+        int progress = (int) ((count * 100) / total);
 
-			Iterator<Integer> fListIterator = filteredList.iterator();
+        modalProgressMonitor.setProgress(progress);
 
-			while ((!isCancelled()) && (fListIterator.hasNext())) {
+        String message = String.format("Searching %d log events (%d%%)", count, progress);
 
-				if (mProgressMonitor.isCanceled()) {
-					cancel(true);
-				}
-
-				Integer key = fListIterator.next();
-
-				int index = Collections.binarySearch(searchResultList, key);
-
-				boolean searchFound = false;
-
-				if (index >= 0) {
-					searchFound = true;
-				}
-
-				LogEntry logEntry = logTableModel.getEventForKey(key);
-				logEntry.setSearchFound(searchFound);
-
-				logEntryCount++;
-
-				ProgressTaskInfo progressTaskInfo = new ProgressTaskInfo(totalSize, logEntryCount);
-
-				publish(progressTaskInfo);
-
-			}
-
-		} finally {
-			long diff = System.currentTimeMillis() - before;
-
-			int secs = (int) Math.ceil((double) diff / 1E3);
-
-			LOG.info("Search updated '" + searchStrObj + "' completed in " + secs + " secs. "
-					+ searchResultList.size() + " results found.");
-		}
-
-		return searchResultList;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see javax.swing.SwingWorker#process(java.util.List)
-	 */
-	@Override
-	protected void process(List<ProgressTaskInfo> chunks) {
-		if ((isDone()) || (isCancelled()) || (chunks == null) || (chunks.size() == 0)) {
-			return;
-		}
-
-		Collections.sort(chunks);
-
-		ProgressTaskInfo progressTaskInfo = chunks.get(chunks.size() - 1);
-
-		long total = progressTaskInfo.getTotal();
-		long count = progressTaskInfo.getCount();
-
-		int progress = (int) ((count * 100) / total);
-
-		mProgressMonitor.setProgress(progress);
-
-		String message = String.format("Searching %d log events (%d%%)", count, progress);
-
-		mProgressMonitor.setNote(message);
-	}
+        modalProgressMonitor.setNote(message);
+    }
 }

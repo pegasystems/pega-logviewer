@@ -1,0 +1,192 @@
+/////////////////////////////////////////////////////////////////////
+// IMPORTANT
+// Code to setup Socket Appender for PegaRULES logging
+// update values of 'host' and 'port' variables as required
+// Paste the complete code to a test activity java step
+// Execute the activity only once
+// the update is programatic, appender will be lost on server restart
+/////////////////////////////////////////////////////////////////////
+
+// Set hostname/IP of the machine running Pega-LogViewer
+final String host = "HOST_NAME";
+final int port = HOST_PORT;
+
+// DO NOT UPDATE BELOW LINES
+class PegaRULESSocketAppender {
+
+    private String host;
+    private int port;
+    private String name;
+    private String pattern;
+    private org.apache.logging.log4j.core.LoggerContext ctx;
+    private StringBuffer logMessageSB;
+
+    public PegaRULESSocketAppender(String host, int port) {
+        this.host = host;
+        this.port = port;
+        this.name = "SA_PegaRULES_" + host + "_" + port;
+        this.pattern = "%d [%20.20t] [%10.10X{pegathread}] [%20.20X{tenantid}] [%20.20X{app}] (%30.30c{3}) %-5p %X{stack} %X{userid} - %m%n";
+        this.ctx = org.apache.logging.log4j.core.LoggerContext.getContext(false);
+        this.logMessageSB = new StringBuffer();
+    }
+
+    public void perform() {
+
+        log("Perform - Start");
+
+        log("Perform - Appender [" + name + "]");
+
+        boolean appenderExists = isAppenderExists();
+
+        if (!appenderExists) {
+
+            org.apache.logging.log4j.core.appender.SocketAppender socketAppender;
+            socketAppender = createSocketAppender();
+
+            if (socketAppender != null) {
+
+                socketAppender.start();
+
+                org.apache.logging.log4j.core.config.Configuration configuration;
+                configuration = ctx.getConfiguration();
+
+                configuration.addAppender(socketAppender);
+
+                org.apache.logging.log4j.core.config.LoggerConfig rootLoggerConfig;
+                rootLoggerConfig = configuration.getRootLogger();
+
+                rootLoggerConfig.addAppender(socketAppender, null, null);
+
+                ctx.updateLoggers();
+                
+                log("Perform - Appender [" + name + "] created.");
+
+            } else {
+                log("Perform - Unable to create new SocketAppender");
+            }
+        } else {
+            log("Perform - Appender [" + name + "] already exists, skipping.");
+        }
+
+        log("Perform - End");
+
+    }
+
+    public String getLogMessages() {
+        StringBuffer htmlString = new StringBuffer();
+
+        htmlString.append("<pre>");
+        htmlString.append(System.getProperty("line.separator"));
+        htmlString.append(logMessageSB);
+        htmlString.append("</pre>");
+
+        return htmlString.toString();    
+    }
+
+    private boolean isAppenderExists() {
+
+        log("isAppenderExists - Start");
+
+        boolean appenderExists = false;
+
+        org.apache.logging.log4j.core.config.Configuration configuration;
+        configuration = ctx.getConfiguration();
+        appenderExists = configuration.getAppender(name) != null;
+
+        log("isAppenderExists - End - " + appenderExists);
+
+        return appenderExists;
+    }
+
+    private org.apache.logging.log4j.core.appender.SocketAppender createSocketAppender() {
+
+        log("Create SocketAppender - Start");
+
+        org.apache.logging.log4j.core.net.Protocol protocol = org.apache.logging.log4j.core.net.Protocol.UDP;
+        org.apache.logging.log4j.core.net.ssl.SslConfiguration sslConfig = null;
+        int connectTimeoutMillis = 0;
+        int reconnectDelayMillis = 0;
+        boolean immediateFail = true;
+        boolean immediateFlush = true;
+        boolean ignoreExceptions = true;
+        org.apache.logging.log4j.core.layout.PatternLayout patternLayout;
+        patternLayout = getPatternLayout();
+        org.apache.logging.log4j.core.filter.ThresholdFilter thresholdFilter;
+        thresholdFilter = getThresholdFilter();
+        org.apache.logging.log4j.core.Filter filter = null;
+        boolean advertise = false;
+        org.apache.logging.log4j.core.config.Configuration configuration;
+        configuration = ctx.getConfiguration();
+
+        org.apache.logging.log4j.core.appender.SocketAppender socketAppender;
+        socketAppender = org.apache.logging.log4j.core.appender.SocketAppender.createAppender(host, port,
+                protocol, sslConfig, connectTimeoutMillis, reconnectDelayMillis, immediateFail, name,
+                immediateFlush, ignoreExceptions, patternLayout, thresholdFilter, advertise, configuration);
+
+        log("Create SocketAppender - End");
+
+        return socketAppender;
+    }
+
+    private org.apache.logging.log4j.core.layout.PatternLayout getPatternLayout() {
+
+        log("Create PatternLayout - Start");
+
+        org.apache.logging.log4j.core.config.Configuration configuration;
+        configuration = ctx.getConfiguration();
+
+        org.apache.logging.log4j.core.layout.PatternSelector patternSelector = null;
+        org.apache.logging.log4j.core.pattern.RegexReplacement replace = null;
+        java.nio.charset.Charset charset = null;
+        boolean alwaysWriteExceptions = true;
+        boolean noConsoleNoAnsi = true;
+        String headerPattern = null;
+        String footerPattern = null;
+
+        org.apache.logging.log4j.core.layout.PatternLayout patternLayout;
+        patternLayout = org.apache.logging.log4j.core.layout.PatternLayout.createLayout(pattern,
+                patternSelector, configuration, replace, charset, alwaysWriteExceptions, noConsoleNoAnsi,
+                headerPattern, footerPattern);
+
+        log("Create PatternLayout - End");
+
+        return patternLayout;
+    }
+
+    private org.apache.logging.log4j.core.filter.ThresholdFilter getThresholdFilter() {
+
+        log("Create ThresholdFilter - Start");
+
+        org.apache.logging.log4j.Level level;
+        level = org.apache.logging.log4j.Level.forName("ALERT", 50);
+        org.apache.logging.log4j.core.Filter.Result onMatch;
+        onMatch = org.apache.logging.log4j.core.Filter.Result.DENY;
+        org.apache.logging.log4j.core.Filter.Result onMismatch;
+        onMismatch = org.apache.logging.log4j.core.Filter.Result.NEUTRAL;
+
+        org.apache.logging.log4j.core.filter.ThresholdFilter thresholdFilter;
+        thresholdFilter = org.apache.logging.log4j.core.filter.ThresholdFilter.createFilter(level, onMatch,
+                onMismatch);
+
+        log("Create ThresholdFilter - End");
+
+        return thresholdFilter;
+    }
+
+    private void log(String message) {
+        oLog.infoForced(message);
+
+        logMessageSB.append(message);
+        logMessageSB.append(System.getProperty("line.separator"));
+
+    }
+}
+
+PegaRULESSocketAppender pegaRULESSocketLogAppender;
+pegaRULESSocketLogAppender = new PegaRULESSocketAppender(host, port);
+
+pegaRULESSocketLogAppender.perform();
+
+String logMessages = pegaRULESSocketLogAppender.getLogMessages();
+tools.getThread().getThreadPage().putString("pyXMLStream", logMessages);
+

@@ -4,10 +4,10 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.model;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -18,52 +18,73 @@ import com.pega.gcs.logviewer.ThreadDumpPanel;
 
 public class Log4jLogThreadDumpEntry extends Log4jLogEntry {
 
-	private static final long serialVersionUID = 5176182208095407460L;
+    private static final long serialVersionUID = 5176182208095407460L;
 
-	private List<Log4jLogRequestorLockEntry> log4jLogRequestorLockEntryList;
+    private Integer index;
 
-	private Object ptdpThreadDump;
+    private List<Log4jLogRequestorLockEntry> log4jLogRequestorLockEntryList;
 
-	private String generatedReportFile;
+    private Object ptdpThreadDump;
 
-	public Log4jLogThreadDumpEntry(int logEntryIndex, Date logEntryDate, ArrayList<String> logEntryValueList,
-			String logEntryText, boolean sysdateEntry, byte logLevelId) {
+    private String generatedReportFile;
 
-		super(logEntryIndex, logEntryDate, logEntryValueList, logEntryText, sysdateEntry, logLevelId);
+    public Log4jLogThreadDumpEntry(int index, LogEntryKey logEntryKey, ArrayList<String> logEntryValueList,
+            String logEntryText, boolean sysdateEntry, byte logLevelId) {
 
-		log4jLogRequestorLockEntryList = new ArrayList<Log4jLogRequestorLockEntry>();
+        super(logEntryKey, logEntryValueList, logEntryText, sysdateEntry, logLevelId);
 
-		generatedReportFile = null;
-	}
+        this.index = index;
 
-	public List<Log4jLogRequestorLockEntry> getLog4jLogRequestorLockEntryList() {
-		return log4jLogRequestorLockEntryList;
-	}
+        log4jLogRequestorLockEntryList = new ArrayList<Log4jLogRequestorLockEntry>();
 
-	@Override
-	public JPanel getDetailsJPanel(LogTableModel logTableModel) {
+        generatedReportFile = null;
+    }
 
-		JPanel detailsJPanel = null;
-		AtomicInteger threadDumpSelectedTab = new AtomicInteger(0);
-		detailsJPanel = new ThreadDumpPanel(this, logTableModel, threadDumpSelectedTab);
+    public List<Log4jLogRequestorLockEntry> getLog4jLogRequestorLockEntryList() {
+        return log4jLogRequestorLockEntryList;
+    }
 
-		return detailsJPanel;
-	}
+    @Override
+    public JPanel getDetailsJPanel(LogTableModel logTableModel) {
 
-	public Object getPtdpThreadDump() {
-		return ptdpThreadDump;
-	}
+        JPanel detailsJPanel = null;
+        AtomicInteger threadDumpSelectedTab = new AtomicInteger(0);
+        detailsJPanel = new ThreadDumpPanel(this, logTableModel, threadDumpSelectedTab);
 
-	public void setPtdpThreadDump(Object ptdpThreadDump) {
-		this.ptdpThreadDump = ptdpThreadDump;
-	}
+        return detailsJPanel;
+    }
 
-	public String getGeneratedReportFile() {
-		return generatedReportFile;
-	}
+    public Object getPtdpThreadDump() {
+        return ptdpThreadDump;
+    }
 
-	public void setGeneratedReportFile(String generatedReportFile) {
-		this.generatedReportFile = generatedReportFile;
-	}
+    public void setPtdpThreadDump(Object ptdpThreadDump) {
+        this.ptdpThreadDump = ptdpThreadDump;
+    }
 
+    public String getGeneratedReportFile() {
+        return generatedReportFile;
+    }
+
+    public void setGeneratedReportFile(String generatedReportFile) {
+        this.generatedReportFile = generatedReportFile;
+    }
+
+    public String getDisplayString(LogEntryModel logEntryModel) {
+
+        LogEntryKey logEntryKey = getKey();
+
+        String timeText = logEntryModel.getLogEntryTimeDisplayString(logEntryKey);
+        int lineNo = logEntryKey.getLineNo();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(index);
+        sb.append(". Thread Dump - Time [");
+        sb.append(timeText);
+        sb.append("] Line No [");
+        sb.append(lineNo);
+        sb.append("]");
+
+        return sb.toString();
+    }
 }

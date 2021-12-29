@@ -4,14 +4,13 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.beans.PropertyChangeSupport;
-import java.text.DateFormat;
-import java.text.ParseException;
+import java.nio.charset.Charset;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -38,564 +37,506 @@ import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.logfile.LogFileType;
 import com.pega.gcs.logviewer.model.LogEntry;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 
-public class LogTableModel extends FilterTableModel<Integer> {
+public class LogTableModel extends FilterTableModel<LogEntryKey> {
 
-	private static final long serialVersionUID = 7355840960429067165L;
+    private static final long serialVersionUID = 7355840960429067165L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(LogTableModel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(LogTableModel.class);
 
-	private LogEntryModel logEntryModel;
+    private LogEntryModel logEntryModel;
 
-	// search
-	private SearchData<Integer> searchData;
-	private SearchModel<Integer> searchModel;
+    // search
+    private SearchData<LogEntryKey> searchData;
+    private SearchModel<LogEntryKey> searchModel;
 
-	public LogTableModel(RecentFile recentFile, SearchData<Integer> searchData) {
+    public LogTableModel(RecentFile recentFile, SearchData<LogEntryKey> searchData) {
 
-		super(recentFile);
-		this.searchData = searchData;
+        super(recentFile);
+        this.searchData = searchData;
 
-		resetModel();
+        resetModel();
 
-	}
+    }
 
-	public LogEntryModel getLogEntryModel() {
-		return logEntryModel;
-	}
+    public LogEntryModel getLogEntryModel() {
+        return logEntryModel;
+    }
 
-	// explicitly setting the lem as the type of model will be known only after
-	// parsing the log file
-	public void setLogEntryModel(LogEntryModel logEntryModel) {
-		this.logEntryModel = logEntryModel;
+    // explicitly setting the lem as the type of model will be known only after
+    // parsing the log file
+    public void setLogEntryModel(LogEntryModel logEntryModel) {
+        this.logEntryModel = logEntryModel;
 
-		PropertyChangeSupport propertyChangeSupport = getPropertyChangeSupport();
-		propertyChangeSupport.firePropertyChange("logEntryModel", null, logEntryModel);
-	}
+        PropertyChangeSupport propertyChangeSupport = getPropertyChangeSupport();
+        propertyChangeSupport.firePropertyChange("logEntryModel", null, logEntryModel);
+    }
 
-	@Override
-	public void resetModel() {
+    @Override
+    public void resetModel() {
 
-		if (logEntryModel != null) {
+        if (logEntryModel != null) {
 
-			logEntryModel.resetModel();
-			clearSearchResults(true);
-			fireTableDataChanged();
-		}
+            logEntryModel.resetModel();
+            clearSearchResults(true);
+            fireTableDataChanged();
+        }
 
-	}
+    }
 
-	@Override
-	public List<Integer> getFtmEntryKeyList() {
+    @Override
+    public List<LogEntryKey> getFtmEntryKeyList() {
 
-		List<Integer> logEntryIndexList = null;
+        List<LogEntryKey> logEntryKeyList = null;
 
-		if (logEntryModel != null) {
-			logEntryIndexList = logEntryModel.getLogEntryIndexList();
-		}
-		return logEntryIndexList;
-	}
+        if (logEntryModel != null) {
+            logEntryKeyList = logEntryModel.getLogEntryKeyList();
+        }
+        return logEntryKeyList;
+    }
 
-	@Override
-	protected Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<Integer>>> getColumnFilterMap() {
-		return logEntryModel.getColumnFilterMap();
-	}
+    @Override
+    protected HashMap<LogEntryKey, Integer> getKeyIndexMap() {
+        return logEntryModel.getKeyIndexMap();
+    }
 
-	@Override
-	public int getColumnCount() {
-		int columnCount = 0;
+    @Override
+    protected Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<LogEntryKey>>> getColumnFilterMap() {
+        return logEntryModel.getColumnFilterMap();
+    }
 
-		if (logEntryModel != null) {
-			columnCount = logEntryModel.getVisibleColumnIndexList().size();
-		}
+    @Override
+    public int getColumnCount() {
+        int columnCount = 0;
 
-		return columnCount;
-	}
+        if (logEntryModel != null) {
+            columnCount = logEntryModel.getVisibleColumnIndexList().size();
+        }
 
-	@Override
-	public Object getValueAt(int rowIndex, int columnIndex) {
+        return columnCount;
+    }
 
-		List<Integer> logEntryIndexList = getFtmEntryKeyList();
+    @Override
+    public Object getValueAt(int rowIndex, int columnIndex) {
 
-		Integer logEntryIndex = logEntryIndexList.get(rowIndex);
-		LogEntry logEntry = getEventForKey(logEntryIndex);
+        List<LogEntryKey> logEntryKeyList = getFtmEntryKeyList();
 
-		return logEntry;
-	}
+        LogEntryKey logEntryKey = logEntryKeyList.get(rowIndex);
+        LogEntry logEntry = getEventForKey(logEntryKey);
 
-	@Override
-	public String getColumnName(int column) {
-		int origColumnIndex = getModelColumnIndex(column);
-		return logEntryModel.getLogEntryColumn(origColumnIndex);
-	}
+        return logEntry;
+    }
 
-	@Override
-	protected int getModelColumnIndex(int column) {
-		int origColumnIndex = logEntryModel.getVisibleColumnIndexList().get(column);
-		return origColumnIndex;
-	}
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getColumnValue(java. lang.Object, int)
+     */
+    @Override
+    public String getColumnValue(Object valueAtObject, int columnIndex) {
 
-	@Override
-	public LogEntry getEventForKey(Integer logEntryIndex) {
+        LogEntry logEntry = (LogEntry) valueAtObject;
 
-		LogEntry logEntry = null;
+        String columnValue = null;
 
-		if (logEntryIndex != null) {
-			logEntry = logEntryModel.getLogEntry(logEntryIndex);
-		}
+        if (logEntry != null) {
 
-		return logEntry;
-	}
+            int modelColumnIndex = getModelColumnIndex(columnIndex);
 
-	@Override
-	protected TableColumnModel getTableColumnModel() {
+            columnValue = logEntryModel.getFormattedLogEntryValue(logEntry, modelColumnIndex);
+        }
 
-		TableColumnModel tableColumnModel = new DefaultTableColumnModel();
+        return columnValue;
+    }
 
-		for (int i = 0; i < getColumnCount(); i++) {
+    @Override
+    public String getColumnName(int column) {
+        int origColumnIndex = getModelColumnIndex(column);
+        return logEntryModel.getLogEntryColumn(origColumnIndex);
+    }
 
-			String text = getColumnName(i);
+    @Override
+    protected int getModelColumnIndex(int column) {
+        int origColumnIndex = logEntryModel.getVisibleColumnIndexList().get(column);
+        return origColumnIndex;
+    }
 
-			TableColumn tableColumn = new TableColumn(i);
-			tableColumn.setHeaderValue(text);
+    @Override
+    public LogEntry getEventForKey(LogEntryKey logEntryKey) {
 
-			int horizontalAlignment = SwingConstants.TRAILING;
-			int colWidth = 70;
-			LogEntryColumn logEntryColumn = null;
+        LogEntry logEntry = null;
 
-			logEntryColumn = LogEntryColumn.getTableColumnById(text);
+        if (logEntryKey != null) {
+            logEntry = logEntryModel.getLogEntry(logEntryKey);
+        }
 
-			if (logEntryColumn == null) {
-				LOG.error("Error getting log entry column for text: " + text);
-			} else {
-				horizontalAlignment = logEntryColumn.getHorizontalAlignment();
-				colWidth = logEntryColumn.getPrefColumnWidth();
-			}
+        return logEntry;
+    }
 
-			LogTableCellRenderer ltcr = new LogTableCellRenderer();
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getTableColumnModel( )
+     */
+    @Override
+    public TableColumnModel getTableColumnModel() {
 
-			ltcr.setBorder(new EmptyBorder(1, 3, 1, 1));
-			ltcr.setHorizontalAlignment(horizontalAlignment);
+        TableColumnModel tableColumnModel = new DefaultTableColumnModel();
 
-			tableColumn.setCellRenderer(ltcr);
+        for (int i = 0; i < getColumnCount(); i++) {
 
-			tableColumn.setPreferredWidth(colWidth);
-			tableColumn.setWidth(colWidth);
+            String text = getColumnName(i);
 
-			tableColumn.setResizable(true);
+            TableColumn tableColumn = new TableColumn(i);
+            tableColumn.setHeaderValue(text);
 
-			tableColumnModel.addColumn(tableColumn);
-		}
+            int horizontalAlignment = SwingConstants.TRAILING;
+            int colWidth = 70;
+            LogEntryColumn logEntryColumn = null;
 
-		return tableColumnModel;
-	}
+            logEntryColumn = LogEntryColumn.getTableColumnById(text);
 
-	public LogFileType getLogFileType() {
+            if (logEntryColumn == null) {
+                LOG.error("Error getting log entry column for text: " + text);
+            } else {
+                horizontalAlignment = logEntryColumn.getHorizontalAlignment();
+                colWidth = logEntryColumn.getPrefColumnWidth();
+            }
 
-		LogFileType logFileType = null;
+            LogTableCellRenderer ltcr = new LogTableCellRenderer();
 
-		RecentFile recentFile = getRecentFile();
+            ltcr.setBorder(new EmptyBorder(1, 3, 1, 1));
+            ltcr.setHorizontalAlignment(horizontalAlignment);
 
-		if (recentFile != null) {
-			logFileType = (LogFileType) recentFile.getAttribute(RecentFile.KEY_LOGFILETYPE);
-		}
+            tableColumn.setCellRenderer(ltcr);
 
-		return logFileType;
-	}
+            tableColumn.setPreferredWidth(colWidth);
+            tableColumn.setWidth(colWidth);
 
-	public TimeZone getLogTimeZone() {
+            tableColumn.setResizable(true);
 
-		TimeZone timeZone = null;
+            tableColumnModel.addColumn(tableColumn);
+        }
 
-		RecentFile recentFile = getRecentFile();
+        return tableColumnModel;
+    }
 
-		if (recentFile != null) {
-			timeZone = (TimeZone) recentFile.getAttribute(RecentFile.KEY_TIMEZONE);
-		}
+    public LogFileType getLogFileType() {
 
-		return timeZone;
-	}
+        LogFileType logFileType = null;
 
-	public void updateRecentFile(String charset, Locale locale, TimeZone timeZone) {
+        RecentFile recentFile = getRecentFile();
 
-		LogEntryModel lem = getLogEntryModel();
+        if (recentFile != null) {
+            logFileType = (LogFileType) recentFile.getAttribute(RecentFile.KEY_LOGFILETYPE);
+        }
 
-		RecentFile recentFile = getRecentFile();
+        return logFileType;
+    }
 
-		if (charset != null) {
-			recentFile.setAttribute(RecentFile.KEY_CHARSET, charset);
-			// change in character set will trigger reloading of file.
-		}
+    public TimeZone getLogTimeZone() {
 
-		if (locale != null) {
-			recentFile.setAttribute(RecentFile.KEY_LOCALE, locale);
-			lem.setLocale(locale);
-		}
+        TimeZone timeZone = null;
 
-		if (timeZone != null) {
-			recentFile.setAttribute(RecentFile.KEY_TIMEZONE, timeZone);
-			DateFormat displayDateFormat;
-			displayDateFormat = lem.getDisplayDateFormat();
-			displayDateFormat.setTimeZone(timeZone);
-		}
+        RecentFile recentFile = getRecentFile();
 
-		fireTableDataChanged();
+        if (recentFile != null) {
+            timeZone = (TimeZone) recentFile.getAttribute(RecentFile.KEY_TIMEZONE);
+        }
 
-	}
+        return timeZone;
+    }
 
-	public String getFormattedLogEntryValue(LogEntry logEntry, int tableColumn) {
+    public void updateRecentFile(String charset, Locale locale, TimeZone timeZone) {
 
-		int modelColumn = getModelColumnIndex(tableColumn);
+        LogEntryModel lem = getLogEntryModel();
 
-		String text = logEntryModel.getFormattedLogEntryValue(logEntry, modelColumn);
+        RecentFile recentFile = getRecentFile();
 
-		return text;
-	}
+        if (charset != null) {
+            recentFile.setAttribute(RecentFile.KEY_CHARSET, charset);
+            // change in character set will trigger reloading of file.
+        }
 
-	// performing one by one search because of showing progress in the monitor
-	// also when cancelling the task we should keep the old search results
-	// hence not search result is stored unless the task is completed
-	@Override
-	public boolean search(Integer key, Object searchStrObj) {
+        if (locale != null) {
+            recentFile.setAttribute(RecentFile.KEY_LOCALE, locale);
+        }
 
-		boolean found = false;
+        if (timeZone != null) {
+            recentFile.setAttribute(RecentFile.KEY_TIMEZONE, timeZone);
 
-		LogEntry logEntry = logEntryModel.getLogEntry(key);
+            lem.setDisplayDateFormatTimeZone(timeZone);
+        }
 
-		if (logEntry != null) {
+        fireTableDataChanged();
 
-			found = logEntry.search(searchStrObj.toString());
+    }
 
-		}
+    // performing one by one search because of showing progress in the monitor
+    // also when cancelling the task we should keep the old search results
+    // hence not search result is stored unless the task is completed
+    @Override
+    public boolean search(LogEntryKey key, Object searchStrObj) {
 
-		return found;
-	}
+        boolean found = false;
 
-	@Override
-	protected FilterTableModelNavigation<Integer> getNavigationRowIndex(List<Integer> resultList, int selectedRowIndex,
-			boolean forward, boolean first, boolean last, boolean wrap) {
+        LogEntry logEntry = logEntryModel.getLogEntry(key);
 
-		int currSelectedRowIndex = selectedRowIndex;
+        if (logEntry != null) {
 
-		int navigationIndex = 0;
-		int navigationRowIndex = 0;
+            Charset charset = getCharset();
 
-		if ((resultList != null) && (resultList.size() > 0)) {
+            found = logEntry.search(searchStrObj.toString(), charset);
+        }
 
-			int resultListSize = resultList.size();
+        return found;
+    }
 
-			List<Integer> logEntryIndexList = getFtmEntryKeyList();
+    @Override
+    protected FilterTableModelNavigation<LogEntryKey> getNavigationRowIndex(List<LogEntryKey> resultList,
+            int selectedRowIndex, boolean forward, boolean first, boolean last, boolean wrap) {
 
-			int logEntryIndexListSize = logEntryIndexList.size();
+        int currSelectedRowIndex = selectedRowIndex;
 
-			Integer logEntryKey = null;
+        int navigationIndex = 0;
+        int navigationRowIndex = 0;
 
-			if (first) {
+        if ((resultList != null) && (resultList.size() > 0)) {
 
-				logEntryKey = resultList.get(0);
-				navigationIndex = 1;
+            int resultListSize = resultList.size();
 
-			} else if (last) {
+            List<LogEntryKey> logEntryKeyList = getFtmEntryKeyList();
 
-				int lastIndex = resultListSize - 1;
-				logEntryKey = resultList.get(lastIndex);
-				navigationIndex = resultListSize;
+            int logEntryKeyListSize = logEntryKeyList.size();
 
-			} else if (forward) {
-				// NEXT
-				if (currSelectedRowIndex >= 0) {
+            LogEntryKey logEntryKey = null;
 
-					if (currSelectedRowIndex < (logEntryIndexListSize - 1)) {
-						currSelectedRowIndex++;
-					} else {
-						if (wrap) {
-							currSelectedRowIndex = 0;
-						}
-					}
-				} else {
-					currSelectedRowIndex = 0;
-				}
+            if (first) {
 
-				Integer currSelectedLogEntryIndex = logEntryIndexList.get(currSelectedRowIndex);
+                logEntryKey = resultList.get(0);
+                navigationIndex = 1;
 
-				int searchIndex = Collections.binarySearch(resultList, currSelectedLogEntryIndex);
+            } else if (last) {
 
-				if (searchIndex >= 0) {
-					// exact search found
-					logEntryKey = resultList.get(searchIndex);
-				} else {
+                int lastIndex = resultListSize - 1;
+                logEntryKey = resultList.get(lastIndex);
+                navigationIndex = resultListSize;
 
-					searchIndex = (searchIndex * -1) - 1;
+            } else if (forward) {
+                // NEXT
+                if (currSelectedRowIndex >= 0) {
 
-					if (searchIndex == resultListSize) {
+                    if (currSelectedRowIndex < (logEntryKeyListSize - 1)) {
+                        currSelectedRowIndex++;
+                    } else {
+                        if (wrap) {
+                            currSelectedRowIndex = 0;
+                        }
+                    }
+                } else {
+                    currSelectedRowIndex = 0;
+                }
 
-						if (wrap) {
-							searchIndex = 0;
-						} else {
-							searchIndex = resultListSize - 1;
-						}
-					}
+                LogEntryKey currSelectedLogEntryKey = logEntryKeyList.get(currSelectedRowIndex);
 
-					logEntryKey = resultList.get(searchIndex);
-				}
+                int searchIndex = Collections.binarySearch(resultList, currSelectedLogEntryKey);
 
-				navigationIndex = resultList.indexOf(logEntryKey) + 1;
+                if (searchIndex >= 0) {
+                    // exact search found
+                    logEntryKey = resultList.get(searchIndex);
+                } else {
 
-			} else {
-				// PREVIOUS
-				if (currSelectedRowIndex >= 0) {
+                    searchIndex = (searchIndex * -1) - 1;
 
-					if (currSelectedRowIndex > 0) {
-						currSelectedRowIndex--;
-					} else {
-						if (wrap) {
-							currSelectedRowIndex = logEntryIndexListSize - 1;
-						}
-					}
-				} else {
-					currSelectedRowIndex = 0;
-				}
+                    if (searchIndex == resultListSize) {
 
-				int currSelectedLogEntryIndex = logEntryIndexList.get(currSelectedRowIndex);
+                        if (wrap) {
+                            searchIndex = 0;
+                        } else {
+                            searchIndex = resultListSize - 1;
+                        }
+                    }
 
-				int searchIndex = Collections.binarySearch(resultList, currSelectedLogEntryIndex);
+                    logEntryKey = resultList.get(searchIndex);
+                }
 
-				if (searchIndex >= 0) {
-					// exact search found
-					logEntryKey = resultList.get(searchIndex);
-				} else {
+                navigationIndex = resultList.indexOf(logEntryKey) + 1;
 
-					searchIndex = (searchIndex * -1) - 1;
+            } else {
+                // PREVIOUS
+                if (currSelectedRowIndex >= 0) {
 
-					if (searchIndex == 0) {
+                    if (currSelectedRowIndex > 0) {
+                        currSelectedRowIndex--;
+                    } else {
+                        if (wrap) {
+                            currSelectedRowIndex = logEntryKeyListSize - 1;
+                        }
+                    }
+                } else {
+                    currSelectedRowIndex = 0;
+                }
 
-						if (wrap) {
-							searchIndex = resultListSize - 1;
-						} else {
-							searchIndex = 0;
-						}
-					} else {
-						searchIndex--;
-					}
+                LogEntryKey currSelectedLogEntryKey = logEntryKeyList.get(currSelectedRowIndex);
 
-					logEntryKey = resultList.get(searchIndex);
-				}
+                int searchIndex = Collections.binarySearch(resultList, currSelectedLogEntryKey);
 
-				navigationIndex = resultList.indexOf(logEntryKey) + 1;
-			}
+                if (searchIndex >= 0) {
+                    // exact search found
+                    logEntryKey = resultList.get(searchIndex);
+                } else {
 
-			if (logEntryKey != null) {
+                    searchIndex = (searchIndex * -1) - 1;
 
-				navigationRowIndex = logEntryIndexList.indexOf(logEntryKey);
+                    if (searchIndex == 0) {
 
-			} else {
-				navigationRowIndex = currSelectedRowIndex;
-			}
+                        if (wrap) {
+                            searchIndex = resultListSize - 1;
+                        } else {
+                            searchIndex = 0;
+                        }
+                    } else {
+                        searchIndex--;
+                    }
 
-		}
+                    logEntryKey = resultList.get(searchIndex);
+                }
 
-		FilterTableModelNavigation<Integer> ttmn = new FilterTableModelNavigation<Integer>();
-		ttmn.setNavigationIndex(navigationIndex);
-		ttmn.setNavigationRowIndex(navigationRowIndex);
+                navigationIndex = resultList.indexOf(logEntryKey) + 1;
+            }
 
-		return ttmn;
-	}
+            if (logEntryKey != null) {
 
-	public Integer getClosestLogEntryIndex(long time) throws ParseException {
-		// int logEntryRowIndex = -1;
-		Integer logEntryIndex = null;
+                navigationRowIndex = logEntryKeyList.indexOf(logEntryKey);
 
-		Map<Long, Integer> timeLogEntryKeyMap = logEntryModel.getTimeLogEntryKeyMap();
+            } else {
+                navigationRowIndex = currSelectedRowIndex;
+            }
 
-		LinkedList<Long> timeKeyList = new LinkedList<Long>(timeLogEntryKeyMap.keySet());
+        }
 
-		Collections.sort(timeKeyList);
+        FilterTableModelNavigation<LogEntryKey> ttmn = new FilterTableModelNavigation<LogEntryKey>();
+        ttmn.setNavigationIndex(navigationIndex);
+        ttmn.setNavigationRowIndex(navigationRowIndex);
 
-		long firstTime = timeKeyList.get(0);
+        return ttmn;
+    }
 
-		long lastTime = timeKeyList.get(timeKeyList.size() - 1);
+    @Override
+    public void clearSearchResults(boolean clearResults) {
 
-		if ((time >= firstTime) && (time <= lastTime)) {
+        getSearchModel().resetResults(clearResults);
 
-			int index = Collections.binarySearch(timeKeyList, time);
-			Long timeKey = null;
+        LogEntryModel logEntryModel = getLogEntryModel();
 
-			if (index < 0) {
-				index = (index * -1) - 1;
+        logEntryModel.clearLogEntrySearchResults();
+    }
 
-				// find closest index
-				if (index > 0) {
+    @Override
+    public AbstractTreeTableNode getTreeNodeForKey(LogEntryKey key) {
+        return null;
+    }
 
-					int prevIndex = index - 1;
-					long prevtimeKey = timeKeyList.get(prevIndex);
-					timeKey = timeKeyList.get(index);
+    @Override
+    public SearchModel<LogEntryKey> getSearchModel() {
 
-					long diff1 = time - prevtimeKey;
-					long diff2 = timeKey - time;
+        if (searchModel == null) {
 
-					if (diff1 < diff2) {
-						timeKey = prevtimeKey;
-					}
+            searchModel = new SearchModel<LogEntryKey>(searchData) {
 
-				} else {
-					timeKey = timeKeyList.get(index);
-				}
-			} else {
-				// exact match
-				timeKey = timeKeyList.get(index);
-			}
+                @Override
+                public void searchInEvents(final Object searchStrObj, final ModalProgressMonitor modalProgressMonitor) {
 
-			logEntryIndex = timeLogEntryKeyMap.get(timeKey);
+                    if ((searchStrObj != null) && (!"".equals(searchStrObj.toString()))) {
 
-			// List<Integer> logEntryIndexList = getFtmEntryKeyList();
-			//
-			// logEntryRowIndex = logEntryIndexList.indexOf(logEntryIndex);
-		}
+                        LogTableSearchTask ttst = new LogTableSearchTask(modalProgressMonitor, LogTableModel.this,
+                                searchStrObj) {
 
-		return logEntryIndex;
-	}
+                            /*
+                             * (non-Javadoc)
+                             * 
+                             * @see javax.swing.SwingWorker#done()
+                             */
+                            @Override
+                            protected void done() {
 
-	@Override
-	public void clearSearchResults(boolean clearResults) {
+                                try {
+                                    List<LogEntryKey> searchResultList = get();
 
-		getSearchModel().resetResults(clearResults);
+                                    if (searchResultList != null) {
+                                        // LOG.info("LogTableSearchTask
+                                        // done "
+                                        // + searchResultList.size() +
+                                        // " entries found");
+                                        // setSearchStrObj(searchStrObj);
+                                        setSearchResultList(searchStrObj, searchResultList);
+                                    }
 
-		clearLogEntrySearchResults();
-	}
+                                } catch (CancellationException ce) {
+                                    LOG.error("LogTableSearchTask cancelled: ", ce);
+                                } catch (ExecutionException ee) {
+                                    LOG.error("ExecutionException in LogTableSearchTask.", ee);
+                                } catch (Exception e) {
+                                    LOG.error("Exception in LogTableSearchTask.", e);
+                                } finally {
 
-	protected void clearLogEntrySearchResults() {
+                                    fireTableDataChanged();
 
-		List<Integer> filteredList = getFtmEntryKeyList();
+                                    modalProgressMonitor.close();
+                                }
+                            }
+                        };
 
-		if (filteredList != null) {
+                        ttst.execute();
 
-			Iterator<Integer> fListIterator = filteredList.iterator();
+                    }
+                }
 
-			while (fListIterator.hasNext()) {
+                @Override
+                public void resetResults(boolean clearResults) {
+                    // clears search result on search model and reset the search
+                    // panel
+                    resetSearchResults(clearResults);
 
-				Integer key = fListIterator.next();
+                    // clear search results from within trace events and tree
+                    // nodes
+                    LogEntryModel logEntryModel = getLogEntryModel();
+                    if (logEntryModel != null) {
+                        logEntryModel.clearLogEntrySearchResults();
+                    }
 
-				LogEntry logEntry = getEventForKey(key);
-				logEntry.setSearchFound(false);
-			}
-		}
-	}
+                    fireTableDataChanged();
+                }
 
-	@Override
-	public int getIndexOfKey(Integer key) {
+            };
+        }
 
-		List<Integer> logEntryIndexList = getFtmEntryKeyList();
+        return searchModel;
+    }
 
-		int index = -1;
+    public LogEntryColumn[] getReportTableColumns() {
+        return logEntryModel.getReportTableColumns();
+    }
 
-		if (logEntryIndexList != null) {
-			index = logEntryIndexList.indexOf(key);
-		}
+    public String getSelectedRowsData(int[] selectedRows) {
 
-		return index;
-	}
+        StringBuilder selectedRowsDataSB = new StringBuilder();
 
-	@Override
-	public AbstractTreeTableNode getTreeNodeForKey(Integer key) {
-		return null;
-	}
+        for (int selectedRow : selectedRows) {
 
-	@Override
-	public SearchModel<Integer> getSearchModel() {
+            LogEntryKey logEntryKey = getFtmEntryKeyList().get(selectedRow);
+            LogEntry logEntry = getEventForKey(logEntryKey);
 
-		if (searchModel == null) {
+            if (logEntry != null) {
+                selectedRowsDataSB.append(logEntry.getLogEntryText());
+                selectedRowsDataSB.append(System.getProperty("line.separator"));
 
-			searchModel = new SearchModel<Integer>(searchData) {
+            }
 
-				@Override
-				public void searchInEvents(final Object searchStrObj, final ModalProgressMonitor mProgressMonitor) {
+        }
 
-					if ((searchStrObj != null) && (!"".equals(searchStrObj.toString()))) {
-
-						LogTableSearchTask ttst = new LogTableSearchTask(mProgressMonitor, LogTableModel.this,
-								searchStrObj) {
-
-							/*
-							 * (non-Javadoc)
-							 * 
-							 * @see javax.swing.SwingWorker#done()
-							 */
-							@Override
-							protected void done() {
-
-								try {
-									List<Integer> searchResultList = get();
-
-									if (searchResultList != null) {
-										// LOG.info("LogTableSearchTask
-										// done "
-										// + searchResultList.size() +
-										// " entries found");
-										// setSearchStrObj(searchStrObj);
-										setSearchResultList(searchStrObj, searchResultList);
-									}
-
-								} catch (CancellationException ce) {
-									LOG.error("LogTableSearchTask cancelled: ", ce);
-								} catch (ExecutionException ee) {
-									LOG.error("ExecutionException in LogTableSearchTask.", ee);
-								} catch (Exception e) {
-									LOG.error("Exception in LogTableSearchTask.", e);
-								} finally {
-
-									fireTableDataChanged();
-
-									mProgressMonitor.close();
-								}
-							}
-						};
-
-						ttst.execute();
-
-					}
-				}
-
-				@Override
-				public void resetResults(boolean clearResults) {
-					// clears search result on search model and reset the search
-					// panel
-					resetSearchResults(clearResults);
-
-					// clear search results from within trace events and tree
-					// nodes
-					clearLogEntrySearchResults();
-
-					fireTableDataChanged();
-				}
-
-			};
-		}
-
-		return searchModel;
-	}
-
-	public LogEntryColumn[] getReportTableColumns() {
-		return logEntryModel.getReportTableColumns();
-	}
-
-	public String getSelectedRowsData(int[] selectedRows) {
-
-		StringBuffer selectedRowsDataSB = new StringBuffer();
-
-		for (int selectedRow : selectedRows) {
-
-			Integer logEntryIndex = getFtmEntryKeyList().get(selectedRow);
-			LogEntry logEntry = getEventForKey(logEntryIndex);
-
-			if (logEntry != null) {
-				selectedRowsDataSB.append(logEntry.getLogEntryText());
-				selectedRowsDataSB.append(System.getProperty("line.separator"));
-
-			}
-
-		}
-
-		return selectedRowsDataSB.toString();
-	}
+        return selectedRowsDataSB.toString();
+    }
 }

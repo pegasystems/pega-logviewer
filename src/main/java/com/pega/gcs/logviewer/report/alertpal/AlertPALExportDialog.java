@@ -4,14 +4,15 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alertpal;
 
-import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.LayoutManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -20,6 +21,8 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -37,406 +40,392 @@ import com.pega.gcs.logviewer.LogTableModel;
 
 public class AlertPALExportDialog extends JDialog {
 
-	private static final long serialVersionUID = 1563645482258326358L;
+    private static final long serialVersionUID = 1563645482258326358L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(AlertPALExportDialog.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(AlertPALExportDialog.class);
 
-	private AlertPALTableModel alertPALTableModel;
+    private AlertPALTableModel alertPALTableModel;
 
-	private JButton alertPalExportJButton;
+    private JButton alertPalExportButton;
 
-	private JButton alertPalExportCancelJButton;
+    private JButton alertPalExportCancelButton;
 
-	private JProgressBar alertPalExportJProgressBar;
+    private JProgressBar alertPalExportProgressBar;
 
-	private JFileChooser fileChooser;
+    private JFileChooser fileChooser;
 
-	private ClickableFilePathPanel alertPalClickableFilePathPanel;
+    private ClickableFilePathPanel alertPalClickableFilePathPanel;
 
-	private JLabel alertPalExportJLabel;
+    private JLabel alertPalExportLabel;
 
-	private AlertPALTableExportTask alertPALTableExportTask;
+    private AlertPALTableExportTask alertPALTableExportTask;
 
-	private File logFile;
+    private File logFile;
 
-	public AlertPALExportDialog(LogTableModel logTableModel, AlertPALTableModel alertPALTableModel, ImageIcon appIcon,
-			Component parent) {
+    public AlertPALExportDialog(LogTableModel logTableModel, AlertPALTableModel alertPALTableModel, ImageIcon appIcon,
+            Component parent) {
 
-		super();
+        super();
 
-		this.alertPALTableModel = alertPALTableModel;
+        this.alertPALTableModel = alertPALTableModel;
 
-		this.alertPALTableExportTask = null;
+        this.alertPALTableExportTask = null;
 
-		String filePath = logTableModel.getFilePath();
+        String filePath = logTableModel.getFilePath();
 
-		logFile = new File(filePath);
+        logFile = new File(filePath);
 
-		// check if the default output file is available
-		String fileName = getDefaultTSVFileName();
-		File currentDirectory = logFile.getParentFile();
+        // check if the default output file is available
+        String fileName = getDefaultTSVFileName();
+        File currentDirectory = logFile.getParentFile();
 
-		File proposedFile = new File(currentDirectory, fileName);
+        File proposedFile = new File(currentDirectory, fileName);
 
-		if (proposedFile.exists() && proposedFile.isFile()) {
-			populateGeneratedTSVPath(proposedFile);
-		}
+        if (proposedFile.exists() && proposedFile.isFile()) {
+            populateGeneratedTSVPath(proposedFile);
+        }
 
-		setTitle("Export to TSV - " + logTableModel.getModelName());
+        setPreferredSize(new Dimension(500, 200));
 
-		setIconImage(appIcon.getImage());
+        setIconImage(appIcon.getImage());
 
-		setPreferredSize(new Dimension(500, 170));
+        setTitle("Export to TSV - " + logTableModel.getModelName());
 
-		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setModalityType(ModalityType.APPLICATION_MODAL);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-		setContentPane(getMainJPanel());
+        setContentPane(getMainPanel());
 
-		pack();
+        pack();
 
-		setLocationRelativeTo(parent);
+        setLocationRelativeTo(parent);
 
-		addWindowListener(new WindowAdapter() {
+        addWindowListener(new WindowAdapter() {
 
-			@Override
-			public void windowClosed(WindowEvent e) {
-				super.windowClosed(e);
+            @Override
+            public void windowClosed(WindowEvent windowEvent) {
+                super.windowClosed(windowEvent);
 
-				cancelTask();
-			}
-		});
+                cancelTask();
+            }
+        });
+    }
 
-	}
+    private JButton getAlertPalExportButton() {
 
-	private JButton getAlertPalExportJButton() {
+        if (alertPalExportButton == null) {
 
-		if (alertPalExportJButton == null) {
-			alertPalExportJButton = new JButton("Export as TSV");
+            alertPalExportButton = new JButton("Export as TSV");
 
-			alertPalExportJButton.addActionListener(new ActionListener() {
+            Dimension size = new Dimension(120, 26);
+            alertPalExportButton.setPreferredSize(size);
+            alertPalExportButton.setMinimumSize(size);
+            alertPalExportButton.setMaximumSize(size);
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					performPALExport();
-				}
-			});
-		}
+            alertPalExportButton.addActionListener(new ActionListener() {
 
-		return alertPalExportJButton;
-	}
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    performPALExport();
+                }
+            });
+        }
 
-	private JButton getAlertPalExportCancelJButton() {
+        return alertPalExportButton;
+    }
 
-		if (alertPalExportCancelJButton == null) {
-			alertPalExportCancelJButton = new JButton("Cancel");
+    private JButton getAlertPalExportCancelButton() {
 
-			alertPalExportCancelJButton.setEnabled(false);
+        if (alertPalExportCancelButton == null) {
+            alertPalExportCancelButton = new JButton("Cancel");
 
-			alertPalExportCancelJButton.addActionListener(new ActionListener() {
+            Dimension size = new Dimension(120, 26);
+            alertPalExportCancelButton.setPreferredSize(size);
+            alertPalExportCancelButton.setMinimumSize(size);
+            alertPalExportCancelButton.setMaximumSize(size);
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
+            alertPalExportCancelButton.setEnabled(false);
 
-					cancelTask();
-				}
-			});
-		}
+            alertPalExportCancelButton.addActionListener(new ActionListener() {
 
-		return alertPalExportCancelJButton;
-	}
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
 
-	private JProgressBar getAlertPalExportJProgressBar() {
+                    cancelTask();
+                }
+            });
+        }
 
-		if (alertPalExportJProgressBar == null) {
+        return alertPalExportCancelButton;
+    }
 
-			alertPalExportJProgressBar = new JProgressBar(0, 100);
-			alertPalExportJProgressBar.setValue(0);
-			alertPalExportJProgressBar.setStringPainted(true);
+    private JProgressBar getAlertPalExportProgressBar() {
 
-			Dimension dim = new Dimension(Integer.MAX_VALUE, 17);
-			alertPalExportJProgressBar.setPreferredSize(dim);
-			alertPalExportJProgressBar.setMinimumSize(dim);
+        if (alertPalExportProgressBar == null) {
 
-			alertPalExportJProgressBar.setEnabled(false);
-			alertPalExportJProgressBar.setVisible(false);
+            alertPalExportProgressBar = new JProgressBar(0, 100);
+            alertPalExportProgressBar.setValue(0);
+            alertPalExportProgressBar.setStringPainted(true);
 
-		}
+        }
 
-		return alertPalExportJProgressBar;
-	}
+        return alertPalExportProgressBar;
+    }
 
-	private JFileChooser getFileChooser() {
+    private JFileChooser getFileChooser() {
 
-		if (fileChooser == null) {
+        if (fileChooser == null) {
 
-			String fileName = getDefaultTSVFileName();
+            String fileName = getDefaultTSVFileName();
 
-			File currentDirectory = logFile.getParentFile();
+            File currentDirectory = logFile.getParentFile();
 
-			File proposedFile = new File(currentDirectory, fileName);
+            File proposedFile = new File(currentDirectory, fileName);
 
-			fileChooser = new JFileChooser(currentDirectory);
+            fileChooser = new JFileChooser(currentDirectory);
 
-			fileChooser.setDialogTitle("Save Tab-Seperated Value(.TSV) File");
-			fileChooser.setSelectedFile(proposedFile);
-			fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            fileChooser.setDialogTitle("Save Tab-Seperated Value(.TSV) File");
+            fileChooser.setSelectedFile(proposedFile);
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
-			FileNameExtensionFilter filter = new FileNameExtensionFilter("Tab-Seperated Value Format (TSV)", "tsv");
+            FileNameExtensionFilter filter = new FileNameExtensionFilter("Tab-Seperated Value Format (TSV)", "tsv");
 
-			fileChooser.setFileFilter(filter);
-		}
+            fileChooser.setFileFilter(filter);
+        }
 
-		return fileChooser;
-	}
+        return fileChooser;
+    }
 
-	private ClickableFilePathPanel getAlertPalClickableFilePathPanel() {
+    private ClickableFilePathPanel getAlertPalClickableFilePathPanel() {
 
-		if (alertPalClickableFilePathPanel == null) {
+        if (alertPalClickableFilePathPanel == null) {
+            alertPalClickableFilePathPanel = new ClickableFilePathPanel(true);
+        }
 
-			alertPalClickableFilePathPanel = new ClickableFilePathPanel(true);
-		}
+        return alertPalClickableFilePathPanel;
+    }
 
-		return alertPalClickableFilePathPanel;
-	}
+    private JLabel getAlertPalExportLabel() {
 
-	private JLabel getAlertPalExportJLabel() {
+        if (alertPalExportLabel == null) {
+            alertPalExportLabel = new JLabel(" ");
+        }
 
-		if (alertPalExportJLabel == null) {
+        return alertPalExportLabel;
+    }
 
-			alertPalExportJLabel = new JLabel();
+    private JPanel getMainPanel() {
 
-			Dimension dim = new Dimension(Integer.MAX_VALUE, 20);
-			alertPalExportJLabel.setPreferredSize(dim);
-			alertPalExportJLabel.setMinimumSize(dim);
+        JPanel mainPanel = new JPanel();
 
-			alertPalExportJLabel.setAlignmentX(CENTER_ALIGNMENT);
-		}
+        mainPanel.setLayout(new GridBagLayout());
 
-		return alertPalExportJLabel;
-	}
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(10, 5, 10, 5);
 
-	private JPanel getMainJPanel() {
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = 1;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 0.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(5, 5, 5, 5);
 
-		JPanel mainJPanel = new JPanel();
+        GridBagConstraints gbc3 = new GridBagConstraints();
+        gbc3.gridx = 0;
+        gbc3.gridy = 2;
+        gbc3.weightx = 1.0D;
+        gbc3.weighty = 0.0D;
+        gbc3.fill = GridBagConstraints.BOTH;
+        gbc3.anchor = GridBagConstraints.NORTHWEST;
+        gbc3.insets = new Insets(5, 5, 5, 5);
 
-		mainJPanel.setLayout(new GridBagLayout());
+        GridBagConstraints gbc4 = new GridBagConstraints();
+        gbc4.gridx = 0;
+        gbc4.gridy = 3;
+        gbc4.weightx = 1.0D;
+        gbc4.weighty = 0.0D;
+        gbc4.fill = GridBagConstraints.BOTH;
+        gbc4.anchor = GridBagConstraints.NORTHWEST;
+        gbc4.insets = new Insets(10, 5, 10, 5);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(10, 50, 5, 50);
+        JPanel buttonsPanel = getButtonsPanel();
+        JProgressBar alertPalExportJProgressBar = getAlertPalExportProgressBar();
+        ClickableFilePathPanel alertPalClickableFilePathPanel = getAlertPalClickableFilePathPanel();
+        JLabel alertPalExportJLabel = getAlertPalExportLabel();
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 1;
-		gbc2.gridy = 0;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 0.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(10, 50, 5, 50);
+        mainPanel.add(buttonsPanel, gbc1);
+        mainPanel.add(alertPalExportJProgressBar, gbc2);
+        mainPanel.add(alertPalClickableFilePathPanel, gbc3);
+        mainPanel.add(alertPalExportJLabel, gbc4);
 
-		GridBagConstraints gbc3 = new GridBagConstraints();
-		gbc3.gridx = 0;
-		gbc3.gridy = 1;
-		gbc3.weightx = 1.0D;
-		gbc3.weighty = 1.0D;
-		gbc3.fill = GridBagConstraints.BOTH;
-		gbc3.anchor = GridBagConstraints.NORTHWEST;
-		gbc3.insets = new Insets(5, 10, 5, 10);
-		gbc3.gridwidth = GridBagConstraints.REMAINDER;
+        return mainPanel;
+    }
 
-		GridBagConstraints gbc4 = new GridBagConstraints();
-		gbc4.gridx = 0;
-		gbc4.gridy = 2;
-		gbc4.weightx = 1.0D;
-		gbc4.weighty = 1.0D;
-		gbc4.fill = GridBagConstraints.BOTH;
-		gbc4.anchor = GridBagConstraints.NORTHWEST;
-		gbc4.insets = new Insets(5, 10, 5, 10);
-		gbc4.gridwidth = GridBagConstraints.REMAINDER;
+    private JPanel getButtonsPanel() {
 
-		GridBagConstraints gbc5 = new GridBagConstraints();
-		gbc5.gridx = 0;
-		gbc5.gridy = 3;
-		gbc5.weightx = 1.0D;
-		gbc5.weighty = 1.0D;
-		gbc5.fill = GridBagConstraints.BOTH;
-		gbc5.anchor = GridBagConstraints.NORTHWEST;
-		gbc5.insets = new Insets(5, 10, 10, 10);
-		gbc5.gridwidth = GridBagConstraints.REMAINDER;
+        JPanel buttonsPanel = new JPanel();
 
-		JButton alertPalExportJButton = getAlertPalExportJButton();
-		JButton alertPalExportCancelJButton = getAlertPalExportCancelJButton();
-		JPanel progressBarJPanel = getProgressBarJPanel();
-		ClickableFilePathPanel alertPalClickableFilePathPanel = getAlertPalClickableFilePathPanel();
-		JLabel alertPalExportJLabel = getAlertPalExportJLabel();
+        LayoutManager layout = new BoxLayout(buttonsPanel, BoxLayout.X_AXIS);
+        buttonsPanel.setLayout(layout);
 
-		mainJPanel.add(alertPalExportJButton, gbc1);
-		mainJPanel.add(alertPalExportCancelJButton, gbc2);
-		mainJPanel.add(progressBarJPanel, gbc3);
-		mainJPanel.add(alertPalClickableFilePathPanel, gbc4);
-		mainJPanel.add(alertPalExportJLabel, gbc5);
+        JButton alertPalExportJButton = getAlertPalExportButton();
+        JButton alertPalExportCancelJButton = getAlertPalExportCancelButton();
 
-		return mainJPanel;
-	}
+        Dimension dim = new Dimension(40, 40);
+        buttonsPanel.add(Box.createHorizontalGlue());
+        buttonsPanel.add(Box.createRigidArea(dim));
+        buttonsPanel.add(alertPalExportJButton);
+        buttonsPanel.add(Box.createRigidArea(dim));
+        buttonsPanel.add(alertPalExportCancelJButton);
+        buttonsPanel.add(Box.createRigidArea(dim));
+        buttonsPanel.add(Box.createHorizontalGlue());
 
-	private JPanel getProgressBarJPanel() {
+        return buttonsPanel;
+    }
 
-		JPanel progressBarJPanel = new JPanel();
-		progressBarJPanel.setLayout(new BorderLayout());
+    private void performPALExport() {
 
-		Dimension dim = new Dimension(Integer.MAX_VALUE, 25);
-		progressBarJPanel.setPreferredSize(dim);
-		progressBarJPanel.setMinimumSize(dim);
+        JFileChooser fileChooser = getFileChooser();
 
-		JProgressBar alertPalExportJProgressBar = getAlertPalExportJProgressBar();
+        int returnValue = fileChooser.showSaveDialog(this);
 
-		progressBarJPanel.add(alertPalExportJProgressBar, BorderLayout.CENTER);
+        if (returnValue == JFileChooser.APPROVE_OPTION) {
 
-		return progressBarJPanel;
-	}
+            File exportFile = fileChooser.getSelectedFile();
 
-	protected void performPALExport() {
+            returnValue = JOptionPane.YES_OPTION;
 
-		JFileChooser fileChooser = getFileChooser();
+            if (exportFile.exists()) {
 
-		int returnValue = fileChooser.showSaveDialog(this);
+                returnValue = JOptionPane.showConfirmDialog(this, "Replace Existing File?", "File Exists",
+                        JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            }
 
-		if (returnValue == JFileChooser.APPROVE_OPTION) {
+            if (returnValue == JOptionPane.YES_OPTION) {
 
-			File exportFile = fileChooser.getSelectedFile();
+                populateGeneratedTSVPath(null);
 
-			returnValue = JOptionPane.YES_OPTION;
+                JButton alertPalExportJButton = getAlertPalExportButton();
+                alertPalExportJButton.setEnabled(false);
 
-			if (exportFile.exists()) {
+                JButton alertPalExportCancelJButton = getAlertPalExportCancelButton();
+                alertPalExportCancelJButton.setEnabled(true);
 
-				returnValue = JOptionPane.showConfirmDialog(this, "Replace Existing File?", "File Exists",
-						JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-			}
+                JProgressBar alertPalExportJProgressBar = getAlertPalExportProgressBar();
+                alertPalExportJProgressBar.setEnabled(true);
+                alertPalExportJProgressBar.setVisible(true);
 
-			if (returnValue == JOptionPane.YES_OPTION) {
+                final int rowCount = alertPALTableModel.getRowCount();
 
-				populateGeneratedTSVPath(null);
+                alertPALTableExportTask = new AlertPALTableExportTask(alertPALTableModel, exportFile) {
 
-				JButton alertPalExportJButton = getAlertPalExportJButton();
-				alertPalExportJButton.setEnabled(false);
+                    @Override
+                    protected void process(List<Integer> chunks) {
 
-				JButton alertPalExportCancelJButton = getAlertPalExportCancelJButton();
-				alertPalExportCancelJButton.setEnabled(true);
+                        if ((isCancelled()) || (chunks == null) || (chunks.size() == 0)) {
+                            return;
+                        }
 
-				JProgressBar alertPalExportJProgressBar = getAlertPalExportJProgressBar();
-				alertPalExportJProgressBar.setEnabled(true);
-				alertPalExportJProgressBar.setVisible(true);
+                        Collections.sort(chunks);
 
-				final int rowCount = alertPALTableModel.getRowCount();
+                        int row = chunks.get(chunks.size() - 1);
 
-				alertPALTableExportTask = new AlertPALTableExportTask(alertPALTableModel, exportFile) {
+                        int progress = (int) ((row * 100) / rowCount);
 
-					@Override
-					protected void process(List<Integer> chunks) {
+                        JProgressBar alertPalExportJProgressBar = getAlertPalExportProgressBar();
+                        alertPalExportJProgressBar.setValue(progress);
 
-						if ((isCancelled()) || (chunks == null) || (chunks.size() == 0)) {
-							return;
-						}
+                        String message = String.format("Exported %d Alert PAL entries (%d%%)", row, progress);
 
-						Collections.sort(chunks);
+                        JLabel alertPalExportJLabel = getAlertPalExportLabel();
 
-						int row = chunks.get(chunks.size() - 1);
+                        alertPalExportJLabel.setText(message);
+                    }
 
-						int progress = (int) ((row * 100) / rowCount);
+                    @Override
+                    protected void done() {
+                        try {
+                            get();
 
-						JProgressBar alertPalExportJProgressBar = getAlertPalExportJProgressBar();
-						alertPalExportJProgressBar.setValue(progress);
+                            String message = String.format("Exported %d Alert PAL entries (%d%%)", rowCount, 100);
+                            JLabel alertPalExportJLabel = getAlertPalExportLabel();
+                            alertPalExportJLabel.setText(message);
 
-						String message = String.format("Exported %d Alert PAL entries (%d%%)", row, progress);
+                        } catch (Exception e) {
+                            LOG.error("Error in ReportTableExportTask", e);
+                        } finally {
 
-						JLabel alertPalExportJLabel = getAlertPalExportJLabel();
+                            populateGeneratedTSVPath(exportFile);
 
-						alertPalExportJLabel.setText(message);
-					}
+                            JButton alertPalExportJButton = getAlertPalExportButton();
+                            alertPalExportJButton.setEnabled(true);
 
-					@Override
-					protected void done() {
-						try {
-							get();
+                            JButton alertPalExportCancelJButton = getAlertPalExportCancelButton();
+                            alertPalExportCancelJButton.setEnabled(false);
 
-							String message = String.format("Exported %d Alert PAL entries (%d%%)", rowCount, 100);
-							JLabel alertPalExportJLabel = getAlertPalExportJLabel();
-							alertPalExportJLabel.setText(message);
+                            JProgressBar alertPalExportJProgressBar = getAlertPalExportProgressBar();
+                            alertPalExportJProgressBar.setEnabled(false);
+                        }
 
-						} catch (Exception e) {
-							LOG.error("Error in AlertPALTableExportTask", e);
-						} finally {
+                    }
 
-							populateGeneratedTSVPath(exportFile);
+                };
 
-							JButton alertPalExportJButton = getAlertPalExportJButton();
-							alertPalExportJButton.setEnabled(true);
+                alertPALTableExportTask.execute();
 
-							JButton alertPalExportCancelJButton = getAlertPalExportCancelJButton();
-							alertPalExportCancelJButton.setEnabled(false);
+            } else {
 
-							JProgressBar alertPalExportJProgressBar = getAlertPalExportJProgressBar();
-							alertPalExportJProgressBar.setEnabled(false);
-						}
+                JLabel alertPalExportJLabel = getAlertPalExportLabel();
+                alertPalExportJLabel.setText("Export cancelled.");
 
-					}
+                JProgressBar alertPalExportJProgressBar = getAlertPalExportProgressBar();
+                alertPalExportJProgressBar.setEnabled(false);
+                alertPalExportJProgressBar.setVisible(false);
+            }
+        } else {
 
-				};
+            JLabel alertPalExportJLabel = getAlertPalExportLabel();
+            alertPalExportJLabel.setText("Export cancelled.");
 
-				alertPALTableExportTask.execute();
+            JProgressBar alertPalExportJProgressBar = getAlertPalExportProgressBar();
+            alertPalExportJProgressBar.setEnabled(false);
+            alertPalExportJProgressBar.setVisible(false);
+        }
+    }
 
-			} else {
+    private void populateGeneratedTSVPath(File alertPalReportFile) {
 
-				JLabel alertPalExportJLabel = getAlertPalExportJLabel();
-				alertPalExportJLabel.setText("Export cancelled.");
+        ClickableFilePathPanel alertPalClickableFilePathPanel = getAlertPalClickableFilePathPanel();
 
-				JProgressBar alertPalExportJProgressBar = getAlertPalExportJProgressBar();
-				alertPalExportJProgressBar.setEnabled(false);
-				alertPalExportJProgressBar.setVisible(false);
-			}
-		} else {
+        alertPalClickableFilePathPanel.setFile(alertPalReportFile);
+    }
 
-			JLabel alertPalExportJLabel = getAlertPalExportJLabel();
-			alertPalExportJLabel.setText("Export cancelled.");
+    private String getDefaultTSVFileName() {
 
-			JProgressBar alertPalExportJProgressBar = getAlertPalExportJProgressBar();
-			alertPalExportJProgressBar.setEnabled(false);
-			alertPalExportJProgressBar.setVisible(false);
-		}
-	}
+        String fileName = FileUtilities.getNameWithoutExtension(logFile);
 
-	private void populateGeneratedTSVPath(File alertPalReportFile) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(fileName);
+        sb.append("-PALData.tsv");
 
-		ClickableFilePathPanel alertPalClickableFilePathPanel = getAlertPalClickableFilePathPanel();
+        String defaultXMLFileName = sb.toString();
 
-		alertPalClickableFilePathPanel.setFile(alertPalReportFile);
-	}
+        return defaultXMLFileName;
+    }
 
-	private String getDefaultTSVFileName() {
+    private void cancelTask() {
 
-		String fileName = FileUtilities.getNameWithoutExtension(logFile);
-
-		// String outputFile =
-		// filename.concat("-").concat(line).concat(".html");
-		StringBuffer sb = new StringBuffer();
-		sb.append(fileName);
-		sb.append("-PALData.tsv");
-
-		String defaultXMLFileName = sb.toString();
-
-		return defaultXMLFileName;
-	}
-
-	private void cancelTask() {
-
-		if ((alertPALTableExportTask != null)
-				&& ((!alertPALTableExportTask.isCancelled()) || (!alertPALTableExportTask.isDone()))) {
-			alertPALTableExportTask.cancel(true);
-		}
-	}
+        if ((alertPALTableExportTask != null)
+                && ((!alertPALTableExportTask.isCancelled()) || (!alertPALTableExportTask.isDone()))) {
+            alertPALTableExportTask.cancel(true);
+        }
+    }
 }

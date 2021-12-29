@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alertpal;
 
 import java.awt.Font;
@@ -21,118 +22,117 @@ import com.pega.gcs.fringecommon.guiutilities.CustomJTable;
 
 public class AlertPALTable extends CustomJTable {
 
-	private static final long serialVersionUID = 2004222974580666838L;
+    private static final long serialVersionUID = 2004222974580666838L;
 
-	public AlertPALTable(AlertPALTableModel alertPALTableModel) {
-		super(alertPALTableModel);
+    public AlertPALTable(AlertPALTableModel alertPALTableModel) {
 
-		setAutoCreateColumnsFromModel(false);
+        super(alertPALTableModel);
 
-		setRowHeight(20);
+        setAutoCreateColumnsFromModel(false);
 
-		setRowSelectionAllowed(true);
+        setRowHeight(20);
 
-		setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        setRowSelectionAllowed(true);
 
-		JTableHeader tableHeader = getTableHeader();
+        setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-		tableHeader.setReorderingAllowed(false);
+        JTableHeader tableHeader = getTableHeader();
 
-		// bold the header
-		Font existingFont = tableHeader.getFont();
-		String existingFontName = existingFont.getName();
-		int existFontSize = existingFont.getSize();
-		Font newFont = new Font(existingFontName, Font.BOLD, existFontSize);
-		tableHeader.setFont(newFont);
+        tableHeader.setReorderingAllowed(false);
 
-		DefaultTableCellRenderer dtcr = (DefaultTableCellRenderer) tableHeader.getDefaultRenderer();
+        // bold the header
+        Font existingFont = tableHeader.getFont();
+        String existingFontName = existingFont.getName();
+        int existFontSize = existingFont.getSize();
+        Font newFont = new Font(existingFontName, Font.BOLD, existFontSize);
+        tableHeader.setFont(newFont);
 
-		dtcr.setHorizontalAlignment(SwingConstants.CENTER);
+        DefaultTableCellRenderer dtcr = (DefaultTableCellRenderer) tableHeader.getDefaultRenderer();
 
-	}
+        dtcr.setHorizontalAlignment(SwingConstants.CENTER);
 
-	@Override
-	public void setModel(TableModel dataModel) {
-		super.setModel(dataModel);
+    }
 
-		if ((dataModel != null) && (dataModel instanceof AlertPALTableModel)) {
+    @Override
+    public void setModel(TableModel dataModel) {
+        super.setModel(dataModel);
 
-			TableColumnModel columnModel = ((AlertPALTableModel) dataModel).getTableColumnModel();
-			setColumnModel(columnModel);
-		}
-	}
+        if ((dataModel != null) && (dataModel instanceof AlertPALTableModel)) {
 
-	/**
-	 * bug report #1027936 Override JTable.getScrollableTracksViewportWidth() to
-	 * honor the table's preferred size and show horizontal scrollbars if that
-	 * size cannot be honored by the viewport if an auto-resize mode is selected
-	 */
-	@Override
-	public boolean getScrollableTracksViewportWidth() {
-		// return getPreferredSize().width < getParent().getWidth();
+            TableColumnModel columnModel = ((AlertPALTableModel) dataModel).getTableColumnModel();
+            setColumnModel(columnModel);
+        }
+    }
 
-		if (autoResizeMode != AUTO_RESIZE_OFF) {
-			if (getParent() instanceof JViewport) {
-				return (((JViewport) getParent()).getWidth() > getPreferredSize().width);
-			}
+    /**
+     * Bug report #1027936 Override JTable.getScrollableTracksViewportWidth() to honor the table's preferred size and show horizontal
+     * scrollbars if that size cannot be honored by the viewport if an auto-resize mode is selected
+     */
+    @Override
+    public boolean getScrollableTracksViewportWidth() {
+        // return getPreferredSize().width < getParent().getWidth();
 
-			return true;
-		}
+        if (autoResizeMode != AUTO_RESIZE_OFF) {
+            if (getParent() instanceof JViewport) {
+                return (((JViewport) getParent()).getWidth() > getPreferredSize().width);
+            }
 
-		return false;
-	}
+            return true;
+        }
 
-	@Override
-	public void scrollRowToVisible(int rowIndex) {
-		if (!(getParent() instanceof JViewport)) {
-			return;
-		}
-		JViewport viewport = (JViewport) getParent();
+        return false;
+    }
 
-		// This rectangle is relative to the table where the
-		// northwest corner of cell (0,0) is always (0,0).
-		Rectangle rect = getCellRect(rowIndex, 0, true);
+    @Override
+    public void scrollRowToVisible(int rowIndex) {
+        if (!(getParent() instanceof JViewport)) {
+            return;
+        }
+        JViewport viewport = (JViewport) getParent();
 
-		// The location of the view relative to the table
-		Rectangle viewRect = viewport.getViewRect();
+        // This rectangle is relative to the table where the
+        // northwest corner of cell (0,0) is always (0,0).
+        Rectangle rect = getCellRect(rowIndex, 0, true);
 
-		rect.setLocation(rect.x - viewRect.x, rect.y - viewRect.y);
+        // The location of the view relative to the table
+        Rectangle viewRect = viewport.getViewRect();
 
-		// Calculate location of rectangle if it were at the center of view
-		int centerX = (viewRect.width - rect.width) / 2;
-		int centerY = (viewRect.height - rect.height) / 2;
+        rect.setLocation(rect.x - viewRect.x, rect.y - viewRect.y);
 
-		/*
-		 * Fake the location of the cell so that scrollRectToVisible will move
-		 * the cell to the center
-		 */
-		if (rect.x < centerX) {
-			centerX = -centerX;
-		}
+        // Calculate location of rectangle if it were at the center of view
+        int centerX = (viewRect.width - rect.width) / 2;
+        int centerY = (viewRect.height - rect.height) / 2;
 
-		if (rect.y < centerY) {
-			centerY = -centerY;
-		}
-		rect.translate(centerX, centerY);
+        /*
+         * Fake the location of the cell so that scrollRectToVisible will move the cell to the center
+         */
+        if (rect.x < centerX) {
+            centerX = -centerX;
+        }
 
-		// Scroll the area into view
-		viewport.scrollRectToVisible(rect);
-	}
+        if (rect.y < centerY) {
+            centerY = -centerY;
+        }
+        rect.translate(centerX, centerY);
 
-	// @Override
-	// public void valueChanged(ListSelectionEvent e) {
-	// super.valueChanged(e);
-	//
-	// boolean isAdjusting = e.getValueIsAdjusting();
-	//
-	// if (isAdjusting) {
-	// int selectedRow = e.getFirstIndex();
-	//
-	// // palJTable.setRowSelectionInterval(selectedRow,
-	// // selectedRow);
-	//
-	// scrollRowToVisible(selectedRow);
-	// }
-	// }
+        // Scroll the area into view
+        viewport.scrollRectToVisible(rect);
+    }
+
+    // @Override
+    // public void valueChanged(ListSelectionEvent e) {
+    // super.valueChanged(e);
+    //
+    // boolean isAdjusting = e.getValueIsAdjusting();
+    //
+    // if (isAdjusting) {
+    // int selectedRow = e.getFirstIndex();
+    //
+    // // palJTable.setRowSelectionInterval(selectedRow,
+    // // selectedRow);
+    //
+    // scrollRowToVisible(selectedRow);
+    // }
+    // }
 
 }

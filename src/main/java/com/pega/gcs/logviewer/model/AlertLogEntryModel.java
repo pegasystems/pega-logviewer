@@ -4,12 +4,13 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.model;
 
 import java.awt.Color;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -25,7 +26,6 @@ import java.util.TreeSet;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.data.time.Millisecond;
 import org.jfree.data.time.RegularTimePeriod;
-import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesDataItem;
 
 import com.pega.gcs.fringecommon.guiutilities.MyColor;
@@ -38,312 +38,338 @@ import com.pega.gcs.logviewer.report.alert.AlertMessageReportModelFactory;
 
 public class AlertLogEntryModel extends LogEntryModel {
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(AlertLogEntryModel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(AlertLogEntryModel.class);
 
-	private int thresholdKPIIndex;
+    private int thresholdKPIIndex;
 
-	Map<Integer, Long> alertIdThresholdKPIMap;
+    Map<Integer, Long> alertIdThresholdKPIMap;
 
-	private TreeSet<PALStatisticName> palStatisticColumnSet;
+    private TreeSet<PALStatisticName> palStatisticColumnSet;
 
-	private Map<Integer, AlertMessageReportModel> alertMessageReportModelMap;
+    private Map<Integer, AlertMessageReportModel> alertMessageReportModelMap;
 
-	public AlertLogEntryModel(DateFormat dateFormat, Locale locale) {
-		super(dateFormat, locale);
+    private Map<String, LogSeriesCollection> overallLogTimeSeriesCollectionMap;
 
-		Comparator<PALStatisticName> comparator = new Comparator<PALStatisticName>() {
+    public AlertLogEntryModel(DateFormat dateFormat) {
 
-			@Override
-			public int compare(PALStatisticName o1, PALStatisticName o2) {
+        super(dateFormat);
 
-				Integer o1Ordinal = o1.ordinal();
-				Integer o2Ordinal = o2.ordinal();
+        Comparator<PALStatisticName> comparator = new Comparator<PALStatisticName>() {
 
-				return o1Ordinal.compareTo(o2Ordinal);
-			}
-		};
+            @Override
+            public int compare(PALStatisticName o1, PALStatisticName o2) {
 
-		thresholdKPIIndex = -1;
+                Integer o1Ordinal = o1.ordinal();
+                Integer o2Ordinal = o2.ordinal();
 
-		alertIdThresholdKPIMap = new HashMap<Integer, Long>();
+                return o1Ordinal.compareTo(o2Ordinal);
+            }
+        };
 
-		palStatisticColumnSet = new TreeSet<PALStatisticName>(comparator);
-	}
+        thresholdKPIIndex = -1;
 
-	public Map<Integer, AlertMessageReportModel> getAlertMessageReportModelMap() {
+        alertIdThresholdKPIMap = new HashMap<Integer, Long>();
 
-		if (alertMessageReportModelMap == null) {
-			alertMessageReportModelMap = new TreeMap<Integer, AlertMessageReportModel>();
-		}
+        palStatisticColumnSet = new TreeSet<PALStatisticName>(comparator);
+    }
 
-		return alertMessageReportModelMap;
-	}
+    public Map<Integer, AlertMessageReportModel> getAlertMessageReportModelMap() {
 
-	@Override
-	protected void postProcess(LogEntry logEntry, ArrayList<String> logEntryValueList) {
+        if (alertMessageReportModelMap == null) {
+            alertMessageReportModelMap = new TreeMap<Integer, AlertMessageReportModel>();
+        }
 
-		if (thresholdKPIIndex == -1) {
-			List<String> logEntryColumnList = getLogEntryColumnList();
-			thresholdKPIIndex = logEntryColumnList.indexOf(LogEntryColumn.THRESHOLDKPI.getColumnId());
-		}
+        return alertMessageReportModelMap;
+    }
 
-		AlertLogEntry alertLogEntry = (AlertLogEntry) logEntry;
+    @Override
+    protected void postProcess(LogEntry logEntry, ArrayList<String> logEntryValueList, Charset charset, Locale locale) {
 
-		Integer alertId = alertLogEntry.getAlertId();
+        if (thresholdKPIIndex == -1) {
+            List<String> logEntryColumnList = getLogEntryColumnList();
+            thresholdKPIIndex = logEntryColumnList.indexOf(LogEntryColumn.THRESHOLDKPI.getColumnId());
+        }
 
-		Long alertMessageThresholdKPI = alertIdThresholdKPIMap.get(alertId);
+        AlertLogEntry alertLogEntry = (AlertLogEntry) logEntry;
 
-		if (alertMessageThresholdKPI == null) {
+        Integer alertId = alertLogEntry.getAlertId();
 
-			String thresholdKPI = logEntryValueList.get(thresholdKPIIndex);
+        Long alertMessageThresholdKPI = alertIdThresholdKPIMap.get(alertId);
 
-			try {
-				alertMessageThresholdKPI = Long.parseLong(thresholdKPI);
-			} catch (NumberFormatException nfe) {
-				LOG.error("Error parsing thresholdKPI: " + thresholdKPI, nfe);
-			}
+        if (alertMessageThresholdKPI == null) {
 
-			alertIdThresholdKPIMap.put(alertId, alertMessageThresholdKPI);
+            String thresholdKPI = logEntryValueList.get(thresholdKPIIndex);
 
-		}
+            try {
+                alertMessageThresholdKPI = Long.parseLong(thresholdKPI);
+            } catch (NumberFormatException nfe) {
+                LOG.error("Error parsing thresholdKPI: " + thresholdKPI, nfe);
+            }
 
-		// report models
-		Map<Integer, AlertMessageReportModel> alertMessageReportModelMap = getAlertMessageReportModelMap();
+            alertIdThresholdKPIMap.put(alertId, alertMessageThresholdKPI);
 
-		AlertMessageReportModel alertMessageReportModel = alertMessageReportModelMap.get(alertId);
+        }
 
-		if (alertMessageReportModel == null) {
+        // graphs
+        Map<String, LogSeriesCollection> overallLogTimeSeriesCollectionMap;
+        overallLogTimeSeriesCollectionMap = getOverallLogTimeSeriesCollectionMap();
 
-			AlertMessageReportModelFactory alertMessageReportModelFactory = AlertMessageReportModelFactory
-					.getInstance();
+        processLogSeriesCollection(overallLogTimeSeriesCollectionMap, alertLogEntry, logEntryValueList, locale);
 
-			try {
-				alertMessageReportModel = alertMessageReportModelFactory.getAlertMessageReportModel(alertId,
-						alertMessageThresholdKPI, this);
+        // report models
+        Map<Integer, AlertMessageReportModel> alertMessageReportModelMap = getAlertMessageReportModelMap();
 
-				alertMessageReportModelMap.put(alertId, alertMessageReportModel);
-			} catch (Exception e) {
-				Map<Integer, AlertMessage> alertMessageMap = AlertMessageListProvider.getInstance()
-						.getAlertMessageMap();
-				String alertMessageId = alertMessageMap.get(alertId).getMessageID();
-				LOG.error("Error building alert report model for Id: " + alertId + " Alert Id: " + alertMessageId, e);
-			}
-		}
+        AlertMessageReportModel alertMessageReportModel = alertMessageReportModelMap.get(alertId);
 
-		if (alertMessageReportModel != null) {
-			try {
-				alertMessageReportModel.processAlertLogEntry(alertLogEntry, logEntryValueList);
-			} catch (Exception e) {
-				LOG.error("Error processing Alert Message report for Log Entry: " + alertLogEntry.getKey(), e);
-			}
-		}
+        if (alertMessageReportModel == null) {
 
-	}
+            AlertMessageReportModelFactory alertMessageReportModelFactory = AlertMessageReportModelFactory
+                    .getInstance();
 
-	@Override
-	public Set<LogSeriesCollection> getLogTimeSeriesCollectionSet(boolean filtered) throws Exception {
+            try {
+                alertMessageReportModel = alertMessageReportModelFactory.getAlertMessageReportModel(alertId,
+                        alertMessageThresholdKPI, this, locale);
 
-		Map<Integer, LogEntry> logEntryMap = getLogEntryMap();
+                alertMessageReportModelMap.put(alertId, alertMessageReportModel);
+            } catch (Exception e) {
+                Map<Integer, AlertMessage> alertMessageMap = AlertMessageListProvider.getInstance()
+                        .getAlertMessageMap();
+                String alertMessageId = alertMessageMap.get(alertId).getMessageID();
+                LOG.error("Error building alert report model for Id: " + alertId + " Alert Id: " + alertMessageId, e);
+            }
+        }
 
-		Iterator<Integer> logEntryIndexIterator = null;
+        if (alertMessageReportModel != null) {
+            try {
+                alertMessageReportModel.processAlertLogEntry(alertLogEntry, logEntryValueList);
+            } catch (Exception e) {
+                LOG.error("Error processing Alert Message report for Log Entry: " + alertLogEntry.getKey(), e);
+            }
+        }
 
-		if (filtered) {
+    }
 
-			List<Integer> logEntryIndexList = getLogEntryIndexList();
-			logEntryIndexIterator = logEntryIndexList.iterator();
+    private void processLogSeriesCollection(Map<String, LogSeriesCollection> logTimeSeriesCollectionMap,
+            AlertLogEntry alertLogEntry, ArrayList<String> logEntryValueList, Locale locale) {
 
-		} else {
+        LogEntryKey logEntryKey = alertLogEntry.getKey();
 
-			Set<Integer> logEntryIndexSet = new TreeSet<Integer>(logEntryMap.keySet());
-			logEntryIndexIterator = logEntryIndexSet.iterator();
+        long logEntryTime = logEntryKey.getTimestamp();
 
-		}
+        // logEntryTime can be -1 in case of corrupted log file
+        if (logEntryTime != -1) {
 
-		Map<Integer, List<TimeSeriesDataItem>> alertIdTimeSeriesDataItemMap = new HashMap<Integer, List<TimeSeriesDataItem>>();
-		Map<Integer, List<Double>> alertIdObservedKPIMap = new HashMap<Integer, List<Double>>();
+            DateFormat modelDateFormat = getModelDateFormat();
+            TimeZone timezone = modelDateFormat.getTimeZone();
 
-		DateFormat modelDateFormat = getModelDateFormat();
-		Locale locale = getLocale();
+            boolean showCount = true;
 
-		TimeZone timeZone = modelDateFormat.getTimeZone();
+            Integer alertId = alertLogEntry.getAlertId();
+            double observedKPI = alertLogEntry.getObservedKPI();
 
-		while (logEntryIndexIterator.hasNext()) {
+            Map<Integer, AlertMessage> alertMessageMap = AlertMessageListProvider.getInstance().getAlertMessageMap();
 
-			Integer logEntryKey = logEntryIndexIterator.next();
+            // alertMessage should not be null as AlertLogParser should have added unidentified AlertIds
+            AlertMessage alertMessage = alertMessageMap.get(alertId);
 
-			AlertLogEntry alertLogEntry = (AlertLogEntry) logEntryMap.get(logEntryKey);
+            String messageId = alertMessage.getMessageID();
+            boolean isCritical = Severity.CRITICAL.equals(alertMessage.getSeverity());
 
-			Integer alertId = alertLogEntry.getAlertId();
-			double observedKPI = alertLogEntry.getObservedKPI();
+            processAlertLogTimeSeries(logTimeSeriesCollectionMap, alertMessage, messageId, logEntryTime, observedKPI,
+                    showCount, isCritical, timezone, locale);
 
-			Date logEntryDate = alertLogEntry.getLogEntryDate();
+        }
+    }
 
-			if (logEntryDate != null) {
+    private void processAlertLogTimeSeries(Map<String, LogSeriesCollection> logTimeSeriesCollectionMap,
+            AlertMessage alertMessage, String logSeriesCollectionName, long logEntryTime, double timeSeriesValue,
+            boolean showCount, boolean defaultShowLogTimeSeries, TimeZone timezone, Locale locale) {
 
-				List<TimeSeriesDataItem> alertMessageList = alertIdTimeSeriesDataItemMap.get(alertId);
+        LogSeriesCollection logSeriesCollection;
+        logSeriesCollection = logTimeSeriesCollectionMap.get(logSeriesCollectionName);
 
-				if (alertMessageList == null) {
-					alertMessageList = new ArrayList<TimeSeriesDataItem>();
-					alertIdTimeSeriesDataItemMap.put(alertId, alertMessageList);
-				}
+        if (logSeriesCollection == null) {
+            logSeriesCollection = new LogSeriesCollection(logSeriesCollectionName);
+            logTimeSeriesCollectionMap.put(logSeriesCollectionName, logSeriesCollection);
+        }
 
-				RegularTimePeriod regularTimePeriod;
-				regularTimePeriod = new Millisecond(logEntryDate, timeZone, locale);
+        RegularTimePeriod regularTimePeriod;
+        regularTimePeriod = new Millisecond(new Date(logEntryTime), timezone, locale);
 
-				TimeSeriesDataItem tsdi = new TimeSeriesDataItem(regularTimePeriod, observedKPI);
+        TimeSeriesDataItem timeSeriesDataItem;
+        timeSeriesDataItem = new TimeSeriesDataItem(regularTimePeriod, timeSeriesValue);
 
-				alertMessageList.add(tsdi);
+        AlertLogTimeSeries alertLogTimeSeries = (AlertLogTimeSeries) logSeriesCollection
+                .getLogSeries(logSeriesCollectionName);
 
-			}
+        if (alertLogTimeSeries == null) {
 
-			List<Double> alertMessageKPIList = alertIdObservedKPIMap.get(alertId);
+            Integer alertId = alertMessage.getId();
+            String chartColor = alertMessage.getChartColor();
 
-			if (alertMessageKPIList == null) {
-				alertMessageKPIList = new ArrayList<Double>();
-				alertIdObservedKPIMap.put(alertId, alertMessageKPIList);
-			}
+            Color color = null;
 
-			alertMessageKPIList.add(observedKPI);
+            if (chartColor == null) {
+                color = Color.BLACK;
+            } else {
+                color = MyColor.getColor(chartColor);
+            }
 
-		}
+            if (color == null) {
+                color = Color.BLACK;
+            }
 
-		Map<Integer, AlertMessage> alertMessageMap = AlertMessageListProvider.getInstance().getAlertMessageMap();
+            Long thresholdKPI = alertIdThresholdKPIMap.get(alertId);
+            ValueMarker thresholdMarker = new ValueMarker(thresholdKPI);
 
-		Set<LogSeriesCollection> logTimeSeriesCollectionSet = new TreeSet<LogSeriesCollection>();
+            String kpiUnit = alertMessage.getDssValueUnit();
 
-		List<LogTimeSeries> criticalLogTimeSeriesList = new ArrayList<>();
+            alertLogTimeSeries = new AlertLogTimeSeries(logSeriesCollectionName, color, thresholdMarker, showCount,
+                    defaultShowLogTimeSeries, thresholdKPI, kpiUnit);
 
-		List<LogTimeSeries> normalLogTimeSeriesList = new ArrayList<>();
+            logSeriesCollection.addLogSeries(alertLogTimeSeries);
+        }
 
-		for (Integer alertId : alertIdTimeSeriesDataItemMap.keySet()) {
+        alertLogTimeSeries.addTimeSeriesDataItem(timeSeriesDataItem);
 
-			int timeSeriesEntryCount = 0;
-			AlertMessage alertMessage = alertMessageMap.get(alertId);
+    }
 
-			String messageIdStr = alertMessage.getMessageID();
-			String kpiUnit = alertMessage.getDSSValueUnit();
+    @Override
+    public Set<LogSeriesCollection> getLogTimeSeriesCollectionSet(boolean filtered, Locale locale) throws Exception {
 
-			TimeSeries timeSeries = new TimeSeries(messageIdStr);
+        if (isRebuildLogTimeSeriesCollectionSet()) {
+            rebuildLogTimeSeriesCollectionSet(locale);
+        }
 
-			List<TimeSeriesDataItem> tsdiList = alertIdTimeSeriesDataItemMap.get(alertId);
+        Set<LogSeriesCollection> logTimeSeriesCollectionSet = new TreeSet<>();
 
-			for (TimeSeriesDataItem tsdi : tsdiList) {
-				// JFreechart only have millisecond precision whereas Alert log
-				// entries have nanosecond precision
-				timeSeries.addOrUpdate(tsdi);
-				timeSeriesEntryCount++;
-			}
+        if (filtered) {
 
-			List<Double> alertMessageObservedKPIList = alertIdObservedKPIMap.get(alertId);
-			Collections.sort(alertMessageObservedKPIList);
+            List<LogEntryKey> logEntryKeyList = getLogEntryKeyList();
+            Iterator<LogEntryKey> logEntryIndexIterator = logEntryKeyList.iterator();
 
-			Long alertMessageThresholdKPI = alertIdThresholdKPIMap.get(alertId);
+            Map<String, LogSeriesCollection> logTimeSeriesCollectionMap;
+            logTimeSeriesCollectionMap = new HashMap<>();
 
-			AlertBoxAndWhiskerItem alertBoxAndWhiskerItem = AlertBoxAndWhiskerCalculator
-					.calculateStatistics(alertMessageObservedKPIList, alertMessageThresholdKPI, kpiUnit);
+            Map<LogEntryKey, LogEntry> logEntryMap = getLogEntryMap();
 
-			String chartColor = alertMessage.getChartColor();
-			Color color = null;
+            while (logEntryIndexIterator.hasNext()) {
 
-			if (chartColor == null) {
-				color = Color.BLACK;
-			} else {
-				color = MyColor.getColor(chartColor);
-			}
+                LogEntryKey logEntryKey = logEntryIndexIterator.next();
+                AlertLogEntry alertLogEntry = (AlertLogEntry) logEntryMap.get(logEntryKey);
 
-			ValueMarker valueMarker = new ValueMarker(alertMessageThresholdKPI);
+                long logEntryTime = alertLogEntry.getKey().getTimestamp();
 
-			// default display is set to false, except for critical alerts. will
-			// set to true later down.
-			boolean isCritical = Severity.CRITICAL.equals(alertMessage.getSeverity());
+                // logEntryTime can be -1 in case of corrupted log file
+                if (logEntryTime != -1) {
+                    processLogSeriesCollection(logTimeSeriesCollectionMap, alertLogEntry, null, locale);
+                }
+            }
 
-			LogTimeSeries alertLogTimeSeries = new LogTimeSeries(timeSeries, alertBoxAndWhiskerItem, color, valueMarker,
-					timeSeriesEntryCount, true, isCritical);
+            logTimeSeriesCollectionSet.addAll(logTimeSeriesCollectionMap.values());
 
-			LogSeriesCollection ltsc = new LogSeriesCollection(messageIdStr);
+        } else {
 
-			ltsc.addLogSeries(alertLogTimeSeries);
+            Map<String, LogSeriesCollection> overallLogTimeSeriesCollectionMap;
+            overallLogTimeSeriesCollectionMap = getOverallLogTimeSeriesCollectionMap();
 
-			logTimeSeriesCollectionSet.add(ltsc);
+            logTimeSeriesCollectionSet.addAll(overallLogTimeSeriesCollectionMap.values());
 
-			if (isCritical) {
-				criticalLogTimeSeriesList.add(alertLogTimeSeries);
-			} else {
-				normalLogTimeSeriesList.add(alertLogTimeSeries);
-			}
-		}
+        }
 
-		// process the alertLogTimeSeries so that only 10 alert message chart
-		// are visible by default
-		int visibleCount = criticalLogTimeSeriesList.size();
+        return logTimeSeriesCollectionSet;
 
-		if (visibleCount < 10) {
+    }
 
-			Comparator<LogTimeSeries> logTimeSeriesComparator = new Comparator<LogTimeSeries>() {
+    @Override
+    public Set<LogIntervalMarker> getLogIntervalMarkerSet() {
+        return null;
+    }
 
-				@Override
-				public int compare(LogTimeSeries o1, LogTimeSeries o2) {
-					Integer o1Count = o1.getCount();
-					Integer o2Count = o2.getCount();
+    @Override
+    public String getTypeName() {
+        return "Alert";
+    }
 
-					return o2Count.compareTo(o1Count);
-				}
-			};
+    public TreeSet<PALStatisticName> getPalStatisticColumnSet() {
+        return palStatisticColumnSet;
+    }
 
-			Collections.sort(normalLogTimeSeriesList, logTimeSeriesComparator);
+    public void addPALStatisticColumn(PALStatisticName palStatisticName) {
+        palStatisticColumnSet.add(palStatisticName);
+    }
 
-			Iterator<LogTimeSeries> normalLogTimeSeriesIterator = normalLogTimeSeriesList.iterator();
+    @Override
+    public LogEntryColumn[] getReportTableColumns() {
 
-			while (normalLogTimeSeriesIterator.hasNext()) {
+        LogEntryColumn[] reportTableColumns = new LogEntryColumn[10];
 
-				LogTimeSeries normalLogTimeSeries = normalLogTimeSeriesIterator.next();
+        reportTableColumns[0] = LogEntryColumn.LINE;
+        reportTableColumns[1] = LogEntryColumn.TIMESTAMP;
+        reportTableColumns[2] = LogEntryColumn.DELTA;
+        reportTableColumns[3] = LogEntryColumn.VERSION;
+        reportTableColumns[4] = LogEntryColumn.MESSAGEID;
+        reportTableColumns[5] = LogEntryColumn.OBSERVEDKPI;
+        reportTableColumns[6] = LogEntryColumn.THRESHOLDKPI;
+        reportTableColumns[7] = LogEntryColumn.NODEID;
+        reportTableColumns[8] = LogEntryColumn.REQUESTORID;
+        reportTableColumns[9] = LogEntryColumn.MESSAGE;
 
-				if (visibleCount < 10) {
-					normalLogTimeSeries.setDefaultShowLogTimeSeries(true);
-					visibleCount++;
-				} else {
-					break;
-				}
-			}
-		}
+        return reportTableColumns;
+    }
 
-		return logTimeSeriesCollectionSet;
+    private Map<String, LogSeriesCollection> getOverallLogTimeSeriesCollectionMap() {
 
-	}
+        if (overallLogTimeSeriesCollectionMap == null) {
+            overallLogTimeSeriesCollectionMap = new HashMap<>();
+        }
 
-	@Override
-	public Set<LogIntervalMarker> getLogIntervalMarkerSet() {
-		return null;
-	}
+        return overallLogTimeSeriesCollectionMap;
+    }
 
-	@Override
-	public String getTypeName() {
-		return "Alert";
-	}
+    @Override
+    public void rebuildLogTimeSeriesCollectionSet(Locale locale) throws Exception {
 
-	public TreeSet<PALStatisticName> getPalStatisticColumnSet() {
-		return palStatisticColumnSet;
-	}
+        Map<String, LogSeriesCollection> overallLogTimeSeriesCollectionMap;
+        overallLogTimeSeriesCollectionMap = getOverallLogTimeSeriesCollectionMap();
+        overallLogTimeSeriesCollectionMap.clear();
 
-	public void addPALStatisticColumn(PALStatisticName palStatisticName) {
-		palStatisticColumnSet.add(palStatisticName);
-	}
+        Map<LogEntryKey, LogEntry> logEntryMap = getLogEntryMap();
 
-	@Override
-	public LogEntryColumn[] getReportTableColumns() {
+        for (LogEntry logEntry : logEntryMap.values()) {
 
-		LogEntryColumn[] reportTableColumns = new LogEntryColumn[8];
+            AlertLogEntry alertLogEntry = (AlertLogEntry) logEntry;
 
-		reportTableColumns[0] = LogEntryColumn.LINE;
-		reportTableColumns[1] = LogEntryColumn.TIMESTAMP;
-		reportTableColumns[2] = LogEntryColumn.VERSION;
-		reportTableColumns[3] = LogEntryColumn.MESSAGEID;
-		reportTableColumns[4] = LogEntryColumn.OBSERVEDKPI;
-		reportTableColumns[5] = LogEntryColumn.THRESHOLDKPI;
-		reportTableColumns[6] = LogEntryColumn.NODEID;
-		reportTableColumns[7] = LogEntryColumn.REQUESTORID;
+            processLogSeriesCollection(overallLogTimeSeriesCollectionMap, alertLogEntry, null, locale);
+        }
 
-		return reportTableColumns;
-	}
+        // Not doing sorting anymore
+        // Set<LogEntryKey> logEntryKeySet = new TreeSet<>(logEntryMap.keySet());
+        // Iterator<LogEntryKey> logEntryIndexIterator = logEntryKeySet.iterator();
+        //
+        // while (logEntryIndexIterator.hasNext()) {
+        //
+        // Integer logEntryKey = logEntryIndexIterator.next();
+        // AlertLogEntry alertLogEntry = (AlertLogEntry) logEntryMap.get(logEntryKey);
+        //
+        // processLogSeriesCollection(overallLogTimeSeriesCollectionMap, alertLogEntry, null, locale);
+        //
+        // }
 
+        // reset the flag
+        setRebuildLogTimeSeriesCollectionSet(false);
+    }
+
+    public void processAlertMessageReportModels() {
+
+        Map<Integer, AlertMessageReportModel> alertMessageReportModelMap = getAlertMessageReportModelMap();
+
+        for (AlertMessageReportModel alertMessageReportModel : alertMessageReportModelMap.values()) {
+
+            // alertMessageReportModel can be null for new alertid thats not yet developed in to this tool
+            if (alertMessageReportModel != null) {
+                alertMessageReportModel.postProcess();
+            }
+        }
+    }
 }

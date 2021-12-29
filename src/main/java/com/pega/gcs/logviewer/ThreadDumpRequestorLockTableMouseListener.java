@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.Point;
@@ -25,102 +26,102 @@ import com.pega.gcs.fringecommon.guiutilities.RightClickMenuItem;
 
 public class ThreadDumpRequestorLockTableMouseListener extends MouseAdapter {
 
-	private ThreadDumpTable threadDumpTable;
+    private ThreadDumpTable threadDumpTable;
 
-	private JTabbedPane threadDumpTabbedPane;
+    private JTabbedPane threadDumpTabbedPane;
 
-	private List<Integer> threadColumnList;
+    private List<Integer> threadColumnList;
 
-	public ThreadDumpRequestorLockTableMouseListener(ThreadDumpTable threadDumpTable, JTabbedPane threadDumpTabbedPane,
-			List<Integer> threadColumnList) {
+    public ThreadDumpRequestorLockTableMouseListener(ThreadDumpTable threadDumpTable, JTabbedPane threadDumpTabbedPane,
+            List<Integer> threadColumnList) {
 
-		super();
+        super();
 
-		this.threadDumpTable = threadDumpTable;
-		this.threadDumpTabbedPane = threadDumpTabbedPane;
-		this.threadColumnList = threadColumnList;
-	}
+        this.threadDumpTable = threadDumpTable;
+        this.threadDumpTabbedPane = threadDumpTabbedPane;
+        this.threadColumnList = threadColumnList;
+    }
 
-	private JTabbedPane getThreadDumpTabbedPane() {
-		return threadDumpTabbedPane;
-	}
+    private JTabbedPane getThreadDumpTabbedPane() {
+        return threadDumpTabbedPane;
+    }
 
-	@Override
-	public void mouseClicked(MouseEvent e) {
+    @Override
+    public void mouseClicked(MouseEvent mouseEvent) {
 
-		if (SwingUtilities.isRightMouseButton(e)) {
+        if (SwingUtilities.isRightMouseButton(mouseEvent)) {
 
-			Point point = e.getPoint();
+            Point point = mouseEvent.getPoint();
 
-			final JTable source = (JTable) e.getSource();
+            final JTable source = (JTable) mouseEvent.getSource();
 
-			final int selectedRow = source.rowAtPoint(point);
-			final int selectedColumn = source.columnAtPoint(point);
+            final int selectedRow = source.rowAtPoint(point);
+            final int selectedColumn = source.columnAtPoint(point);
 
-			if (selectedRow != -1) {
+            if (selectedRow != -1) {
 
-				// select the row first
-				source.setRowSelectionInterval(selectedRow, selectedRow);
+                // select the row first
+                source.setRowSelectionInterval(selectedRow, selectedRow);
 
-				final JPopupMenu popupMenu = new JPopupMenu();
+                final JPopupMenu popupMenu = new JPopupMenu();
 
-				final RightClickMenuItem copyCellMenuItem = new RightClickMenuItem("Copy Cell");
+                final RightClickMenuItem copyCellMenuItem = new RightClickMenuItem("Copy Cell");
 
-				copyCellMenuItem.addActionListener(new ActionListener() {
+                copyCellMenuItem.addActionListener(new ActionListener() {
 
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                    @Override
+                    public void actionPerformed(ActionEvent actionEvent) {
+                        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 
-						String cellValue = (String) source.getValueAt(selectedRow, selectedColumn);
+                        String cellValue = (String) source.getValueAt(selectedRow, selectedColumn);
 
-						clipboard.setContents(new StringSelection(cellValue), copyCellMenuItem);
+                        clipboard.setContents(new StringSelection(cellValue), copyCellMenuItem);
 
-						popupMenu.setVisible(false);
+                        popupMenu.setVisible(false);
 
-					}
-				});
+                    }
+                });
 
-				popupMenu.add(copyCellMenuItem);
+                popupMenu.add(copyCellMenuItem);
 
-				if (threadColumnList.indexOf(selectedColumn) != -1) {
+                if (threadColumnList.indexOf(selectedColumn) != -1) {
 
-					final RightClickMenuItem openThreadMenuItem = new RightClickMenuItem("Open Thread");
+                    final RightClickMenuItem openThreadMenuItem = new RightClickMenuItem("Open Thread");
 
-					openThreadMenuItem.addActionListener(new ActionListener() {
+                    openThreadMenuItem.addActionListener(new ActionListener() {
 
-						@Override
-						public void actionPerformed(ActionEvent e) {
+                        @Override
+                        public void actionPerformed(ActionEvent actionEvent) {
 
-							String cellValue = (String) source.getValueAt(selectedRow, selectedColumn);
+                            String cellValue = (String) source.getValueAt(selectedRow, selectedColumn);
 
-							ThreadDumpTableModel threadDumpTableModel;
-							threadDumpTableModel = (ThreadDumpTableModel) threadDumpTable.getModel();
+                            ThreadDumpTableModel threadDumpTableModel;
+                            threadDumpTableModel = (ThreadDumpTableModel) threadDumpTable.getModel();
 
-							List<String> threadNameList = threadDumpTableModel.getFtmEntryKeyList();
+                            List<String> threadNameList = threadDumpTableModel.getFtmEntryKeyList();
 
-							int rowIndex = threadNameList.indexOf(cellValue);
+                            int rowIndex = threadNameList.indexOf(cellValue);
 
-							if (rowIndex != -1) {
+                            if (rowIndex != -1) {
 
-								threadDumpTable.setRowSelectionInterval(rowIndex, rowIndex);
-								threadDumpTable.scrollRowToVisible(rowIndex);
+                                threadDumpTable.setRowSelectionInterval(rowIndex, rowIndex);
+                                threadDumpTable.scrollRowToVisible(rowIndex);
 
-								getThreadDumpTabbedPane().setSelectedIndex(0);
-							}
+                                getThreadDumpTabbedPane().setSelectedIndex(0);
+                            }
 
-							popupMenu.setVisible(false);
+                            popupMenu.setVisible(false);
 
-						}
-					});
+                        }
+                    });
 
-					popupMenu.add(openThreadMenuItem);
-				}
-				popupMenu.show(e.getComponent(), e.getX(), e.getY());
-			}
+                    popupMenu.add(openThreadMenuItem);
+                }
+                popupMenu.show(mouseEvent.getComponent(), mouseEvent.getX(), mouseEvent.getY());
+            }
 
-		} else {
-			super.mouseClicked(e);
-		}
-	}
+        } else {
+            super.mouseClicked(mouseEvent);
+        }
+    }
 }

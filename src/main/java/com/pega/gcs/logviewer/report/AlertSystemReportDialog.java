@@ -4,13 +4,16 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report;
 
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
+import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -18,10 +21,12 @@ import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 
+import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
 import com.pega.gcs.fringecommon.guiutilities.NavigationTableController;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.LogTable;
 import com.pega.gcs.logviewer.LogTableModel;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.LogSeriesCollection;
 import com.pega.gcs.logviewer.report.alert.AlertSummaryJPanel;
@@ -29,84 +34,90 @@ import com.pega.gcs.logviewer.report.alert.AlertTypeSummaryJPanel;
 
 public class AlertSystemReportDialog extends SystemReportDialog {
 
-	private static final long serialVersionUID = -4294293375116690122L;
+    private static final long serialVersionUID = -4294293375116690122L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(AlertSystemReportDialog.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(AlertSystemReportDialog.class);
 
-	private Map<String, JPanel> alertMessageTabComponentMap;
+    private Map<String, JPanel> alertMessageTabComponentMap;
 
-	private LogTable logTable;
+    private LogTable logTable;
 
-	public AlertSystemReportDialog(LogTableModel logTableModel,
-			NavigationTableController<Integer> navigationTableController, LogTable logTable, ImageIcon appIcon,
-			Component parent) {
+    public AlertSystemReportDialog(LogTableModel logTableModel,
+            NavigationTableController<LogEntryKey> navigationTableController, LogTable logTable, ImageIcon appIcon,
+            Component parent) {
 
-		super("Alert Overview - " + logTableModel.getModelName(), logTableModel, navigationTableController, appIcon,
-				parent);
+        super("Alert Overview - " + logTableModel.getModelName(), logTableModel, navigationTableController, appIcon,
+                parent);
 
-		this.logTable = logTable;
+        this.logTable = logTable;
 
-		setIconImage(appIcon.getImage());
+        setIconImage(appIcon.getImage());
 
-		setPreferredSize(new Dimension(1400, 800));
+        setPreferredSize(new Dimension(1400, 800));
 
-		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-		setContentPane(getMainJPanel());
+        setContentPane(getMainJPanel());
 
-		pack();
+        pack();
 
-		setExtendedState(Frame.MAXIMIZED_BOTH);
-	}
+        setExtendedState(Frame.MAXIMIZED_BOTH);
+    }
 
-	@Override
-	protected void buildTabs() {
+    @Override
+    protected void buildTabs() {
 
-		try {
+        try {
 
-			addDefaultTabs();
+            addDefaultTabs();
 
-			NavigationTableController<Integer> navigationTableController;
-			navigationTableController = getNavigationTableController();
+            NavigationTableController<LogEntryKey> navigationTableController;
+            navigationTableController = getNavigationTableController();
 
-			LogTableModel logTableModel = getLogTableModel();
-			LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
+            LogTableModel logTableModel = getLogTableModel();
+            LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
+            Locale locale = logTableModel.getLocale();
 
-			Set<LogSeriesCollection> logTimeSeriesCollectionSet;
-			logTimeSeriesCollectionSet = logEntryModel.getLogTimeSeriesCollectionSet(false);
+            Set<LogSeriesCollection> logTimeSeriesCollectionSet;
+            logTimeSeriesCollectionSet = logEntryModel.getLogTimeSeriesCollectionSet(false, locale);
 
-			// creating before as AlertTypeSummaryJPanel uses this for setting
-			// up mouse listener
-			JTabbedPane reportJTabbedPane = getReportJTabbedPane();
-			alertMessageTabComponentMap = new HashMap<>();
+            // creating before as AlertTypeSummaryJPanel uses this for setting
+            // up mouse listener
+            JTabbedPane reportTabbedPane = getReportTabbedPane();
 
-			Dimension labelDim = new Dimension(100, 22);
+            Dimension labelDim = new Dimension(100, 26);
 
-			JPanel alertTypeSummaryJPanel = new AlertTypeSummaryJPanel(logTimeSeriesCollectionSet,
-					logEntryModel.getNumberFormat(), reportJTabbedPane, alertMessageTabComponentMap);
+            alertMessageTabComponentMap = new HashMap<>();
 
-			addTab(alertTypeSummaryJPanel, "Alerts Summary", labelDim);
+            NumberFormat numberFormat = NumberFormat.getInstance(locale);
 
-			labelDim = new Dimension(70, 22);
+            JPanel alertTypeSummaryPanel = new AlertTypeSummaryJPanel(logTimeSeriesCollectionSet, numberFormat,
+                    reportTabbedPane, alertMessageTabComponentMap);
 
-			Iterator<LogSeriesCollection> ltscIt = logTimeSeriesCollectionSet.iterator();
+            String tabLabelText = "Alerts Summary";
 
-			while (ltscIt.hasNext()) {
+            GUIUtilities.addTab(reportTabbedPane, alertTypeSummaryPanel, tabLabelText, labelDim);
 
-				LogSeriesCollection ltsc = ltscIt.next();
+            labelDim = new Dimension(70, 26);
 
-				String ltsName = ltsc.getName();
+            Iterator<LogSeriesCollection> ltscIt = logTimeSeriesCollectionSet.iterator();
 
-				JPanel alertJPanel = new AlertSummaryJPanel(ltsc, logTable, navigationTableController);
+            while (ltscIt.hasNext()) {
 
-				addTab(alertJPanel, ltsName, labelDim);
+                LogSeriesCollection ltsc = ltscIt.next();
 
-				alertMessageTabComponentMap.put(ltsName, alertJPanel);
-			}
-		} catch (Exception e) {
-			LOG.error("Error building overview tabs.", e);
-		}
+                String ltsName = ltsc.getName();
 
-	}
+                JPanel alertJPanel = new AlertSummaryJPanel(ltsc, logTable, navigationTableController);
+
+                GUIUtilities.addTab(reportTabbedPane, alertJPanel, ltsName, labelDim);
+
+                alertMessageTabComponentMap.put(ltsName, alertJPanel);
+            }
+        } catch (Exception e) {
+            LOG.error("Error building overview tabs.", e);
+        }
+
+    }
 
 }

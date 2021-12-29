@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.Color;
@@ -25,194 +26,191 @@ import com.pega.gcs.logviewer.model.LogSeries;
 
 public class LogSeriesCollectionCheckBoxPanel extends JPanel {
 
-	private static final long serialVersionUID = 7164788613377009953L;
+    private static final long serialVersionUID = 7164788613377009953L;
 
-	private JCheckBox jCheckBox;
+    private JCheckBox checkBox;
 
-	Map<String, JLabel> logSeriesCountLabelMap;
+    Map<String, JLabel> logSeriesCountLabelMap;
 
-	// not passing collection because of multiple uses from LogTimeSeries and
-	// LogIntervalMarker
-	public LogSeriesCollectionCheckBoxPanel(Collection<LogSeries> logSeriesList) {
+    // not passing collection because of multiple uses from LogTimeSeries and
+    // LogIntervalMarker
+    public LogSeriesCollectionCheckBoxPanel(Collection<LogSeries> logSeriesList) {
 
-		super();
+        super();
 
-		logSeriesCountLabelMap = new HashMap<>();
+        logSeriesCountLabelMap = new HashMap<>();
 
-		setLayout(new GridBagLayout());
+        setLayout(new GridBagLayout());
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 0.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 0.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 1;
-		gbc2.gridy = 0;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-		gbc2.insets = new Insets(0, 0, 0, 0);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 1;
+        gbc2.gridy = 0;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
-		JPanel jCheckBoxPanel = getJCheckBoxPanel();
-		JPanel legendItemsPanel = getLegendItemsPanel(logSeriesList);
+        JPanel checkBoxPanel = getCheckBoxPanel();
+        JPanel legendItemsPanel = getLegendItemsPanel(logSeriesList);
 
-		add(jCheckBoxPanel, gbc1);
-		add(legendItemsPanel, gbc2);
+        add(checkBoxPanel, gbc1);
+        add(legendItemsPanel, gbc2);
 
-	}
+    }
 
-	/**
-	 * @return the jCheckBox
-	 */
-	public JCheckBox getjCheckBox() {
+    public JCheckBox getCheckBox() {
 
-		if (jCheckBox == null) {
-			jCheckBox = new JCheckBox();
-		}
+        if (checkBox == null) {
+            checkBox = new JCheckBox();
+        }
 
-		return jCheckBox;
-	}
+        return checkBox;
+    }
 
-	private JPanel getJCheckBoxPanel() {
+    private JPanel getCheckBoxPanel() {
 
-		JPanel jCheckBoxPanel = new JPanel();
+        JPanel checkBoxPanel = new JPanel();
 
-		jCheckBoxPanel.setLayout(new GridBagLayout());
+        checkBoxPanel.setLayout(new GridBagLayout());
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 0.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.VERTICAL;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 3, 0, 3);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 0.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.VERTICAL;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 3, 0, 3);
 
-		JCheckBox jCheckBox = getjCheckBox();
+        JCheckBox checkBox = getCheckBox();
 
-		jCheckBoxPanel.add(jCheckBox, gbc1);
+        checkBoxPanel.add(checkBox, gbc1);
 
-		jCheckBoxPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        checkBoxPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		return jCheckBoxPanel;
-	}
+        return checkBoxPanel;
+    }
 
-	private JPanel getLegendItemsPanel(Collection<LogSeries> logSeriesList) {
+    private JPanel getLegendItemsPanel(Collection<LogSeries> logSeriesList) {
 
-		JPanel legendItemsPanel = new JPanel();
+        JPanel legendItemsPanel = new JPanel();
 
-		legendItemsPanel.setLayout(new GridBagLayout());
+        legendItemsPanel.setLayout(new GridBagLayout());
 
-		int index = 0;
+        int index = 0;
 
-		boolean defaultShowLogTimeSeries = false;
+        boolean defaultShowLogTimeSeries = false;
 
-		for (LogSeries logSeries : logSeriesList) {
+        for (LogSeries logSeries : logSeriesList) {
 
-			String logSeriesName = logSeries.getName();
+            String logSeriesName = logSeries.getName();
 
-			GridBagConstraints gbc1 = new GridBagConstraints();
-			gbc1.gridx = 0;
-			gbc1.gridy = index;
-			gbc1.weightx = 1.0D;
-			gbc1.weighty = 1.0D;
-			gbc1.fill = GridBagConstraints.BOTH;
-			gbc1.anchor = GridBagConstraints.NORTHWEST;
-			gbc1.insets = new Insets(1, 1, 1, 1);
+            GridBagConstraints gbc1 = new GridBagConstraints();
+            gbc1.gridx = 0;
+            gbc1.gridy = index;
+            gbc1.weightx = 1.0D;
+            gbc1.weighty = 1.0D;
+            gbc1.fill = GridBagConstraints.BOTH;
+            gbc1.anchor = GridBagConstraints.NORTHWEST;
+            gbc1.insets = new Insets(1, 1, 1, 1);
 
-			JPanel legendJPanel = getLegendJPanel(logSeries);
+            JPanel legendJPanel = getLegendJPanel(logSeries);
 
-			legendItemsPanel.add(legendJPanel, gbc1);
+            legendItemsPanel.add(legendJPanel, gbc1);
 
-			if (logSeries.isShowCount()) {
+            if (logSeries.isShowCount()) {
 
-				GridBagConstraints gbc2 = new GridBagConstraints();
-				gbc2.gridx = 1;
-				gbc2.gridy = index;
-				gbc2.weightx = 0.0D;
-				gbc2.weighty = 1.0D;
-				gbc2.fill = GridBagConstraints.BOTH;
-				gbc2.anchor = GridBagConstraints.NORTHWEST;
-				gbc2.insets = new Insets(1, 1, 1, 8);
+                GridBagConstraints gbc2 = new GridBagConstraints();
+                gbc2.gridx = 1;
+                gbc2.gridy = index;
+                gbc2.weightx = 0.0D;
+                gbc2.weighty = 1.0D;
+                gbc2.fill = GridBagConstraints.BOTH;
+                gbc2.anchor = GridBagConstraints.NORTHWEST;
+                gbc2.insets = new Insets(1, 1, 1, 8);
 
-				String countStr = String.valueOf(logSeries.getCount());
+                String countStr = String.valueOf(logSeries.getCount());
 
-				JLabel logSeriesCountLabel = new JLabel(countStr);
+                JLabel logSeriesCountLabel = new JLabel(countStr);
 
-				Dimension dim = new Dimension(35, Integer.MAX_VALUE);
-				logSeriesCountLabel.setPreferredSize(dim);
-				logSeriesCountLabel.setMinimumSize(dim);
-				logSeriesCountLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+                Dimension dim = new Dimension(35, Integer.MAX_VALUE);
+                logSeriesCountLabel.setPreferredSize(dim);
+                logSeriesCountLabel.setMinimumSize(dim);
+                logSeriesCountLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-				legendItemsPanel.add(logSeriesCountLabel, gbc2);
+                legendItemsPanel.add(logSeriesCountLabel, gbc2);
 
-				logSeriesCountLabelMap.put(logSeriesName, logSeriesCountLabel);
+                logSeriesCountLabelMap.put(logSeriesName, logSeriesCountLabel);
 
-			}
+            }
 
-			defaultShowLogTimeSeries = defaultShowLogTimeSeries || logSeries.isDefaultShowLogTimeSeries();
+            defaultShowLogTimeSeries = defaultShowLogTimeSeries || logSeries.isDefaultShowLogTimeSeries();
 
-			index++;
-		}
+            index++;
+        }
 
-		JCheckBox jCheckBox = getjCheckBox();
+        JCheckBox checkBox = getCheckBox();
 
-		jCheckBox.setSelected(defaultShowLogTimeSeries);
+        checkBox.setSelected(defaultShowLogTimeSeries);
 
-		legendItemsPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        legendItemsPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		return legendItemsPanel;
-	}
+        return legendItemsPanel;
+    }
 
-	private JPanel getLegendJPanel(LogSeries logSeries) {
+    private JPanel getLegendJPanel(LogSeries logSeries) {
 
-		JPanel legendJPanel = new JPanel();
+        JPanel legendJPanel = new JPanel();
 
-		legendJPanel.setLayout(new GridBagLayout());
+        legendJPanel.setLayout(new GridBagLayout());
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(0, 0, 0, 0);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(0, 0, 0, 0);
 
-		JLabel legendLabel = new JLabel(logSeries.getName());
+        JLabel legendLabel = new JLabel(logSeries.getName());
 
-		legendLabel.setOpaque(true);
-		legendLabel.setForeground(Color.WHITE);
-		legendLabel.setBackground(logSeries.getColor());
-		legendLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        legendLabel.setOpaque(true);
+        legendLabel.setForeground(Color.WHITE);
+        legendLabel.setBackground(logSeries.getColor());
+        legendLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		legendJPanel.add(legendLabel, gbc1);
+        legendJPanel.add(legendLabel, gbc1);
 
-		legendJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
+        legendJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
-		return legendJPanel;
-	}
+        return legendJPanel;
+    }
 
-	public void updatelogSeriesCounts(Collection<LogSeries> logSeriesList) {
+    public void updatelogSeriesCounts(Collection<LogSeries> logSeriesList) {
 
-		for (LogSeries logSeries : logSeriesList) {
+        for (LogSeries logSeries : logSeriesList) {
 
-			if (logSeries.isShowCount()) {
+            if (logSeries.isShowCount()) {
 
-				String logSeriesName = logSeries.getName();
+                String logSeriesName = logSeries.getName();
 
-				JLabel logSeriesCountLabel = logSeriesCountLabelMap.get(logSeriesName);
+                JLabel logSeriesCountLabel = logSeriesCountLabelMap.get(logSeriesName);
 
-				String countStr = String.valueOf(logSeries.getCount());
+                String countStr = String.valueOf(logSeries.getCount());
 
-				logSeriesCountLabel.setText(countStr);
-			}
-		}
-	}
+                logSeriesCountLabel.setText(countStr);
+            }
+        }
+    }
 }

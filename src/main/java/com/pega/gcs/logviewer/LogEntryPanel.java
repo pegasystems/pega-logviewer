@@ -4,9 +4,11 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
@@ -20,6 +22,7 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.nio.charset.Charset;
 import java.text.NumberFormat;
 import java.util.HashMap;
 
@@ -49,883 +52,830 @@ import com.pega.gcs.fringecommon.utilities.KnuthMorrisPrattAlgorithm;
 
 public class LogEntryPanel extends JPanel {
 
-	private static final long serialVersionUID = 791827616015609624L;
+    private static final long serialVersionUID = 791827616015609624L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(LogEntryPanel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(LogEntryPanel.class);
 
-	// 1 million characters limit
-	private static final int MAX_LOG_TEXT_LENGTH = 1000000;
+    // 1 million characters limit
+    private static final int MAX_LOG_TEXT_LENGTH = 1000000;
 
-	private static final String WRAP_ON_ACTION = "Wrap Text On";
+    private static final String WRAP_ON_ACTION = "Wrap Text On";
 
-	private static final String WRAP_OFF_ACTION = "Wrap Text Off";
+    private static final String WRAP_OFF_ACTION = "Wrap Text Off";
 
-	// byte array for highlighting. can store original byte or upper case bytes
-	private byte[] logEntryTextBytes;
+    private static boolean wrapOn = true;
 
-	// store the original text
-	private String logEntryText;
+    // byte array for highlighting. can store original byte or upper case bytes
+    private byte[] logEntryTextBytes;
 
-	private String specialMessage;
+    // store the original text
+    private String logEntryText;
 
-	private JTextField searchJTextField;
+    private Charset charset;
 
-	private JLabel searchResultsJLabel;
+    private String specialMessage;
 
-	private JCheckBox caseSensitiveSearchJCheckBox;
+    private JTextField searchJTextField;
 
-	private JButton wrapLogEntryTextJButton;
+    private JLabel searchResultsJLabel;
 
-	private JTextArea logEntryArea;
+    private JCheckBox caseSensitiveSearchJCheckBox;
 
-	private static boolean wrapOn;
+    private JButton wrapLogEntryTextJButton;
 
-	private Highlighter.HighlightPainter highlightPainter;
+    private JTextArea logEntryArea;
 
-	private Integer totalSearchCount;
+    private Highlighter.HighlightPainter highlightPainter;
 
-	private int searchNavPrevKey;
+    private Integer totalSearchCount;
 
-	private int searchNavKey;
+    private int searchNavPrevKey;
 
-	private HashMap<Integer, TextAreaSearchResult> searchResultsMap;
+    private int searchNavKey;
 
-	private ImageIcon firstImageIcon;
+    private HashMap<Integer, TextAreaSearchResult> searchResultsMap;
 
-	private ImageIcon lastImageIcon;
+    private ImageIcon firstImageIcon;
 
-	private ImageIcon prevImageIcon;
+    private ImageIcon lastImageIcon;
 
-	private ImageIcon nextImageIcon;
+    private ImageIcon prevImageIcon;
 
-	private JButton searchPrevJButton;
+    private ImageIcon nextImageIcon;
 
-	private JButton searchNextJButton;
+    private JButton searchPrevJButton;
 
-	private JButton searchFirstJButton;
+    private JButton searchNextJButton;
 
-	private JButton searchLastJButton;
+    private JButton searchFirstJButton;
 
-	public LogEntryPanel(String logEntryText) {
+    private JButton searchLastJButton;
 
-		super();
+    public LogEntryPanel(String logEntryText, Charset charset) {
 
-		assert (logEntryText != null);
+        super();
 
-		this.specialMessage = null;
+        assert (logEntryText != null);
 
-		this.highlightPainter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
+        this.specialMessage = null;
 
-		this.totalSearchCount = null;
+        this.highlightPainter = new DefaultHighlighter.DefaultHighlightPainter(Color.YELLOW);
 
-		this.searchNavKey = 0;
+        this.totalSearchCount = null;
 
-		this.searchNavPrevKey = 0;
+        this.searchNavKey = 0;
 
-		this.searchResultsMap = new HashMap<Integer, TextAreaSearchResult>();
+        this.searchNavPrevKey = 0;
 
-		this.firstImageIcon = FileUtilities.getImageIcon(this.getClass(), "first.png");
+        this.searchResultsMap = new HashMap<Integer, TextAreaSearchResult>();
 
-		this.lastImageIcon = FileUtilities.getImageIcon(this.getClass(), "last.png");
+        this.firstImageIcon = FileUtilities.getImageIcon(getClass(), "first.png");
 
-		this.prevImageIcon = FileUtilities.getImageIcon(this.getClass(), "prev.png");
+        this.lastImageIcon = FileUtilities.getImageIcon(getClass(), "last.png");
 
-		this.nextImageIcon = FileUtilities.getImageIcon(this.getClass(), "next.png");
+        this.prevImageIcon = FileUtilities.getImageIcon(getClass(), "prev.png");
 
-		setLayout(new GridBagLayout());
+        this.nextImageIcon = FileUtilities.getImageIcon(getClass(), "next.png");
 
-		int gridy = 0;
+        setLayout(new GridBagLayout());
 
-		this.logEntryText = logEntryText;
+        int gridy = 0;
 
-		int logEntryTextLength = logEntryText.length();
+        this.logEntryText = logEntryText;
+        this.charset = charset;
 
-		if (logEntryTextLength > MAX_LOG_TEXT_LENGTH) {
+        int logEntryTextLength = logEntryText.length();
 
-			NumberFormat nf = NumberFormat.getInstance();
+        if (logEntryTextLength > MAX_LOG_TEXT_LENGTH) {
 
-			String leTextLengthStr = nf.format(logEntryTextLength);
-			String maxTextLengthStr = nf.format(MAX_LOG_TEXT_LENGTH);
+            NumberFormat nf = NumberFormat.getInstance();
 
-			this.logEntryText = logEntryText.substring(0, MAX_LOG_TEXT_LENGTH);
+            String leTextLengthStr = nf.format(logEntryTextLength);
+            String maxTextLengthStr = nf.format(MAX_LOG_TEXT_LENGTH);
 
-			this.specialMessage = String.format(
-					"*** The content is truncated to %s characters. Original length was %s. ***", maxTextLengthStr,
-					leTextLengthStr);
-
-			GridBagConstraints gbc1 = new GridBagConstraints();
-			gbc1.gridx = 0;
-			gbc1.gridy = gridy++;
-			gbc1.weightx = 1.0D;
-			gbc1.weighty = 0.0D;
-			gbc1.fill = GridBagConstraints.BOTH;
-			gbc1.anchor = GridBagConstraints.NORTHWEST;
-			gbc1.insets = new Insets(2, 2, 2, 2);
-
-			JPanel specialMessageJPanel = getSpecialMessageJPanel();
-			add(specialMessageJPanel, gbc1);
-		}
-
-		// default is case insensitive
-		setLogEntryTextBytes(logEntryText.toUpperCase().getBytes());
-
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = gridy++;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 0.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-
-		GridBagConstraints gbc2 = new GridBagConstraints();
-		gbc2.gridx = 0;
-		gbc2.gridy = gridy++;
-		gbc2.weightx = 1.0D;
-		gbc2.weighty = 1.0D;
-		gbc2.fill = GridBagConstraints.BOTH;
-		gbc2.anchor = GridBagConstraints.NORTHWEST;
-
-		JPanel controlsJPanel = getControlsJPanel();
-		JComponent textAreaJComponent = getTextAreaJComponent();
-
-		add(controlsJPanel, gbc1);
-		add(textAreaJComponent, gbc2);
-	}
-
-	protected byte[] getLogEntryTextBytes() {
-		return logEntryTextBytes;
-	}
-
-	protected void setLogEntryTextBytes(byte[] aLogEntryTextBytes) {
-		logEntryTextBytes = aLogEntryTextBytes;
-	}
-
-	protected String getLogEntryText() {
-		return logEntryText;
-	}
-
-	/**
-	 * @return the wrapOn
-	 */
-	public static boolean isWrapOn() {
-		return wrapOn;
-	}
-
-	/**
-	 * @param wrapOn
-	 *            the wrapOn to set
-	 */
-	public static void setWrapOn(boolean wrapOn) {
-		LogEntryPanel.wrapOn = wrapOn;
-	}
-
-	protected JTextField getSearchJTextField() {
-
-		if (searchJTextField == null) {
-			searchJTextField = new JTextField();
-			searchJTextField.setEditable(true);
-
-			Dimension dim = new Dimension(250, 22);
-			searchJTextField.setPreferredSize(dim);
-			searchJTextField.setMaximumSize(dim);
-			searchJTextField.setFocusAccelerator('f');
-			searchJTextField.addKeyListener(new KeyListener() {
-
-				@Override
-				public void keyTyped(KeyEvent e) {
-					// do nothing
-				}
-
-				@Override
-				public void keyReleased(KeyEvent e) {
-
-					if (e.getSource() instanceof JTextField) {
-						JTextField searchJTextField = (JTextField) e.getSource();
-						String searchText = searchJTextField.getText().trim();
-						highlight(searchText);
-					}
-				}
-
-				@Override
-				public void keyPressed(KeyEvent e) {
-					// do nothing
-				}
-			});
-
-		}
-
-		return searchJTextField;
-	}
-
-	private JLabel getSearchResultsJLabel() {
-
-		if (searchResultsJLabel == null) {
-
-			searchResultsJLabel = new JLabel();
-
-			Dimension dim = new Dimension(100, 22);
-			searchResultsJLabel.setPreferredSize(dim);
-			searchResultsJLabel.setMaximumSize(dim);
-
-		}
-
-		return searchResultsJLabel;
-	}
-
-	private JButton getSearchFirstJButton() {
-
-		if (searchFirstJButton == null) {
-
-			searchFirstJButton = new JButton(firstImageIcon);
-
-			Dimension size = new Dimension(40, 20);
-			Dimension minSize = new Dimension(30, 20);
-
-			searchFirstJButton.setPreferredSize(size);
-			searchFirstJButton.setMinimumSize(minSize);
-			searchFirstJButton.setMaximumSize(size);
-			searchFirstJButton.setBorder(BorderFactory.createEmptyBorder());
-			searchFirstJButton.setEnabled(false);
-			searchFirstJButton.setToolTipText("First search result");
-			searchFirstJButton.addActionListener(new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					searchNavPrevKey = searchNavKey;
-					searchNavKey = 1;
-					searchTraverse();
-				}
-			});
-		}
-
-		return searchFirstJButton;
-
-	}
-
-	/**
-	 * @return the searchPrevJButton
-	 */
-	private JButton getSearchPrevJButton() {
-
-		if (searchPrevJButton == null) {
-
-			searchPrevJButton = new JButton(prevImageIcon);
-
-			Dimension size = new Dimension(40, 20);
-			Dimension minSize = new Dimension(30, 20);
-			searchPrevJButton.setPreferredSize(size);
-			searchPrevJButton.setMinimumSize(minSize);
-			searchPrevJButton.setMaximumSize(size);
-			searchPrevJButton.setBorder(BorderFactory.createEmptyBorder());
-			searchPrevJButton.setEnabled(false);
-			searchPrevJButton.setToolTipText("Previous search result from current selection");
-			searchPrevJButton.addActionListener(new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					searchNavPrevKey = searchNavKey;
-					searchNavKey--;
-					searchTraverse();
-				}
-			});
-		}
-
-		return searchPrevJButton;
-	}
-
-	/**
-	 * @return the searchNextJButton
-	 */
-	private JButton getSearchNextJButton() {
-
-		if (searchNextJButton == null) {
-			searchNextJButton = new JButton(nextImageIcon);
-
-			Dimension size = new Dimension(40, 20);
-			Dimension minSize = new Dimension(30, 20);
-			searchNextJButton.setPreferredSize(size);
-			searchNextJButton.setMinimumSize(minSize);
-			searchNextJButton.setMaximumSize(size);
-			searchNextJButton.setBorder(BorderFactory.createEmptyBorder());
-			searchNextJButton.setEnabled(false);
-			searchNextJButton.setToolTipText("Next search result from current selection");
-			searchNextJButton.addActionListener(new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					searchNavPrevKey = searchNavKey;
-					searchNavKey++;
-					searchTraverse();
-				}
-			});
-		}
-
-		return searchNextJButton;
-	}
-
-	/**
-	 * @return the searchLastJButton
-	 */
-	private JButton getSearchLastJButton() {
-
-		if (searchLastJButton == null) {
-
-			searchLastJButton = new JButton(lastImageIcon);
-
-			Dimension size = new Dimension(40, 20);
-			Dimension minSize = new Dimension(30, 20);
-			searchLastJButton.setPreferredSize(size);
-			searchLastJButton.setMinimumSize(minSize);
-			searchLastJButton.setMaximumSize(size);
-			searchLastJButton.setBorder(BorderFactory.createEmptyBorder());
-			searchLastJButton.setEnabled(false);
-			searchLastJButton.setToolTipText("Last search result");
-			searchLastJButton.addActionListener(new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					searchNavPrevKey = searchNavKey;
-					searchNavKey = totalSearchCount;
-					searchTraverse();
-				}
-			});
-		}
-
-		return searchLastJButton;
-	}
-
-	private JCheckBox getCaseSensitiveSearchJCheckBox() {
-
-		if (caseSensitiveSearchJCheckBox == null) {
-
-			caseSensitiveSearchJCheckBox = new JCheckBox("Case Sensitive");
-
-			caseSensitiveSearchJCheckBox.addItemListener(new ItemListener() {
-
-				@Override
-				public void itemStateChanged(ItemEvent e) {
-
-					String logEntryText = getLogEntryText();
-					byte[] aLogEntryTextBytes = null;
-
-					if (e.getStateChange() == ItemEvent.SELECTED) {
-						aLogEntryTextBytes = logEntryText.getBytes();
-					} else {
-						aLogEntryTextBytes = logEntryText.toUpperCase().getBytes();
-					}
-
-					setLogEntryTextBytes(aLogEntryTextBytes);
-
-					// retry the search
-					JTextField searchJTextField = getSearchJTextField();
-
-					String searchText = searchJTextField.getText().trim();
-
-					highlight(searchText);
-				}
-			});
-		}
-
-		return caseSensitiveSearchJCheckBox;
-	}
-
-	/**
-	 * @return the wrapLogEntryTextJButton
-	 */
-	protected JButton getWrapLogEntryTextJButton() {
-
-		if (wrapLogEntryTextJButton == null) {
-
-			wrapLogEntryTextJButton = new JButton();
-
-			Dimension size = new Dimension(120, 20);
-			wrapLogEntryTextJButton.setPreferredSize(size);
-			wrapLogEntryTextJButton.setMaximumSize(size);
-			wrapLogEntryTextJButton.setBorder(BorderFactory.createEmptyBorder());
-			wrapLogEntryTextJButton.addActionListener(new ActionListener() {
-
-				@Override
-				public void actionPerformed(ActionEvent e) {
-
-					JButton wrapLogEntryTextJButton = getWrapLogEntryTextJButton();
+            this.logEntryText = logEntryText.substring(0, MAX_LOG_TEXT_LENGTH);
+
+            this.specialMessage = String.format(
+                    "*** The content is truncated to %s characters. Original length was %s. ***", maxTextLengthStr,
+                    leTextLengthStr);
+
+            GridBagConstraints gbc1 = new GridBagConstraints();
+            gbc1.gridx = 0;
+            gbc1.gridy = gridy++;
+            gbc1.weightx = 1.0D;
+            gbc1.weighty = 0.0D;
+            gbc1.fill = GridBagConstraints.BOTH;
+            gbc1.anchor = GridBagConstraints.NORTHWEST;
+            gbc1.insets = new Insets(2, 2, 2, 2);
+
+            JPanel specialMessageJPanel = getSpecialMessageJPanel();
+            add(specialMessageJPanel, gbc1);
+        }
 
-					if (WRAP_ON_ACTION.equals(e.getActionCommand())) {
+        // default is case insensitive
+        setLogEntryTextBytes(logEntryText.toUpperCase().getBytes(charset));
 
-						wrapLogEntryAreaText(true);
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = gridy++;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 0.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
 
-						wrapLogEntryTextJButton.setText(WRAP_OFF_ACTION);
-						wrapLogEntryTextJButton.setActionCommand(WRAP_OFF_ACTION);
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = 0;
+        gbc2.gridy = gridy++;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
 
-						setWrapOn(true);
-					} else {
+        JPanel controlsJPanel = getControlsJPanel();
+        JComponent textAreaJComponent = getTextAreaJComponent();
+
+        add(controlsJPanel, gbc1);
+        add(textAreaJComponent, gbc2);
+    }
+
+    private byte[] getLogEntryTextBytes() {
+        return logEntryTextBytes;
+    }
 
-						wrapLogEntryAreaText(false);
+    private void setLogEntryTextBytes(byte[] logEntryTextBytes) {
+        this.logEntryTextBytes = logEntryTextBytes;
+    }
 
-						wrapLogEntryTextJButton.setText(WRAP_ON_ACTION);
-						wrapLogEntryTextJButton.setActionCommand(WRAP_ON_ACTION);
+    protected String getLogEntryText() {
+        return logEntryText;
+    }
 
-						setWrapOn(false);
-					}
-				}
-			});
+    public static boolean isWrapOn() {
+        return wrapOn;
+    }
 
-			boolean wrapOn = isWrapOn();
+    public static void setWrapOn(boolean wrapOn) {
+        LogEntryPanel.wrapOn = wrapOn;
+    }
 
-			if (wrapOn) {
-				wrapLogEntryTextJButton.setText(WRAP_OFF_ACTION);
-				wrapLogEntryTextJButton.setToolTipText(WRAP_OFF_ACTION);
-			} else {
-				wrapLogEntryTextJButton.setText(WRAP_ON_ACTION);
-				wrapLogEntryTextJButton.setToolTipText(WRAP_ON_ACTION);
-			}
-		}
+    private JTextField getSearchJTextField() {
 
-		return wrapLogEntryTextJButton;
-	}
+        if (searchJTextField == null) {
+            searchJTextField = new JTextField();
+            searchJTextField.setEditable(true);
+
+            Dimension dim = new Dimension(250, 22);
+            searchJTextField.setPreferredSize(dim);
+            searchJTextField.setMaximumSize(dim);
+            searchJTextField.setFocusAccelerator('f');
+            searchJTextField.addKeyListener(new KeyListener() {
+
+                @Override
+                public void keyTyped(KeyEvent keyEvent) {
+                    // do nothing
+                }
 
-	/**
-	 * @return the logEntryArea
-	 */
-	private JTextArea getLogEntryArea() {
+                @Override
+                public void keyReleased(KeyEvent keyEvent) {
+
+                    if (keyEvent.getSource() instanceof JTextField) {
+                        JTextField searchJTextField = (JTextField) keyEvent.getSource();
+                        String searchText = searchJTextField.getText().trim();
+                        highlight(searchText);
+                    }
+                }
+
+                @Override
+                public void keyPressed(KeyEvent keyEvent) {
+                    // do nothing
+                }
+            });
+
+        }
+
+        return searchJTextField;
+    }
+
+    private JLabel getSearchResultsJLabel() {
+
+        if (searchResultsJLabel == null) {
+
+            searchResultsJLabel = new JLabel();
+
+            Dimension dim = new Dimension(150, 22);
+            searchResultsJLabel.setPreferredSize(dim);
+            searchResultsJLabel.setMaximumSize(dim);
+
+        }
+
+        return searchResultsJLabel;
+    }
+
+    private JButton getSearchFirstJButton() {
+
+        if (searchFirstJButton == null) {
+
+            searchFirstJButton = new JButton(firstImageIcon);
+
+            Dimension size = new Dimension(40, 20);
+            Dimension minSize = new Dimension(30, 20);
+
+            searchFirstJButton.setPreferredSize(size);
+            searchFirstJButton.setMinimumSize(minSize);
+            searchFirstJButton.setMaximumSize(size);
+            searchFirstJButton.setBorder(BorderFactory.createEmptyBorder());
+            searchFirstJButton.setEnabled(false);
+            searchFirstJButton.setToolTipText("First search result");
+            searchFirstJButton.addActionListener(new ActionListener() {
+
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    searchNavPrevKey = searchNavKey;
+                    searchNavKey = 1;
+                    searchTraverse();
+                }
+            });
+        }
+
+        return searchFirstJButton;
+
+    }
+
+    private JButton getSearchPrevJButton() {
+
+        if (searchPrevJButton == null) {
+
+            searchPrevJButton = new JButton(prevImageIcon);
+
+            Dimension size = new Dimension(40, 20);
+            Dimension minSize = new Dimension(30, 20);
+            searchPrevJButton.setPreferredSize(size);
+            searchPrevJButton.setMinimumSize(minSize);
+            searchPrevJButton.setMaximumSize(size);
+            searchPrevJButton.setBorder(BorderFactory.createEmptyBorder());
+            searchPrevJButton.setEnabled(false);
+            searchPrevJButton.setToolTipText("Previous search result from current selection");
+            searchPrevJButton.addActionListener(new ActionListener() {
 
-		if (logEntryArea == null) {
-			logEntryArea = new JTextArea();
-			logEntryArea.setText(logEntryText);
-			logEntryArea.setCaretPosition(0);
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    searchNavPrevKey = searchNavKey;
+                    searchNavKey--;
+                    searchTraverse();
+                }
+            });
+        }
 
-			boolean wrapOn = isWrapOn();
-
-			if (wrapOn) {
-				logEntryArea.setWrapStyleWord(true);
-				logEntryArea.setLineWrap(true);
-			} else {
-				logEntryArea.setWrapStyleWord(false);
-				logEntryArea.setLineWrap(false);
-			}
-
-			logEntryArea.setEditable(false);
-		}
-
-		return logEntryArea;
-	}
-
-	private JPanel getSpecialMessageJPanel() {
-
-		JPanel specialMessageJPanel = new JPanel();
+        return searchPrevJButton;
+    }
 
-		LayoutManager layout = new BoxLayout(specialMessageJPanel, BoxLayout.X_AXIS);
-		specialMessageJPanel.setLayout(layout);
+    private JButton getSearchNextJButton() {
 
-		JLabel specialMessageJLabel = new JLabel(specialMessage);
+        if (searchNextJButton == null) {
+            searchNextJButton = new JButton(nextImageIcon);
 
-		Font labelFont = specialMessageJLabel.getFont();
-		labelFont = labelFont.deriveFont(Font.BOLD, 11);
-		specialMessageJLabel.setFont(labelFont);
-		specialMessageJLabel.setForeground(Color.RED);
+            Dimension size = new Dimension(40, 20);
+            Dimension minSize = new Dimension(30, 20);
+            searchNextJButton.setPreferredSize(size);
+            searchNextJButton.setMinimumSize(minSize);
+            searchNextJButton.setMaximumSize(size);
+            searchNextJButton.setBorder(BorderFactory.createEmptyBorder());
+            searchNextJButton.setEnabled(false);
+            searchNextJButton.setToolTipText("Next search result from current selection");
+            searchNextJButton.addActionListener(new ActionListener() {
 
-		Dimension dim = new Dimension(100, 30);
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    searchNavPrevKey = searchNavKey;
+                    searchNavKey++;
+                    searchTraverse();
+                }
+            });
+        }
 
-		specialMessageJPanel.add(Box.createHorizontalGlue());
-		specialMessageJPanel.add(Box.createRigidArea(dim));
-		specialMessageJPanel.add(specialMessageJLabel);
-		specialMessageJPanel.add(Box.createRigidArea(dim));
-		specialMessageJPanel.add(Box.createHorizontalGlue());
+        return searchNextJButton;
+    }
 
-		// specialMessageJPanel.setBorder(BorderFactory.createLineBorder(
-		// MyColor.GRAY, 1));
+    private JButton getSearchLastJButton() {
 
-		return specialMessageJPanel;
-	}
+        if (searchLastJButton == null) {
 
-	private JPanel getControlsJPanel() {
+            searchLastJButton = new JButton(lastImageIcon);
 
-		JPanel controlsJPanel = new JPanel();
+            Dimension size = new Dimension(40, 20);
+            Dimension minSize = new Dimension(30, 20);
+            searchLastJButton.setPreferredSize(size);
+            searchLastJButton.setMinimumSize(minSize);
+            searchLastJButton.setMaximumSize(size);
+            searchLastJButton.setBorder(BorderFactory.createEmptyBorder());
+            searchLastJButton.setEnabled(false);
+            searchLastJButton.setToolTipText("Last search result");
+            searchLastJButton.addActionListener(new ActionListener() {
 
-		LayoutManager layout = new BoxLayout(controlsJPanel, BoxLayout.X_AXIS);
-		controlsJPanel.setLayout(layout);
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
+                    searchNavPrevKey = searchNavKey;
+                    searchNavKey = totalSearchCount;
+                    searchTraverse();
+                }
+            });
+        }
 
-		JPanel searchJPanel = getSearchJPanel();
-		JPanel wrapLogEntryTextJPanel = getWrapLogEntryTextJPanel();
+        return searchLastJButton;
+    }
 
-		controlsJPanel.add(searchJPanel);
-		controlsJPanel.add(wrapLogEntryTextJPanel);
+    private JCheckBox getCaseSensitiveSearchJCheckBox() {
 
-		return controlsJPanel;
-	}
+        if (caseSensitiveSearchJCheckBox == null) {
 
-	private JPanel getSearchJPanel() {
+            caseSensitiveSearchJCheckBox = new JCheckBox("Case Sensitive");
 
-		JPanel searchJPanel = new JPanel();
+            caseSensitiveSearchJCheckBox.addItemListener(new ItemListener() {
 
-		LayoutManager layout = new BoxLayout(searchJPanel, BoxLayout.X_AXIS);
-		searchJPanel.setLayout(layout);
+                @Override
+                public void itemStateChanged(ItemEvent itemEvent) {
 
-		JLabel searchJLabel = new JLabel("Search");
+                    String logEntryText = getLogEntryText();
+                    byte[] logEntryTextBytes = null;
 
-		JLabel resultsLabel = new JLabel("Results:");
-		Dimension size = new Dimension(40, 20);
-		resultsLabel.setPreferredSize(size);
-		resultsLabel.setMinimumSize(size);
-		resultsLabel.setMaximumSize(size);
+                    if (itemEvent.getStateChange() == ItemEvent.SELECTED) {
+                        logEntryTextBytes = logEntryText.getBytes(charset);
+                    } else {
+                        logEntryTextBytes = logEntryText.toUpperCase().getBytes(charset);
+                    }
 
-		JTextField searchJTextField = getSearchJTextField();
+                    setLogEntryTextBytes(logEntryTextBytes);
 
-		JButton searchFirstJButton = getSearchFirstJButton();
-		JButton searchPrevJButton = getSearchPrevJButton();
-		JLabel searchResultsJLabel = getSearchResultsJLabel();
-		JButton searchNextJButton = getSearchNextJButton();
-		JButton searchLastJButton = getSearchLastJButton();
+                    // retry the search
+                    JTextField searchJTextField = getSearchJTextField();
 
-		JCheckBox caseSensitiveSearchJCheckBox = getCaseSensitiveSearchJCheckBox();
+                    String searchText = searchJTextField.getText().trim();
 
-		int height = 30;
-		Dimension startDim = new Dimension(20, height);
-		Dimension dim = new Dimension(10, height);
+                    highlight(searchText);
+                }
+            });
+        }
 
-		searchJPanel.add(Box.createRigidArea(startDim));
-		searchJPanel.add(searchJLabel);
-		searchJPanel.add(Box.createRigidArea(dim));
-		searchJPanel.add(searchJTextField);
-		searchJPanel.add(Box.createRigidArea(dim));
-		searchJPanel.add(searchFirstJButton);
-		searchJPanel.add(Box.createRigidArea(new Dimension(4, height)));
-		searchJPanel.add(searchPrevJButton);
-		searchJPanel.add(Box.createRigidArea(new Dimension(4, height)));
-		searchJPanel.add(resultsLabel);
-		searchJPanel.add(Box.createRigidArea(new Dimension(4, height)));
-		searchJPanel.add(searchResultsJLabel);
-		searchJPanel.add(Box.createRigidArea(new Dimension(4, height)));
-		searchJPanel.add(searchNextJButton);
-		searchJPanel.add(Box.createRigidArea(new Dimension(4, height)));
-		searchJPanel.add(searchLastJButton);
-		searchJPanel.add(Box.createRigidArea(new Dimension(4, height)));
+        return caseSensitiveSearchJCheckBox;
+    }
 
-		searchJPanel.add(Box.createRigidArea(dim));
-		searchJPanel.add(caseSensitiveSearchJCheckBox);
-		searchJPanel.add(Box.createRigidArea(dim));
-		searchJPanel.add(Box.createHorizontalGlue());
+    protected JButton getWrapLogEntryTextJButton() {
 
-		searchJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        if (wrapLogEntryTextJButton == null) {
 
-		return searchJPanel;
-	}
+            wrapLogEntryTextJButton = new JButton();
 
-	private JPanel getWrapLogEntryTextJPanel() {
+            Dimension size = new Dimension(120, 26);
+            wrapLogEntryTextJButton.setPreferredSize(size);
+            wrapLogEntryTextJButton.setMaximumSize(size);
+            wrapLogEntryTextJButton.setBorder(BorderFactory.createEmptyBorder());
+            wrapLogEntryTextJButton.addActionListener(new ActionListener() {
 
-		JPanel wrapLogEntryTextJPanel = new JPanel();
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
 
-		LayoutManager layout = new BoxLayout(wrapLogEntryTextJPanel, BoxLayout.X_AXIS);
-		wrapLogEntryTextJPanel.setLayout(layout);
+                    JButton wrapLogEntryTextJButton = getWrapLogEntryTextJButton();
 
-		JButton wrapLogEntryTextJButton = getWrapLogEntryTextJButton();
+                    if (WRAP_ON_ACTION.equals(actionEvent.getActionCommand())) {
 
-		Dimension dim = new Dimension(10, 30);
+                        wrapLogEntryAreaText(true);
 
-		wrapLogEntryTextJPanel.add(Box.createHorizontalGlue());
-		wrapLogEntryTextJPanel.add(Box.createRigidArea(dim));
-		wrapLogEntryTextJPanel.add(wrapLogEntryTextJButton);
-		wrapLogEntryTextJPanel.add(Box.createRigidArea(dim));
-		wrapLogEntryTextJPanel.add(Box.createHorizontalGlue());
+                        wrapLogEntryTextJButton.setText(WRAP_OFF_ACTION);
+                        wrapLogEntryTextJButton.setActionCommand(WRAP_OFF_ACTION);
 
-		wrapLogEntryTextJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+                        setWrapOn(true);
+                    } else {
 
-		return wrapLogEntryTextJPanel;
-	}
+                        wrapLogEntryAreaText(false);
 
-	private JComponent getTextAreaJComponent() {
+                        wrapLogEntryTextJButton.setText(WRAP_ON_ACTION);
+                        wrapLogEntryTextJButton.setActionCommand(WRAP_ON_ACTION);
 
-		JTextArea logEntryArea = getLogEntryArea();
+                        setWrapOn(false);
+                    }
+                }
+            });
 
-		JScrollPane jScrollPane = new JScrollPane(logEntryArea, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
-				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+            boolean wrapOn = isWrapOn();
 
-		jScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+            if (wrapOn) {
+                wrapLogEntryTextJButton.setText(WRAP_OFF_ACTION);
+                wrapLogEntryTextJButton.setToolTipText(WRAP_OFF_ACTION);
+            } else {
+                wrapLogEntryTextJButton.setText(WRAP_ON_ACTION);
+                wrapLogEntryTextJButton.setToolTipText(WRAP_ON_ACTION);
+            }
+        }
 
-		return jScrollPane;
-	}
+        return wrapLogEntryTextJButton;
+    }
 
-	protected void wrapLogEntryAreaText(boolean wrap) {
+    private JTextArea getLogEntryArea() {
 
-		JTextArea logEntryArea = getLogEntryArea();
+        if (logEntryArea == null) {
+            logEntryArea = new JTextArea();
+            logEntryArea.setText(logEntryText);
+            logEntryArea.setCaretPosition(0);
+            logEntryArea.setFont(logEntryArea.getFont().deriveFont(14f));
+            logEntryArea.setCursor(new Cursor(Cursor.TEXT_CURSOR));
 
-		if (wrap) {
-			logEntryArea.setWrapStyleWord(true);
-			logEntryArea.setLineWrap(true);
-		} else {
-			logEntryArea.setWrapStyleWord(false);
-			logEntryArea.setLineWrap(false);
-		}
-	}
+            boolean wrapOn = isWrapOn();
 
-	protected void highlight(String searchStr) {
+            if (wrapOn) {
+                logEntryArea.setWrapStyleWord(true);
+                logEntryArea.setLineWrap(true);
+            } else {
+                logEntryArea.setWrapStyleWord(false);
+                logEntryArea.setLineWrap(false);
+            }
 
-		resetSearch();
+            logEntryArea.setEditable(false);
+        }
 
-		if ((searchStr != null) && (!"".equals(searchStr))) {
+        return logEntryArea;
+    }
 
-			JTextArea logEntryArea = getLogEntryArea();
-			Highlighter highlighter = logEntryArea.getHighlighter();
+    private JPanel getSpecialMessageJPanel() {
 
-			totalSearchCount = new Integer(0);
+        JPanel specialMessageJPanel = new JPanel();
 
-			JCheckBox caseSensitiveSearchJCheckBox = getCaseSensitiveSearchJCheckBox();
-			boolean caseSensitive = caseSensitiveSearchJCheckBox.isSelected();
+        LayoutManager layout = new BoxLayout(specialMessageJPanel, BoxLayout.X_AXIS);
+        specialMessageJPanel.setLayout(layout);
 
-			String searchText = searchStr;
+        JLabel specialMessageJLabel = new JLabel(specialMessage);
 
-			if (!caseSensitive) {
-				searchText = searchText.toUpperCase();
-			}
+        Font labelFont = specialMessageJLabel.getFont();
+        labelFont = labelFont.deriveFont(Font.BOLD, 11);
+        specialMessageJLabel.setFont(labelFont);
+        specialMessageJLabel.setForeground(Color.RED);
 
-			byte[] searchTextbytes = searchText.getBytes();
+        Dimension dim = new Dimension(100, 30);
 
-			try {
+        specialMessageJPanel.add(Box.createHorizontalGlue());
+        specialMessageJPanel.add(Box.createRigidArea(dim));
+        specialMessageJPanel.add(specialMessageJLabel);
+        specialMessageJPanel.add(Box.createRigidArea(dim));
+        specialMessageJPanel.add(Box.createHorizontalGlue());
 
-				int index = KnuthMorrisPrattAlgorithm.indexOf(logEntryTextBytes, searchTextbytes);
+        // specialMessageJPanel.setBorder(BorderFactory.createLineBorder(
+        // MyColor.GRAY, 1));
 
-				while (index != -1) {
+        return specialMessageJPanel;
+    }
 
-					int endPos = index + searchTextbytes.length;
+    private JPanel getControlsJPanel() {
 
-					Highlight highlight = (Highlight) highlighter.addHighlight(index, endPos, highlightPainter);
+        JPanel controlsJPanel = new JPanel();
 
-					TextAreaSearchResult tasr = new TextAreaSearchResult(index, endPos, highlight);
+        LayoutManager layout = new BoxLayout(controlsJPanel, BoxLayout.X_AXIS);
+        controlsJPanel.setLayout(layout);
 
-					searchResultsMap.put(++totalSearchCount, tasr);
+        JPanel searchJPanel = getSearchJPanel();
+        JPanel wrapLogEntryTextJPanel = getWrapLogEntryTextJPanel();
 
-					index = KnuthMorrisPrattAlgorithm.indexOf(logEntryTextBytes, searchTextbytes, endPos);
-				}
+        controlsJPanel.add(searchJPanel);
+        controlsJPanel.add(wrapLogEntryTextJPanel);
 
-			} catch (Exception e) {
-				LOG.error("Error highlighting search str: " + searchStr, e);
-			}
+        return controlsJPanel;
+    }
 
-			updateSearchNavIndexDetails();
+    private JPanel getSearchJPanel() {
 
-		}
-	}
+        JPanel searchPanel = new JPanel();
 
-	private void resetSearch() {
+        LayoutManager layout = new BoxLayout(searchPanel, BoxLayout.X_AXIS);
+        searchPanel.setLayout(layout);
 
-		removeHighlights();
+        JLabel searchJLabel = new JLabel("Search");
 
-		totalSearchCount = null;
-		searchNavKey = 0;
-		searchNavPrevKey = 0;
-		searchResultsMap.clear();
+        JLabel resultsLabel = new JLabel("Results:");
+        // Dimension size = new Dimension(60, 20);
+        // resultsLabel.setPreferredSize(size);
+        // resultsLabel.setMinimumSize(size);
+        // resultsLabel.setMaximumSize(size);
 
-		updateSearchNavIndexDetails();
+        JTextField searchJTextField = getSearchJTextField();
 
-	}
+        JButton searchFirstJButton = getSearchFirstJButton();
+        JButton searchPrevJButton = getSearchPrevJButton();
+        JLabel searchResultsJLabel = getSearchResultsJLabel();
+        JButton searchNextJButton = getSearchNextJButton();
+        JButton searchLastJButton = getSearchLastJButton();
 
-	private void removeHighlights() {
+        JCheckBox caseSensitiveSearchJCheckBox = getCaseSensitiveSearchJCheckBox();
 
-		JTextArea logEntryArea = getLogEntryArea();
-		Highlighter highlighter = logEntryArea.getHighlighter();
+        int height = 40;
+        Dimension startDim = new Dimension(20, height);
+        Dimension dim = new Dimension(10, height);
 
-		highlighter.removeAllHighlights();
-	}
+        searchPanel.add(Box.createRigidArea(startDim));
+        searchPanel.add(searchJLabel);
+        searchPanel.add(Box.createRigidArea(dim));
+        searchPanel.add(searchJTextField);
+        searchPanel.add(Box.createRigidArea(dim));
+        searchPanel.add(searchFirstJButton);
+        searchPanel.add(Box.createRigidArea(new Dimension(4, height)));
+        searchPanel.add(searchPrevJButton);
+        searchPanel.add(Box.createRigidArea(new Dimension(4, height)));
+        searchPanel.add(resultsLabel);
+        searchPanel.add(Box.createRigidArea(new Dimension(4, height)));
+        searchPanel.add(searchResultsJLabel);
+        searchPanel.add(Box.createRigidArea(new Dimension(4, height)));
+        searchPanel.add(searchNextJButton);
+        searchPanel.add(Box.createRigidArea(new Dimension(4, height)));
+        searchPanel.add(searchLastJButton);
+        searchPanel.add(Box.createRigidArea(new Dimension(4, height)));
 
-	public void updateSearchNavIndexDetails() {
+        searchPanel.add(Box.createRigidArea(dim));
+        searchPanel.add(caseSensitiveSearchJCheckBox);
+        searchPanel.add(Box.createRigidArea(dim));
+        searchPanel.add(Box.createHorizontalGlue());
 
-		SelectedRowPosition selectedRowPosition = getSelectedSearchPosition();
+        searchPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-		updateSearchPageButtons(selectedRowPosition);
+        return searchPanel;
+    }
 
-	}
+    private JPanel getWrapLogEntryTextJPanel() {
 
-	private SelectedRowPosition getSelectedSearchPosition() {
+        JPanel wrapLogEntryTextJPanel = new JPanel();
 
-		SelectedRowPosition selectedRowPosition = SelectedRowPosition.NONE;
+        LayoutManager layout = new BoxLayout(wrapLogEntryTextJPanel, BoxLayout.X_AXIS);
+        wrapLogEntryTextJPanel.setLayout(layout);
 
-		if ((totalSearchCount != null) && (totalSearchCount > 0)) {
+        JButton wrapLogEntryTextJButton = getWrapLogEntryTextJButton();
 
-			if ((searchNavKey > 1) && (searchNavKey < totalSearchCount)) {
-				selectedRowPosition = SelectedRowPosition.BETWEEN;
-			} else if (searchNavKey == totalSearchCount) {
-				selectedRowPosition = SelectedRowPosition.LAST;
-			} else if (searchNavKey <= 1) {
-				selectedRowPosition = SelectedRowPosition.FIRST;
-			} else {
-				selectedRowPosition = SelectedRowPosition.NONE;
-			}
+        Dimension dim = new Dimension(10, 40);
 
-		}
+        wrapLogEntryTextJPanel.add(Box.createHorizontalGlue());
+        wrapLogEntryTextJPanel.add(Box.createRigidArea(dim));
+        wrapLogEntryTextJPanel.add(wrapLogEntryTextJButton);
+        wrapLogEntryTextJPanel.add(Box.createRigidArea(dim));
+        wrapLogEntryTextJPanel.add(Box.createHorizontalGlue());
 
-		return selectedRowPosition;
+        wrapLogEntryTextJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-	}
+        return wrapLogEntryTextJPanel;
+    }
 
-	private void updateSearchPageButtons(SelectedRowPosition selectedRowPosition) {
+    private JComponent getTextAreaJComponent() {
 
-		JButton searchFirstJButton = getSearchFirstJButton();
-		JButton searchPrevJButton = getSearchPrevJButton();
-		JButton searchNextJButton = getSearchNextJButton();
-		JButton searchLastJButton = getSearchLastJButton();
+        JTextArea logEntryArea = getLogEntryArea();
 
-		switch (selectedRowPosition) {
+        JScrollPane scrollPane = new JScrollPane(logEntryArea, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-		case FIRST:
-			searchFirstJButton.setEnabled(false);
-			searchPrevJButton.setEnabled(false);
-			searchNextJButton.setEnabled(true);
-			searchLastJButton.setEnabled(true);
-			break;
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-		case LAST:
-			searchFirstJButton.setEnabled(true);
-			searchPrevJButton.setEnabled(true);
-			searchNextJButton.setEnabled(false);
-			searchLastJButton.setEnabled(false);
-			break;
+        return scrollPane;
+    }
 
-		case BETWEEN:
-			searchFirstJButton.setEnabled(true);
-			searchPrevJButton.setEnabled(true);
-			searchNextJButton.setEnabled(true);
-			searchLastJButton.setEnabled(true);
-			break;
+    protected void wrapLogEntryAreaText(boolean wrap) {
 
-		case NONE:
-			searchFirstJButton.setEnabled(false);
-			searchPrevJButton.setEnabled(false);
-			searchNextJButton.setEnabled(false);
-			searchLastJButton.setEnabled(false);
-			break;
+        JTextArea logEntryArea = getLogEntryArea();
 
-		default:
-			break;
-		}
+        if (wrap) {
+            logEntryArea.setWrapStyleWord(true);
+            logEntryArea.setLineWrap(true);
+        } else {
+            logEntryArea.setWrapStyleWord(false);
+            logEntryArea.setLineWrap(false);
+        }
+    }
 
-		updateSearchResultsJLabel();
+    protected void highlight(String searchStr) {
 
-	}
+        resetSearch();
 
-	private void updateSearchResultsJLabel() {
+        if ((searchStr != null) && (!"".equals(searchStr))) {
 
-		String searchResultStr = null;
+            JTextArea logEntryArea = getLogEntryArea();
+            Highlighter highlighter = logEntryArea.getHighlighter();
 
-		JLabel searchResultsJLabel = getSearchResultsJLabel();
+            totalSearchCount = 0;
 
-		if (totalSearchCount == null) {
-			searchResultsJLabel.setText("");
-		} else {
+            JCheckBox caseSensitiveSearchJCheckBox = getCaseSensitiveSearchJCheckBox();
+            boolean caseSensitive = caseSensitiveSearchJCheckBox.isSelected();
 
-			String labelStr = null;
+            String searchText = searchStr;
 
-			if (searchNavKey <= 0) {
-				searchResultStr = "%d results found.";
-				labelStr = String.format(searchResultStr, totalSearchCount);
-			} else {
-				searchResultStr = "%d of %d results";
-				labelStr = String.format(searchResultStr, searchNavKey, totalSearchCount);
-			}
+            if (!caseSensitive) {
+                searchText = searchText.toUpperCase();
+            }
 
-			searchResultsJLabel.setText(labelStr);
-		}
+            byte[] searchTextbytes = searchText.getBytes(charset);
 
-	}
+            try {
 
-	private void searchTraverse() {
+                byte[] logEntryTextBytes = getLogEntryTextBytes();
 
-		JTextArea logEntryArea = getLogEntryArea();
+                int index = KnuthMorrisPrattAlgorithm.indexOf(logEntryTextBytes, searchTextbytes);
 
-		// Focus the text area, otherwise the highlighting won't show up
-		logEntryArea.requestFocusInWindow();
+                while (index != -1) {
 
-		// repaint the previous selected text to search highlight painter.
-		// then move on to highlight the new entry.
-		if ((searchNavPrevKey > 0) && (searchNavKey != searchNavPrevKey)) {
+                    int endPos = index + searchTextbytes.length;
 
-			TextAreaSearchResult tasr = searchResultsMap.get(searchNavPrevKey);
+                    Highlight highlight = (Highlight) highlighter.addHighlight(index, endPos, highlightPainter);
 
-			int beginPos = tasr.getBeginPos();
-			int endPos = tasr.getEndPos();
-			Highlight highlight = tasr.getHighlight();
+                    TextAreaSearchResult tasr = new TextAreaSearchResult(index, endPos, highlight);
 
-			Highlighter highlighter = logEntryArea.getHighlighter();
+                    searchResultsMap.put(++totalSearchCount, tasr);
 
-			try {
-				Highlight newHighlight = (Highlight) highlighter.addHighlight(beginPos, endPos, highlight.getPainter());
+                    index = KnuthMorrisPrattAlgorithm.indexOf(logEntryTextBytes, searchTextbytes, endPos);
+                }
 
-				// update the tasr with new highlight instance.
-				tasr.setHighlight(newHighlight);
+            } catch (Exception e) {
+                LOG.error("Error highlighting search str: " + searchStr, e);
+            }
 
-			} catch (Exception e) {
-				LOG.error("Error highlighting TextAreaSearchResult: " + tasr, e);
-			}
-		}
+            updateSearchNavIndexDetails();
 
-		// searchNavIndex is already positioned to new index.
-		TextAreaSearchResult tasr = searchResultsMap.get(searchNavKey);
+        }
+    }
 
-		if (tasr != null) {
+    private void resetSearch() {
 
-			int beginPos = tasr.getBeginPos();
-			int endPos = tasr.getEndPos();
-			Highlight highlight = tasr.getHighlight();
+        removeHighlights();
 
-			try {
+        totalSearchCount = null;
+        searchNavKey = 0;
+        searchNavPrevKey = 0;
+        searchResultsMap.clear();
 
-				logEntryArea.getHighlighter().removeHighlight(highlight);
+        updateSearchNavIndexDetails();
 
-				Rectangle viewRect = logEntryArea.modelToView(endPos);
+    }
 
-				if (logEntryArea.getParent() instanceof JViewport) {
+    private void removeHighlights() {
 
-					JViewport viewport = (JViewport) logEntryArea.getParent();
-					GUIUtilities.scrollRectangleToVisible(viewport, viewRect);
-				} else {
-					logEntryArea.scrollRectToVisible(viewRect);
-				}
+        JTextArea logEntryArea = getLogEntryArea();
+        Highlighter highlighter = logEntryArea.getHighlighter();
 
-			} catch (Exception e) {
-				LOG.error("Error removing highlighting TextAreaSearchResult: " + tasr, e);
-			}
+        highlighter.removeAllHighlights();
+    }
 
-			logEntryArea.setCaretPosition(endPos);
-			logEntryArea.moveCaretPosition(beginPos);
+    public void updateSearchNavIndexDetails() {
 
-		}
+        SelectedRowPosition selectedRowPosition = getSelectedSearchPosition();
 
-		updateSearchNavIndexDetails();
-	}
+        updateSearchPageButtons(selectedRowPosition);
 
-	private class TextAreaSearchResult {
+    }
 
-		private int beginPos;
+    private SelectedRowPosition getSelectedSearchPosition() {
 
-		private int endPos;
+        SelectedRowPosition selectedRowPosition = SelectedRowPosition.NONE;
 
-		private Highlight highlight;
+        if ((totalSearchCount != null) && (totalSearchCount > 0)) {
 
-		protected TextAreaSearchResult(int beginPos, int endPos, Highlight highlight) {
-			super();
-			this.beginPos = beginPos;
-			this.endPos = endPos;
-			this.highlight = highlight;
-		}
+            if ((searchNavKey > 1) && (searchNavKey < totalSearchCount)) {
+                selectedRowPosition = SelectedRowPosition.BETWEEN;
+            } else if (searchNavKey == totalSearchCount) {
+                selectedRowPosition = SelectedRowPosition.LAST;
+            } else if (searchNavKey <= 1) {
+                selectedRowPosition = SelectedRowPosition.FIRST;
+            } else {
+                selectedRowPosition = SelectedRowPosition.NONE;
+            }
 
-		protected int getBeginPos() {
-			return beginPos;
-		}
+        }
 
-		protected int getEndPos() {
-			return endPos;
-		}
+        return selectedRowPosition;
 
-		protected Highlight getHighlight() {
-			return highlight;
-		}
+    }
 
-		protected void setHighlight(Highlight highlight) {
-			this.highlight = highlight;
-		}
+    private void updateSearchPageButtons(SelectedRowPosition selectedRowPosition) {
 
-		@Override
-		public String toString() {
-			return "beginPos=" + beginPos + ", endPos=" + endPos;
-		}
+        JButton searchFirstJButton = getSearchFirstJButton();
+        JButton searchPrevJButton = getSearchPrevJButton();
+        JButton searchNextJButton = getSearchNextJButton();
+        JButton searchLastJButton = getSearchLastJButton();
 
-	}
+        switch (selectedRowPosition) {
+
+        case FIRST:
+            searchFirstJButton.setEnabled(false);
+            searchPrevJButton.setEnabled(false);
+            searchNextJButton.setEnabled(true);
+            searchLastJButton.setEnabled(true);
+            break;
+
+        case LAST:
+            searchFirstJButton.setEnabled(true);
+            searchPrevJButton.setEnabled(true);
+            searchNextJButton.setEnabled(false);
+            searchLastJButton.setEnabled(false);
+            break;
+
+        case BETWEEN:
+            searchFirstJButton.setEnabled(true);
+            searchPrevJButton.setEnabled(true);
+            searchNextJButton.setEnabled(true);
+            searchLastJButton.setEnabled(true);
+            break;
+
+        case NONE:
+            searchFirstJButton.setEnabled(false);
+            searchPrevJButton.setEnabled(false);
+            searchNextJButton.setEnabled(false);
+            searchLastJButton.setEnabled(false);
+            break;
+
+        default:
+            break;
+        }
+
+        updateSearchResultsJLabel();
+
+    }
+
+    private void updateSearchResultsJLabel() {
+
+        String searchResultStr = null;
+
+        JLabel searchResultsJLabel = getSearchResultsJLabel();
+
+        if (totalSearchCount == null) {
+            searchResultsJLabel.setText("");
+        } else {
+
+            String labelStr = null;
+
+            if (searchNavKey <= 0) {
+                searchResultStr = "%d results found.";
+                labelStr = String.format(searchResultStr, totalSearchCount);
+            } else {
+                searchResultStr = "%d of %d results";
+                labelStr = String.format(searchResultStr, searchNavKey, totalSearchCount);
+            }
+
+            searchResultsJLabel.setText(labelStr);
+        }
+
+    }
+
+    private void searchTraverse() {
+
+        JTextArea logEntryArea = getLogEntryArea();
+
+        // Focus the text area, otherwise the highlighting won't show up
+        logEntryArea.requestFocusInWindow();
+
+        // repaint the previous selected text to search highlight painter.
+        // then move on to highlight the new entry.
+        if ((searchNavPrevKey > 0) && (searchNavKey != searchNavPrevKey)) {
+
+            TextAreaSearchResult tasr = searchResultsMap.get(searchNavPrevKey);
+
+            int beginPos = tasr.getBeginPos();
+            int endPos = tasr.getEndPos();
+            Highlight highlight = tasr.getHighlight();
+
+            Highlighter highlighter = logEntryArea.getHighlighter();
+
+            try {
+                Highlight newHighlight = (Highlight) highlighter.addHighlight(beginPos, endPos, highlight.getPainter());
+
+                // update the tasr with new highlight instance.
+                tasr.setHighlight(newHighlight);
+
+            } catch (Exception e) {
+                LOG.error("Error highlighting TextAreaSearchResult: " + tasr, e);
+            }
+        }
+
+        // searchNavIndex is already positioned to new index.
+        TextAreaSearchResult tasr = searchResultsMap.get(searchNavKey);
+
+        if (tasr != null) {
+
+            int beginPos = tasr.getBeginPos();
+            int endPos = tasr.getEndPos();
+            Highlight highlight = tasr.getHighlight();
+
+            try {
+
+                logEntryArea.getHighlighter().removeHighlight(highlight);
+
+                Rectangle viewRect = logEntryArea.modelToView(endPos);
+
+                if (logEntryArea.getParent() instanceof JViewport) {
+
+                    JViewport viewport = (JViewport) logEntryArea.getParent();
+                    GUIUtilities.scrollRectangleToVisible(viewport, viewRect);
+                } else {
+                    logEntryArea.scrollRectToVisible(viewRect);
+                }
+
+            } catch (Exception e) {
+                LOG.error("Error removing highlighting TextAreaSearchResult: " + tasr, e);
+            }
+
+            logEntryArea.setCaretPosition(endPos);
+            logEntryArea.moveCaretPosition(beginPos);
+
+        }
+
+        updateSearchNavIndexDetails();
+    }
 }

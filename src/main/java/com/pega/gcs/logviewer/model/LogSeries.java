@@ -4,21 +4,22 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.model;
 
 import java.awt.Color;
 
 public interface LogSeries {
 
-	public String getName();
+    public String getName();
 
-	public int getCount();
+    public int getCount();
 
-	public Color getColor();
+    public Color getColor();
 
-	public boolean isShowCount();
+    public boolean isShowCount();
 
-	public boolean isDefaultShowLogTimeSeries();
+    public boolean isDefaultShowLogTimeSeries();
 
-	public void setDefaultShowLogTimeSeries(boolean defaultShowLogTimeSeries);
+    public void setDefaultShowLogTimeSeries(boolean defaultShowLogTimeSeries);
 }

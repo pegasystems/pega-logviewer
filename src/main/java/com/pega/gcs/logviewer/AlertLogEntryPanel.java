@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.BorderLayout;
@@ -14,8 +15,8 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -35,7 +36,7 @@ import javax.swing.event.HyperlinkListener;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.StyleSheet;
 
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.FileUtilities;
@@ -48,773 +49,753 @@ import com.pega.gcs.logviewer.model.alert.AlertMessageListProvider;
 
 public class AlertLogEntryPanel extends JPanel {
 
-	private static final long serialVersionUID = 7722214923071969992L;
+    private static final long serialVersionUID = 7722214923071969992L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(AlertLogEntryPanel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(AlertLogEntryPanel.class);
 
-	private static int selectedIndex = 0;
+    private static int selectedIndex = 0;
 
-	private AlertLogEntry alertLogEntry;
+    private AlertLogEntry alertLogEntry;
 
-	// multiple usages hence extract it once
-	private LogEntryData logEntryData;
+    // multiple usages hence extract it once
+    private LogEntryData logEntryData;
 
-	private ArrayList<String> logEntryColumnList;
+    private Charset charset;
 
-	private JTabbedPane alertTabbedPane;
+    private ArrayList<String> logEntryColumnList;
 
-	private StyleSheet styleSheet;
+    private JTabbedPane alertTabbedPane;
 
-	private List<String> tabKeyList;
+    private StyleSheet styleSheet;
 
-	private List<String> longDataKeyList;
+    private List<String> tabKeyList;
 
-	public AlertLogEntryPanel(AlertLogEntry alertLogEntry, LogEntryModel logEntryModel) {
-		super();
+    private List<String> longDataKeyList;
 
-		this.alertLogEntry = alertLogEntry;
-		this.logEntryData = alertLogEntry.getLogEntryData();
+    public AlertLogEntryPanel(AlertLogEntry alertLogEntry, LogEntryModel logEntryModel, Charset charset) {
+        super();
 
-		this.logEntryColumnList = logEntryModel.getLogEntryColumnList();
+        this.alertLogEntry = alertLogEntry;
+        this.charset = charset;
 
-		tabKeyList = new ArrayList<String>();
-		tabKeyList.add(LogEntryColumn.PALDATA.getColumnId());
-		tabKeyList.add(LogEntryColumn.TRACELIST.getColumnId());
-		tabKeyList.add(LogEntryColumn.PRSTACKTRACE.getColumnId());
-		tabKeyList.add(LogEntryColumn.PARAMETERPAGEDATA.getColumnId());
+        this.logEntryData = alertLogEntry.getLogEntryData();
 
-		longDataKeyList = new ArrayList<String>();
-		longDataKeyList.add(LogEntryColumn.LOGGER.getColumnId());
-		longDataKeyList.add(LogEntryColumn.STACK.getColumnId());
-		longDataKeyList.add(LogEntryColumn.LASTINPUT.getColumnId());
-		longDataKeyList.add(LogEntryColumn.FIRSTACTIVITY.getColumnId());
-		longDataKeyList.add(LogEntryColumn.LASTSTEP.getColumnId());
-		longDataKeyList.add(LogEntryColumn.MESSAGE.getColumnId());
+        this.logEntryColumnList = logEntryModel.getLogEntryColumnList();
 
-		styleSheet = FileUtilities.getStyleSheet(this.getClass(), "styles.css");
+        tabKeyList = new ArrayList<String>();
+        tabKeyList.add(LogEntryColumn.PALDATA.getColumnId());
+        tabKeyList.add(LogEntryColumn.TRACELIST.getColumnId());
+        tabKeyList.add(LogEntryColumn.PRSTACKTRACE.getColumnId());
+        tabKeyList.add(LogEntryColumn.PARAMETERPAGEDATA.getColumnId());
 
-		setLayout(new BorderLayout());
+        longDataKeyList = new ArrayList<String>();
+        longDataKeyList.add(LogEntryColumn.LOGGER.getColumnId());
+        longDataKeyList.add(LogEntryColumn.STACK.getColumnId());
+        longDataKeyList.add(LogEntryColumn.LASTINPUT.getColumnId());
+        longDataKeyList.add(LogEntryColumn.FIRSTACTIVITY.getColumnId());
+        longDataKeyList.add(LogEntryColumn.LASTSTEP.getColumnId());
+        longDataKeyList.add(LogEntryColumn.MESSAGE.getColumnId());
 
-		JTabbedPane alertTabbedPane = getAlertTabbedPane();
-		add(alertTabbedPane, BorderLayout.CENTER);
+        styleSheet = FileUtilities.getStyleSheet(this.getClass(), "styles.css");
 
-		JComponent alertJComponent = getAlertJComponent();
-		JComponent palJComponent = getPALJComponent();
-		JComponent traceListJComponent = getTraceListJComponent();
-		JComponent prStacktraceJComponent = getPRStacktraceJComponent();
-		JComponent parameterPageJComponent = getParameterPageJComponent();
-		JComponent rawTextJComponent = getRawTextJComponent();
+        setLayout(new BorderLayout());
 
-		String tabText = "Alert Detail";
-		JLabel tabLabel = new JLabel(tabText);
-		Font labelFont = tabLabel.getFont();
-		Font tabFont = labelFont.deriveFont(Font.BOLD, 12);
-		Dimension dim = new Dimension(140, 26);
-		tabLabel.setFont(tabFont);
-		// tabLabel.setSize(dim);
-		tabLabel.setPreferredSize(dim);
-		tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        JTabbedPane alertTabbedPane = getAlertTabbedPane();
+        add(alertTabbedPane, BorderLayout.CENTER);
 
-		alertTabbedPane.addTab(tabText, alertJComponent);
-		alertTabbedPane.setTabComponentAt(0, tabLabel);
+        JComponent alertComponent = getAlertComponent();
+        JScrollPane palComponent = getPalComponent();
+        JComponent traceListComponent = getTraceListComponent();
+        JComponent prStacktraceComponent = getPRStacktraceComponent();
+        JComponent parameterPageComponent = getParameterPageComponent();
+        JComponent rawTextComponent = getRawTextComponent();
 
-		tabText = LogEntryColumn.PALDATA.getDisplayName();
-		tabLabel = new JLabel(tabText);
-		tabLabel.setFont(tabFont);
-		// tabLabel.setSize(dim);
-		tabLabel.setPreferredSize(dim);
-		tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        String tabText = "Alert Detail";
+        JLabel tabLabel = new JLabel(tabText);
+        Font labelFont = tabLabel.getFont();
+        Font tabFont = labelFont.deriveFont(Font.BOLD, 12);
+        Dimension dim = new Dimension(140, 26);
+        tabLabel.setFont(tabFont);
+        // tabLabel.setSize(dim);
+        tabLabel.setPreferredSize(dim);
+        tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		alertTabbedPane.addTab(tabText, palJComponent);
-		alertTabbedPane.setTabComponentAt(1, tabLabel);
+        alertTabbedPane.addTab(tabText, alertComponent);
+        alertTabbedPane.setTabComponentAt(0, tabLabel);
 
-		tabText = LogEntryColumn.TRACELIST.getDisplayName();
-		tabLabel = new JLabel(tabText);
-		tabLabel.setFont(tabFont);
-		// tabLabel.setSize(dim);
-		tabLabel.setPreferredSize(dim);
-		tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        tabText = LogEntryColumn.PALDATA.getDisplayName();
+        tabLabel = new JLabel(tabText);
+        tabLabel.setFont(tabFont);
+        // tabLabel.setSize(dim);
+        tabLabel.setPreferredSize(dim);
+        tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		alertTabbedPane.addTab(tabText, traceListJComponent);
-		alertTabbedPane.setTabComponentAt(2, tabLabel);
+        alertTabbedPane.addTab(tabText, palComponent);
+        alertTabbedPane.setTabComponentAt(1, tabLabel);
 
-		tabText = LogEntryColumn.PRSTACKTRACE.getDisplayName();
-		tabLabel = new JLabel(tabText);
-		tabLabel.setFont(tabFont);
-		// tabLabel.setSize(dim);
-		tabLabel.setPreferredSize(dim);
-		tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        tabText = LogEntryColumn.TRACELIST.getDisplayName();
+        tabLabel = new JLabel(tabText);
+        tabLabel.setFont(tabFont);
+        // tabLabel.setSize(dim);
+        tabLabel.setPreferredSize(dim);
+        tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		alertTabbedPane.addTab(tabText, prStacktraceJComponent);
-		alertTabbedPane.setTabComponentAt(3, tabLabel);
+        alertTabbedPane.addTab(tabText, traceListComponent);
+        alertTabbedPane.setTabComponentAt(2, tabLabel);
 
-		tabText = LogEntryColumn.PARAMETERPAGEDATA.getDisplayName();
-		tabLabel = new JLabel(tabText);
-		tabLabel.setFont(tabFont);
-		// tabLabel.setSize(dim);
-		tabLabel.setPreferredSize(dim);
-		tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        tabText = LogEntryColumn.PRSTACKTRACE.getDisplayName();
+        tabLabel = new JLabel(tabText);
+        tabLabel.setFont(tabFont);
+        // tabLabel.setSize(dim);
+        tabLabel.setPreferredSize(dim);
+        tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		alertTabbedPane.addTab(tabText, parameterPageJComponent);
-		alertTabbedPane.setTabComponentAt(4, tabLabel);
+        alertTabbedPane.addTab(tabText, prStacktraceComponent);
+        alertTabbedPane.setTabComponentAt(3, tabLabel);
 
-		tabText = "Raw Text";
-		tabLabel = new JLabel(tabText);
-		tabLabel.setFont(tabFont);
-		// tabLabel.setSize(dim);
-		tabLabel.setPreferredSize(dim);
-		tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        tabText = LogEntryColumn.PARAMETERPAGEDATA.getDisplayName();
+        tabLabel = new JLabel(tabText);
+        tabLabel.setFont(tabFont);
+        // tabLabel.setSize(dim);
+        tabLabel.setPreferredSize(dim);
+        tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		alertTabbedPane.addTab(tabText, rawTextJComponent);
-		alertTabbedPane.setTabComponentAt(5, tabLabel);
+        alertTabbedPane.addTab(tabText, parameterPageComponent);
+        alertTabbedPane.setTabComponentAt(4, tabLabel);
 
-		alertTabbedPane.setSelectedIndex(selectedIndex);
+        tabText = "Raw Text";
+        tabLabel = new JLabel(tabText);
+        tabLabel.setFont(tabFont);
+        // tabLabel.setSize(dim);
+        tabLabel.setPreferredSize(dim);
+        tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-		ChangeListener changeListener = new ChangeListener() {
+        alertTabbedPane.addTab(tabText, rawTextComponent);
+        alertTabbedPane.setTabComponentAt(5, tabLabel);
 
-			@Override
-			public void stateChanged(ChangeEvent e) {
+        alertTabbedPane.setSelectedIndex(selectedIndex);
 
-				JTabbedPane alertTabbedPane = getAlertTabbedPane();
-				setSelectedIndex(alertTabbedPane.getSelectedIndex());
+        ChangeListener changeListener = new ChangeListener() {
 
-			}
-		};
+            @Override
+            public void stateChanged(ChangeEvent changeEvent) {
 
-		alertTabbedPane.addChangeListener(changeListener);
-	}
+                JTabbedPane alertTabbedPane = getAlertTabbedPane();
+                selectedIndex = alertTabbedPane.getSelectedIndex();
+            }
+        };
 
-	protected static int getSelectedIndex() {
-		return selectedIndex;
-	}
+        alertTabbedPane.addChangeListener(changeListener);
+    }
 
-	protected static void setSelectedIndex(int aSelectedIndex) {
-		selectedIndex = aSelectedIndex;
-	}
+    protected JTabbedPane getAlertTabbedPane() {
 
-	protected JTabbedPane getAlertTabbedPane() {
+        if (alertTabbedPane == null) {
+            alertTabbedPane = new JTabbedPane();
+        }
 
-		if (alertTabbedPane == null) {
-			alertTabbedPane = new JTabbedPane();
-		}
+        return alertTabbedPane;
+    }
 
-		return alertTabbedPane;
-	}
+    private JComponent getAlertComponent() {
 
-	private JComponent getAlertJComponent() {
+        HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
+        StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
+        htmlStyleSheet.addStyleSheet(styleSheet);
 
-		HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
-		StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
-		htmlStyleSheet.addStyleSheet(styleSheet);
+        JEditorPane alertJEditorPane = new JEditorPane();
+        alertJEditorPane.setEditable(false);
+        alertJEditorPane.setContentType("text/html");
+        alertJEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
+        alertJEditorPane.addHyperlinkListener(new HyperlinkListener() {
 
-		JEditorPane alertJEditorPane = new JEditorPane();
-		alertJEditorPane.setEditable(false);
-		alertJEditorPane.setContentType("text/html");
-		alertJEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
-		alertJEditorPane.addHyperlinkListener(new HyperlinkListener() {
+            @Override
+            public void hyperlinkUpdate(HyperlinkEvent hyperlinkEvent) {
 
-			@Override
-			public void hyperlinkUpdate(HyperlinkEvent e) {
+                if (hyperlinkEvent.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
 
-				if (e.getEventType().equals(HyperlinkEvent.EventType.ACTIVATED)) {
+                    if (Desktop.isDesktopSupported()) {
 
-					if (Desktop.isDesktopSupported()) {
+                        Desktop desktop = Desktop.getDesktop();
+                        try {
+                            desktop.browse(hyperlinkEvent.getURL().toURI());
+                        } catch (Exception e1) {
+                            LOG.error("Error opening url: " + hyperlinkEvent.getURL(), e1);
+                        }
+                    }
+                }
+            }
+        });
 
-						Desktop desktop = Desktop.getDesktop();
-						try {
-							desktop.browse(e.getURL().toURI());
-						} catch (Exception e1) {
-							LOG.error("Error opening url: " + e.getURL(), e1);
-						}
-					}
-				}
-			}
-		});
+        StringBuilder htmlStringBuilder = new StringBuilder();
 
-		StringBuffer htmlStringBuffer = new StringBuffer();
+        htmlStringBuilder.append("<HTML><HEAD/><BODY><DIV>");
 
-		htmlStringBuffer.append("<HTML><HEAD/><BODY><DIV>");
+        htmlStringBuilder.append("<H3 align='center'>Alert Detail</H3>");
 
-		htmlStringBuffer.append("<H3 align='center'>Alert Detail</H3>");
+        List<AlertLogEntryPanelTableData> dataList = new ArrayList<AlertLogEntryPanelTableData>();
+        List<AlertLogEntryPanelTableData> longDataList = new ArrayList<AlertLogEntryPanelTableData>();
 
-		List<TableData> dataList = new LinkedList<TableData>();
-		List<TableData> longDataList = new LinkedList<TableData>();
+        List<String> logEntryValueList = logEntryData.getLogEntryValueList();
 
-		List<String> logEntryValueList = logEntryData.getLogEntryValueList();
+        for (int index = 0; index < logEntryColumnList.size(); index++) {
 
-		for (int index = 0; index < logEntryColumnList.size(); index++) {
+            String name = logEntryColumnList.get(index);
 
-			String name = logEntryColumnList.get(index);
+            if (!tabKeyList.contains(name)) {
 
-			if (!tabKeyList.contains(name)) {
+                LogEntryColumn logEntryColumn = LogEntryColumn.getTableColumnById(name);
 
-				LogEntryColumn logEntryColumn = LogEntryColumn.getTableColumnById(name);
+                String nameColumn = logEntryColumn.getDisplayName();
+                String valueColumn = logEntryValueList.get(index);
 
-				String nameColumn = logEntryColumn.getDisplayName();
-				String valueColumn = logEntryValueList.get(index);
-				boolean isHREF = false;
+                // bug - some sql contains '<>' in criteria, which splits the html table row.
+                valueColumn = StringEscapeUtils.escapeHtml4(valueColumn);
 
-				if ((logEntryColumn != null) && (logEntryColumn.equals(LogEntryColumn.MESSAGEID))) {
+                boolean isHref = false;
 
-					StringBuffer sb = new StringBuffer();
-					sb.append("<b>");
-					sb.append(valueColumn);
-					sb.append("</b>");
-					valueColumn = sb.toString();
-				}
+                if (logEntryColumn.equals(LogEntryColumn.MESSAGEID)) {
 
-				TableData tableData = new TableData(nameColumn, valueColumn, isHREF);
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("<b>");
+                    sb.append(valueColumn);
+                    sb.append("</b>");
+                    valueColumn = sb.toString();
+                } else if (logEntryColumn.equals(LogEntryColumn.STACK)) {
+                    valueColumn = valueColumn.replaceAll("\\|", "\\<br/\\>");
+                } else if (logEntryColumn.equals(LogEntryColumn.MESSAGE)) {
+                    valueColumn = valueColumn.replaceAll("&lt;CR&gt;", "\\<br/\\>");
+                }
 
-				if (longDataKeyList.contains(name)) {
-					longDataList.add(tableData);
-				} else {
-					dataList.add(tableData);
-				}
+                AlertLogEntryPanelTableData alertLogEntryPanelTableData = new AlertLogEntryPanelTableData(nameColumn,
+                        valueColumn, isHref);
 
-			}
-		}
+                if (longDataKeyList.contains(name)) {
+                    longDataList.add(alertLogEntryPanelTableData);
+                } else {
+                    dataList.add(alertLogEntryPanelTableData);
+                }
 
-		AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
-		Map<Integer, AlertMessage> alertMessageMap = alertMessageListProvider.getAlertMessageMap();
+            }
+        }
 
-		Integer alertId = alertLogEntry.getAlertId();
+        AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
+        Map<Integer, AlertMessage> alertMessageMap = alertMessageListProvider.getAlertMessageMap();
 
-		AlertMessage alertMessage = alertMessageMap.get(alertId);
+        Integer alertId = alertLogEntry.getAlertId();
 
-		if (alertMessage != null) {
+        AlertMessage alertMessage = alertMessageMap.get(alertId);
 
-			String nameColumn = null;
-			String valueColumn = null;
-			boolean isHREF = false;
-			TableData tableData = null;
+        if (alertMessage != null) {
 
-			nameColumn = "Category";
-			StringBuffer valueSB = new StringBuffer();
-			valueSB.append(alertMessage.getCategory());
-			valueSB.append("/");
-			valueSB.append(alertMessage.getSubcategory());
-			valueColumn = valueSB.toString();
-			isHREF = false;
+            String nameColumn = null;
+            String valueColumn = null;
+            boolean isHref = false;
+            AlertLogEntryPanelTableData alertLogEntryPanelTableData = null;
 
-			tableData = new TableData(nameColumn, valueColumn, isHREF);
-			longDataList.add(tableData);
+            nameColumn = "Category";
+            StringBuilder valueSB = new StringBuilder();
+            valueSB.append(alertMessage.getCategory());
+            valueSB.append("/");
+            valueSB.append(alertMessage.getSubcategory());
+            valueColumn = valueSB.toString();
+            isHref = false;
 
-			nameColumn = "Title";
-			valueColumn = alertMessage.getTitle();
-			isHREF = false;
+            alertLogEntryPanelTableData = new AlertLogEntryPanelTableData(nameColumn, valueColumn, isHref);
+            longDataList.add(alertLogEntryPanelTableData);
 
-			tableData = new TableData(nameColumn, valueColumn, isHREF);
-			longDataList.add(tableData);
+            nameColumn = "Title";
+            valueColumn = alertMessage.getTitle();
+            isHref = false;
 
-			nameColumn = "PDN";
-			valueColumn = alertMessage.getPDNURL();
-			isHREF = true;
+            alertLogEntryPanelTableData = new AlertLogEntryPanelTableData(nameColumn, valueColumn, isHref);
+            longDataList.add(alertLogEntryPanelTableData);
 
-			tableData = new TableData(nameColumn, valueColumn, isHREF);
-			longDataList.add(tableData);
+            nameColumn = "Pega URL";
+            valueColumn = alertMessage.getPegaUrl();
+            isHref = true;
 
-			nameColumn = "Description";
-			valueColumn = alertMessage.getDescription();
-			isHREF = false;
+            alertLogEntryPanelTableData = new AlertLogEntryPanelTableData(nameColumn, valueColumn, isHref);
+            longDataList.add(alertLogEntryPanelTableData);
 
-			tableData = new TableData(nameColumn, valueColumn, isHREF);
-			longDataList.add(tableData);
+            nameColumn = "Description";
+            valueColumn = alertMessage.getDescription();
+            isHref = false;
 
-		}
+            alertLogEntryPanelTableData = new AlertLogEntryPanelTableData(nameColumn, valueColumn, isHref);
+            longDataList.add(alertLogEntryPanelTableData);
 
-		int middleIndex = (int) Math.ceil((dataList.size() / 3d));
+        }
 
-		String defStyle = "width=\"100%\" border=\"1\"";
-		List<TableData> subDataList = dataList.subList(0, middleIndex);
-		int size = subDataList.size();
-		String table1Str = getTableHTMLStr(null, subDataList, defStyle);
+        int middleIndex = (int) Math.ceil((dataList.size() / 3d));
 
-		subDataList = dataList.subList(middleIndex, (middleIndex + size));
-		String table2Str = getTableHTMLStr(null, subDataList, defStyle);
+        String defStyle = "width=\"100%\" border=\"1\"";
+        List<AlertLogEntryPanelTableData> subDataList = dataList.subList(0, middleIndex);
+        int size = subDataList.size();
+        String table1Str = getTableHtmlStr(null, subDataList, defStyle);
 
-		subDataList = dataList.subList(middleIndex + size, dataList.size());
-		int subSize = subDataList.size();
+        subDataList = dataList.subList(middleIndex, (middleIndex + size));
+        String table2Str = getTableHtmlStr(null, subDataList, defStyle);
 
-		for (int i = subSize; i < size; i++) {
+        subDataList = dataList.subList(middleIndex + size, dataList.size());
+        int subSize = subDataList.size();
 
-			// empty strings will create empty rows
-			String nameColumn = "";
-			String valueColumn = "";
-			boolean isHREF = false;
+        for (int i = subSize; i < size; i++) {
 
-			TableData tableData = new TableData(nameColumn, valueColumn, isHREF);
+            // empty strings will create empty rows
+            String nameColumn = "";
+            String valueColumn = "";
+            boolean isHref = false;
 
-			subDataList.add(tableData);
-		}
+            AlertLogEntryPanelTableData alertLogEntryPanelTableData = new AlertLogEntryPanelTableData(nameColumn,
+                    valueColumn, isHref);
 
-		String table3Str = getTableHTMLStr(null, subDataList, defStyle);
+            subDataList.add(alertLogEntryPanelTableData);
+        }
 
-		String tableLongStr = getTableHTMLStr(null, longDataList, defStyle);
+        String table3Str = getTableHtmlStr(null, subDataList, defStyle);
 
-		StringBuffer tablehtmlSB = new StringBuffer();
+        String tableLongStr = getTableHtmlStr(null, longDataList, defStyle);
 
-		tablehtmlSB.append("<table border=\"0\" width=\"860px\">");
-		tablehtmlSB.append("<tr>");
-		tablehtmlSB.append("<td valign=\"top\" width=\"33%\">");
-		tablehtmlSB.append(table1Str);
-		tablehtmlSB.append("</td>");
-		tablehtmlSB.append("<td valign=\"top\" width=\"33%\">");
-		tablehtmlSB.append(table2Str);
-		tablehtmlSB.append("</td>");
-		tablehtmlSB.append("<td valign=\"top\" width=\"34%\">");
-		tablehtmlSB.append(table3Str);
-		tablehtmlSB.append("</td>");
-		tablehtmlSB.append("</tr>");
-		tablehtmlSB.append("<tr>");
-		tablehtmlSB.append("<td colspan=3 width=\"100%\">");
-		tablehtmlSB.append(tableLongStr);
-		tablehtmlSB.append("</td>");
-		tablehtmlSB.append("</tr>");
-		tablehtmlSB.append("</table>");
+        StringBuilder tablehtmlSB = new StringBuilder();
 
-		htmlStringBuffer.append(tablehtmlSB);
+        tablehtmlSB.append("<table border=\"0\" width=\"900px\">");
+        tablehtmlSB.append("<tr>");
+        tablehtmlSB.append("<td valign=\"top\" width=\"33%\">");
+        tablehtmlSB.append(table1Str);
+        tablehtmlSB.append("</td>");
+        tablehtmlSB.append("<td valign=\"top\" width=\"33%\">");
+        tablehtmlSB.append(table2Str);
+        tablehtmlSB.append("</td>");
+        tablehtmlSB.append("<td valign=\"top\" width=\"34%\">");
+        tablehtmlSB.append(table3Str);
+        tablehtmlSB.append("</td>");
+        tablehtmlSB.append("</tr>");
+        tablehtmlSB.append("<tr>");
+        tablehtmlSB.append("<td colspan=3 width=\"100%\">");
+        tablehtmlSB.append(tableLongStr);
+        tablehtmlSB.append("</td>");
+        tablehtmlSB.append("</tr>");
+        tablehtmlSB.append("</table>");
 
-		htmlStringBuffer.append("</DIV></BODY></HTML>");
+        htmlStringBuilder.append(tablehtmlSB);
 
-		// LOG.info("htmlStringBuffer:" + htmlStringBuffer);
-		alertJEditorPane.setText(htmlStringBuffer.toString());
+        htmlStringBuilder.append("</DIV></BODY></HTML>");
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(2, 15, 2, 2);
+        // LOG.info("htmlStringBuilder:" + htmlStringBuilder);
+        alertJEditorPane.setText(htmlStringBuilder.toString());
 
-		JPanel alertJPanel = new JPanel();
-		alertJPanel.setLayout(new GridBagLayout());
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(2, 15, 2, 2);
 
-		alertJPanel.add(alertJEditorPane, gbc1);
-		alertJPanel.setBackground(Color.WHITE);
-		alertJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        JPanel alertJPanel = new JPanel();
+        alertJPanel.setLayout(new GridBagLayout());
 
-		JScrollPane alertJScrollPane = new JScrollPane(alertJPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        alertJPanel.add(alertJEditorPane, gbc1);
+        alertJPanel.setBackground(Color.WHITE);
+        alertJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-		alertJScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        JScrollPane alertJScrollPane = new JScrollPane(alertJPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-		return alertJScrollPane;
-	}
+        alertJScrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-	private JComponent getPALJComponent() {
+        return alertJScrollPane;
+    }
 
-		HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
-		StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
-		htmlStyleSheet.addStyleSheet(styleSheet);
+    private JScrollPane getPalComponent() {
 
-		JEditorPane palJEditorPane = new JEditorPane();
-		palJEditorPane.setEditable(false);
-		palJEditorPane.setContentType("text/html");
-		palJEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
+        HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
+        StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
+        htmlStyleSheet.addStyleSheet(styleSheet);
 
-		StringBuffer htmlStringBuffer = new StringBuffer();
+        JEditorPane palJEditorPane = new JEditorPane();
+        palJEditorPane.setEditable(false);
+        palJEditorPane.setContentType("text/html");
+        palJEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
 
-		htmlStringBuffer.append("<H3 align='center'>" + LogEntryColumn.PALDATA.getDisplayName() + "</H3>");
+        StringBuilder htmlStringBuilder = new StringBuilder();
 
-		int columnIndex = logEntryColumnList.indexOf(LogEntryColumn.PALDATA.getColumnId());
+        htmlStringBuilder.append("<H3 align='center'>" + LogEntryColumn.PALDATA.getDisplayName() + "</H3>");
 
-		if (columnIndex != -1) {
+        int columnIndex = logEntryColumnList.indexOf(LogEntryColumn.PALDATA.getColumnId());
 
-			List<String> logEntryValueList = logEntryData.getLogEntryValueList();
+        if (columnIndex != -1) {
 
-			String palData = logEntryValueList.get(columnIndex);
+            List<String> logEntryValueList = logEntryData.getLogEntryValueList();
 
-			if ((palData != null) && (!"".equals(palData)) && (!"NA".equals(palData))) {
-				
-				String[] palStatArray = palData.split(";");
+            String palData = logEntryValueList.get(columnIndex);
 
-				List<TableData> timeDataList = new LinkedList<TableData>();
-				List<TableData> cpuDataList = new LinkedList<TableData>();
-				List<TableData> countDataList = new LinkedList<TableData>();
+            if ((palData != null) && (!"".equals(palData)) && (!"NA".equals(palData))) {
 
-				for (String palStat : palStatArray) {
+                String[] palStatArray = palData.split(";", 0);
 
-					String[] palStatNameValue = palStat.split("=", 2);
+                List<AlertLogEntryPanelTableData> timeDataList = new ArrayList<AlertLogEntryPanelTableData>();
+                List<AlertLogEntryPanelTableData> cpuDataList = new ArrayList<AlertLogEntryPanelTableData>();
+                List<AlertLogEntryPanelTableData> countDataList = new ArrayList<AlertLogEntryPanelTableData>();
 
-					String nameColumn = palStatNameValue[0];
-					String valueColumn = null;
-					boolean isHREF = false;
+                for (String palStat : palStatArray) {
 
-					if (palStatNameValue.length > 1) {
-						valueColumn = palStatNameValue[1];
-					}
+                    String[] palStatNameValue = palStat.split("=", 2);
 
-					TableData tableData = new TableData(nameColumn, valueColumn, isHREF);
+                    String nameColumn = palStatNameValue[0];
+                    String valueColumn = null;
+                    boolean isHref = false;
 
-					if (nameColumn.contains("CPU")) {
-						cpuDataList.add(tableData);
-					} else if ((nameColumn.contains("Time")) || (nameColumn.contains("Elapsed"))) {
-						timeDataList.add(tableData);
-					} else {
-						countDataList.add(tableData);
-					}
-				}
+                    if (palStatNameValue.length > 1) {
+                        valueColumn = palStatNameValue[1];
+                    }
 
-				String timeTableStr = getTableHTMLStr("Time", timeDataList, "border=\"1\"");
-				String cpuTableStr = getTableHTMLStr("CPU", cpuDataList, "border=\"1\"");
-				String countTableStr = getTableHTMLStr("Count", countDataList, "border=\"1\"");
+                    AlertLogEntryPanelTableData alertLogEntryPanelTableData = new AlertLogEntryPanelTableData(
+                            nameColumn, valueColumn, isHref);
 
-				StringBuffer tablehtmlSB = new StringBuffer();
+                    if (nameColumn.contains("CPU")) {
+                        cpuDataList.add(alertLogEntryPanelTableData);
+                    } else if ((nameColumn.contains("Time")) || (nameColumn.contains("Elapsed"))) {
+                        timeDataList.add(alertLogEntryPanelTableData);
+                    } else {
+                        countDataList.add(alertLogEntryPanelTableData);
+                    }
+                }
 
-				tablehtmlSB.append("<table border=\"0\">");
-				tablehtmlSB.append("<tr>");
-				tablehtmlSB.append("<td valign=\"top\">");
-				tablehtmlSB.append(timeTableStr);
-				tablehtmlSB.append("</td>");
-				tablehtmlSB.append("<td valign=\"top\">");
-				tablehtmlSB.append(cpuTableStr);
-				tablehtmlSB.append("</td>");
-				tablehtmlSB.append("<td valign=\"top\">");
-				tablehtmlSB.append(countTableStr);
-				tablehtmlSB.append("</td>");
-				tablehtmlSB.append("</tr>");
-				tablehtmlSB.append("</table>");
+                String timeTableStr = getTableHtmlStr("Time", timeDataList, "border=\"1\"");
+                String cpuTableStr = getTableHtmlStr("CPU", cpuDataList, "border=\"1\"");
+                String countTableStr = getTableHtmlStr("Count", countDataList, "border=\"1\"");
 
-				htmlStringBuffer.append(tablehtmlSB);
+                StringBuilder tablehtmlSB = new StringBuilder();
 
-				palJEditorPane.setText(htmlStringBuffer.toString());
-			}
-		}
+                tablehtmlSB.append("<table border=\"0\">");
+                tablehtmlSB.append("<tr>");
+                tablehtmlSB.append("<td valign=\"top\">");
+                tablehtmlSB.append(timeTableStr);
+                tablehtmlSB.append("</td>");
+                tablehtmlSB.append("<td valign=\"top\">");
+                tablehtmlSB.append(cpuTableStr);
+                tablehtmlSB.append("</td>");
+                tablehtmlSB.append("<td valign=\"top\">");
+                tablehtmlSB.append(countTableStr);
+                tablehtmlSB.append("</td>");
+                tablehtmlSB.append("</tr>");
+                tablehtmlSB.append("</table>");
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(2, 15, 2, 2);
+                htmlStringBuilder.append(tablehtmlSB);
 
-		JPanel palJPanel = new JPanel();
-		palJPanel.setLayout(new GridBagLayout());
+                palJEditorPane.setText(htmlStringBuilder.toString());
+            }
+        }
 
-		palJPanel.add(palJEditorPane, gbc1);
-		palJPanel.setBackground(Color.WHITE);
-		palJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(2, 15, 2, 2);
 
-		JScrollPane palJScrollPane = new JScrollPane(palJPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
-				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        JPanel palJPanel = new JPanel();
+        palJPanel.setLayout(new GridBagLayout());
 
-		palJScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        palJPanel.add(palJEditorPane, gbc1);
+        palJPanel.setBackground(Color.WHITE);
+        palJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-		return palJScrollPane;
-	}
+        JScrollPane palScrollPane = new JScrollPane(palJPanel, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-	private JComponent getTraceListJComponent() {
+        palScrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-		HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
-		StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
-		htmlStyleSheet.addStyleSheet(styleSheet);
+        return palScrollPane;
+    }
 
-		JEditorPane traceListJEditorPane = new JEditorPane();
-		traceListJEditorPane.setEditable(false);
-		traceListJEditorPane.setContentType("text/html");
-		traceListJEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
+    private JComponent getTraceListComponent() {
 
-		StringBuffer htmlStringBuffer = new StringBuffer();
+        HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
+        StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
+        htmlStyleSheet.addStyleSheet(styleSheet);
 
-		htmlStringBuffer.append("<H3 align='center'>" + LogEntryColumn.TRACELIST.getDisplayName() + "</H3>");
+        JEditorPane traceListJEditorPane = new JEditorPane();
+        traceListJEditorPane.setEditable(false);
+        traceListJEditorPane.setContentType("text/html");
+        traceListJEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
 
-		int columnIndex = logEntryColumnList.indexOf(LogEntryColumn.TRACELIST.getColumnId());
+        StringBuilder htmlStringBuilder = new StringBuilder();
 
-		if (columnIndex != -1) {
+        htmlStringBuilder.append("<H3 align='center'>" + LogEntryColumn.TRACELIST.getDisplayName() + "</H3>");
 
-			List<String> logEntryValueList = logEntryData.getLogEntryValueList();
+        int columnIndex = logEntryColumnList.indexOf(LogEntryColumn.TRACELIST.getColumnId());
 
-			String traceListData = logEntryValueList.get(columnIndex);
+        if (columnIndex != -1) {
 
-			if ((traceListData != null) && (!"".equals(traceListData)) && (!"NA".equals(traceListData))) {
-				String[] traceListArray = traceListData.split(";");
+            List<String> logEntryValueList = logEntryData.getLogEntryValueList();
 
-				List<TableData> traceListDataList = new LinkedList<TableData>();
+            String traceListData = logEntryValueList.get(columnIndex);
 
-				for (String traceList : traceListArray) {
+            if ((traceListData != null) && (!"".equals(traceListData)) && (!"NA".equals(traceListData))) {
+                String[] traceListArray = traceListData.split(";", 0);
 
-					String[] traceListNameValue = traceList.split(":", 2);
+                List<AlertLogEntryPanelTableData> traceListDataList = new ArrayList<AlertLogEntryPanelTableData>();
 
-					String nameColumn = traceListNameValue[0];
-					String valueColumn = null;
-					boolean isHREF = false;
+                for (String traceList : traceListArray) {
 
-					if (traceListNameValue.length > 1) {
-						valueColumn = traceListNameValue[1];
-					}
+                    String[] traceListNameValue = traceList.split(":", 2);
 
-					TableData tableData = new TableData(nameColumn, valueColumn, isHREF);
+                    String nameColumn = traceListNameValue[0];
+                    String valueColumn = null;
+                    boolean isHref = false;
 
-					traceListDataList.add(tableData);
-				}
+                    if (traceListNameValue.length > 1) {
+                        valueColumn = traceListNameValue[1];
+                    }
 
-				String traceListTableStr = getTableHTMLStr("Trace List", traceListDataList, "border=\"1\"");
+                    AlertLogEntryPanelTableData alertLogEntryPanelTableData = new AlertLogEntryPanelTableData(
+                            nameColumn, valueColumn, isHref);
 
-				htmlStringBuffer.append(traceListTableStr);
+                    traceListDataList.add(alertLogEntryPanelTableData);
+                }
 
-				traceListJEditorPane.setText(htmlStringBuffer.toString());
-			}
-		}
+                String traceListTableStr = getTableHtmlStr("Trace List", traceListDataList, "border=\"1\"");
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(2, 15, 2, 2);
+                htmlStringBuilder.append(traceListTableStr);
 
-		JPanel traceListJPanel = new JPanel();
-		traceListJPanel.setLayout(new GridBagLayout());
+                traceListJEditorPane.setText(htmlStringBuilder.toString());
+            }
+        }
 
-		traceListJPanel.add(traceListJEditorPane, gbc1);
-		traceListJPanel.setBackground(Color.WHITE);
-		traceListJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(2, 15, 2, 2);
 
-		JScrollPane traceListJScrollPane = new JScrollPane(traceListJPanel,
-				ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        JPanel traceListJPanel = new JPanel();
+        traceListJPanel.setLayout(new GridBagLayout());
 
-		traceListJScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        traceListJPanel.add(traceListJEditorPane, gbc1);
+        traceListJPanel.setBackground(Color.WHITE);
+        traceListJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-		return traceListJScrollPane;
-	}
+        JScrollPane traceListJScrollPane = new JScrollPane(traceListJPanel,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-	private JComponent getPRStacktraceJComponent() {
+        traceListJScrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-		HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
-		StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
-		htmlStyleSheet.addStyleSheet(styleSheet);
+        return traceListJScrollPane;
+    }
 
-		JEditorPane prStacktraceJEditorPane = new JEditorPane();
-		prStacktraceJEditorPane.setEditable(false);
-		prStacktraceJEditorPane.setContentType("text/html");
-		prStacktraceJEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
+    private JComponent getPRStacktraceComponent() {
 
-		StringBuffer htmlStringBuffer = new StringBuffer();
+        HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
+        StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
+        htmlStyleSheet.addStyleSheet(styleSheet);
 
-		htmlStringBuffer.append("<H3 align='center'>" + LogEntryColumn.PRSTACKTRACE.getDisplayName() + "</H3>");
+        JEditorPane prStacktraceJEditorPane = new JEditorPane();
+        prStacktraceJEditorPane.setEditable(false);
+        prStacktraceJEditorPane.setContentType("text/html");
+        prStacktraceJEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
 
-		int columnIndex = logEntryColumnList.indexOf(LogEntryColumn.PRSTACKTRACE.getColumnId());
+        StringBuilder htmlStringBuilder = new StringBuilder();
 
-		if (columnIndex != -1) {
+        htmlStringBuilder.append("<H3 align='center'>" + LogEntryColumn.PRSTACKTRACE.getDisplayName() + "</H3>");
 
-			List<String> logEntryValueList = logEntryData.getLogEntryValueList();
+        int columnIndex = logEntryColumnList.indexOf(LogEntryColumn.PRSTACKTRACE.getColumnId());
 
-			String prStacktraceData = logEntryValueList.get(columnIndex);
+        if (columnIndex != -1) {
 
-			if ((prStacktraceData != null) && (!"".equals(prStacktraceData)) && (!"NA".equals(prStacktraceData))) {
-				String[] traceListArray = prStacktraceData.split(";");
+            List<String> logEntryValueList = logEntryData.getLogEntryValueList();
 
-				List<TableData> prStacktraceDataList = new LinkedList<TableData>();
+            String prStacktraceData = logEntryValueList.get(columnIndex);
 
-				for (String traceList : traceListArray) {
+            if ((prStacktraceData != null) && (!"".equals(prStacktraceData)) && (!"NA".equals(prStacktraceData))) {
+                String[] traceListArray = prStacktraceData.split(";", 0);
 
-					TableData tableData = new TableData(traceList, null, false);
+                List<AlertLogEntryPanelTableData> prStacktraceDataList = new ArrayList<AlertLogEntryPanelTableData>();
 
-					prStacktraceDataList.add(tableData);
+                for (String traceList : traceListArray) {
 
-				}
+                    AlertLogEntryPanelTableData alertLogEntryPanelTableData = new AlertLogEntryPanelTableData(traceList,
+                            null, false);
 
-				String prStacktraceTableStr = getTableHTMLStr("PR Stacktrace", prStacktraceDataList, "border=\"1\"");
+                    prStacktraceDataList.add(alertLogEntryPanelTableData);
 
-				htmlStringBuffer.append(prStacktraceTableStr);
+                }
 
-				prStacktraceJEditorPane.setText(htmlStringBuffer.toString());
-			}
-		}
+                String prStacktraceTableStr = getTableHtmlStr("PR Stacktrace", prStacktraceDataList, "border=\"1\"");
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(2, 15, 2, 2);
+                htmlStringBuilder.append(prStacktraceTableStr);
 
-		JPanel prStackTraceJPanel = new JPanel();
-		prStackTraceJPanel.setLayout(new GridBagLayout());
+                prStacktraceJEditorPane.setText(htmlStringBuilder.toString());
+            }
+        }
 
-		prStackTraceJPanel.add(prStacktraceJEditorPane, gbc1);
-		prStackTraceJPanel.setBackground(Color.WHITE);
-		prStackTraceJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(2, 15, 2, 2);
 
-		JScrollPane prStacktraceJScrollPane = new JScrollPane(prStackTraceJPanel,
-				ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        JPanel prStackTraceJPanel = new JPanel();
+        prStackTraceJPanel.setLayout(new GridBagLayout());
 
-		prStacktraceJScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        prStackTraceJPanel.add(prStacktraceJEditorPane, gbc1);
+        prStackTraceJPanel.setBackground(Color.WHITE);
+        prStackTraceJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-		return prStacktraceJScrollPane;
-	}
+        JScrollPane prStacktraceJScrollPane = new JScrollPane(prStackTraceJPanel,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-	private JComponent getParameterPageJComponent() {
+        prStacktraceJScrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-		HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
-		StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
-		htmlStyleSheet.addStyleSheet(styleSheet);
+        return prStacktraceJScrollPane;
+    }
 
-		JEditorPane parameterPageJEditorPane = new JEditorPane();
-		parameterPageJEditorPane.setEditable(false);
-		parameterPageJEditorPane.setContentType("text/html");
-		parameterPageJEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
+    private JComponent getParameterPageComponent() {
 
-		StringBuffer htmlStringBuffer = new StringBuffer();
+        HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
+        StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
+        htmlStyleSheet.addStyleSheet(styleSheet);
 
-		htmlStringBuffer.append("<H3 align='center'>" + LogEntryColumn.PARAMETERPAGEDATA.getDisplayName() + "</H3>");
+        JEditorPane parameterPageJEditorPane = new JEditorPane();
+        parameterPageJEditorPane.setEditable(false);
+        parameterPageJEditorPane.setContentType("text/html");
+        parameterPageJEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
 
-		int columnIndex = logEntryColumnList.indexOf(LogEntryColumn.PARAMETERPAGEDATA.getColumnId());
+        StringBuilder htmlStringBuilder = new StringBuilder();
 
-		if (columnIndex != -1) {
+        htmlStringBuilder.append("<H3 align='center'>" + LogEntryColumn.PARAMETERPAGEDATA.getDisplayName() + "</H3>");
 
-			List<String> logEntryValueList = logEntryData.getLogEntryValueList();
+        int columnIndex = logEntryColumnList.indexOf(LogEntryColumn.PARAMETERPAGEDATA.getColumnId());
 
-			String parameterPageData = logEntryValueList.get(columnIndex);
+        if (columnIndex != -1) {
 
-			if ((parameterPageData != null) && (!"".equals(parameterPageData)) && (!"NA".equals(parameterPageData))) {
+            List<String> logEntryValueList = logEntryData.getLogEntryValueList();
 
-				// sanitise the data
-				parameterPageData = parameterPageData.replaceAll(";gt;", ">");
-				parameterPageData = parameterPageData.replaceAll(";lt;", "<");
+            String parameterPageData = logEntryValueList.get(columnIndex);
 
-				String[] parameterPageArray = parameterPageData.split(";");
+            if ((parameterPageData != null) && (!"".equals(parameterPageData)) && (!"NA".equals(parameterPageData))) {
 
-				List<TableData> parameterPageDataList = new LinkedList<TableData>();
+                // sanitise the data
+                parameterPageData = parameterPageData.replaceAll(";gt;", ">");
+                parameterPageData = parameterPageData.replaceAll(";lt;", "<");
 
-				for (String palStat : parameterPageArray) {
+                String[] parameterPageArray = parameterPageData.split(";", 0);
 
-					String[] parameterPageNameValue = palStat.split("=", 2);
+                List<AlertLogEntryPanelTableData> parameterPageDataList = new ArrayList<AlertLogEntryPanelTableData>();
 
-					String nameColumn = parameterPageNameValue[0];
-					String valueColumn = null;
-					boolean isHREF = false;
+                for (String palStat : parameterPageArray) {
 
-					if (parameterPageNameValue.length > 1) {
-						valueColumn = StringEscapeUtils.escapeXml11(parameterPageNameValue[1]);
-					}
+                    String[] parameterPageNameValue = palStat.split("=", 2);
 
-					TableData tableData = new TableData(nameColumn, valueColumn, isHREF);
+                    String nameColumn = parameterPageNameValue[0];
+                    String valueColumn = null;
+                    boolean isHref = false;
 
-					parameterPageDataList.add(tableData);
+                    if (parameterPageNameValue.length > 1) {
+                        valueColumn = StringEscapeUtils.escapeXml11(parameterPageNameValue[1]);
+                    }
 
-				}
+                    AlertLogEntryPanelTableData alertLogEntryPanelTableData = new AlertLogEntryPanelTableData(
+                            nameColumn, valueColumn, isHref);
 
-				String parameterPageTableStr = getTableHTMLStr("Time", parameterPageDataList, "border=\"1\"");
+                    parameterPageDataList.add(alertLogEntryPanelTableData);
 
-				htmlStringBuffer.append(parameterPageTableStr);
+                }
 
-				parameterPageJEditorPane.setText(htmlStringBuffer.toString());
+                String parameterPageTableStr = getTableHtmlStr("Time", parameterPageDataList, "border=\"1\"");
 
-			}
-		}
+                htmlStringBuilder.append(parameterPageTableStr);
 
-		GridBagConstraints gbc1 = new GridBagConstraints();
-		gbc1.gridx = 0;
-		gbc1.gridy = 0;
-		gbc1.weightx = 1.0D;
-		gbc1.weighty = 1.0D;
-		gbc1.fill = GridBagConstraints.BOTH;
-		gbc1.anchor = GridBagConstraints.NORTHWEST;
-		gbc1.insets = new Insets(2, 15, 2, 2);
+                parameterPageJEditorPane.setText(htmlStringBuilder.toString());
 
-		JPanel parameterPageJPanel = new JPanel();
-		parameterPageJPanel.setLayout(new GridBagLayout());
+            }
+        }
 
-		parameterPageJPanel.add(parameterPageJEditorPane, gbc1);
-		parameterPageJPanel.setBackground(Color.WHITE);
-		parameterPageJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(2, 15, 2, 2);
 
-		JScrollPane parameterPageJScrollPane = new JScrollPane(parameterPageJPanel,
-				ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        JPanel parameterPageJPanel = new JPanel();
+        parameterPageJPanel.setLayout(new GridBagLayout());
 
-		parameterPageJScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        parameterPageJPanel.add(parameterPageJEditorPane, gbc1);
+        parameterPageJPanel.setBackground(Color.WHITE);
+        parameterPageJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-		return parameterPageJScrollPane;
-	}
+        JScrollPane parameterPageJScrollPane = new JScrollPane(parameterPageJPanel,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-	private JComponent getRawTextJComponent() {
+        parameterPageJScrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-		JPanel rawTextJPanel = new LogEntryPanel(logEntryData.getLogEntryText());
+        return parameterPageJScrollPane;
+    }
 
-		return rawTextJPanel;
-	}
+    private JComponent getRawTextComponent() {
 
-	private String getTableHTMLStr(String title, List<TableData> tableDataList, String tableStyle) {
+        JPanel rawTextJPanel = new LogEntryPanel(logEntryData.getLogEntryText(), charset);
 
-		StringBuffer tablehtmlSB = new StringBuffer();
+        return rawTextJPanel;
+    }
 
-		tablehtmlSB.append("<table " + tableStyle + ">");
+    private String getTableHtmlStr(String title, List<AlertLogEntryPanelTableData> tableDataList, String tableStyle) {
 
-		if (title != null) {
-			tablehtmlSB.append("<tr><th class=\"tableHeaderCenter\" colspan=\"2\">" + title + "</th></tr>");
-		}
+        StringBuilder tablehtmlSB = new StringBuilder();
 
-		for (TableData tableData : tableDataList) {
+        tablehtmlSB.append("<table " + tableStyle + ">");
 
-			tablehtmlSB.append("<tr>");
+        if (title != null) {
+            tablehtmlSB.append("<tr><th class=\"tableHeaderCenter\" colspan=\"2\">" + title + "</th></tr>");
+        }
 
-			String nameColumn = tableData.getNameColumn();
-			String valueColumn = tableData.getValueColumn();
-			boolean isHREF = tableData.isHREF();
+        for (AlertLogEntryPanelTableData alertLogEntryPanelTableData : tableDataList) {
 
-			tablehtmlSB.append("<td class=\"nameColumn\">");
-			tablehtmlSB.append(nameColumn);
-			tablehtmlSB.append("</td>");
+            tablehtmlSB.append("<tr>");
 
-			if (valueColumn != null) {
-				tablehtmlSB.append("<td class=\"valueColumn\">");
+            String nameColumn = alertLogEntryPanelTableData.getNameColumn();
+            String valueColumn = alertLogEntryPanelTableData.getValueColumn();
+            boolean isHref = alertLogEntryPanelTableData.isHref();
 
-				if (isHREF) {
-					tablehtmlSB.append("<a href=\"");
-					tablehtmlSB.append(valueColumn);
-					tablehtmlSB.append("\">");
-					tablehtmlSB.append(valueColumn);
-					tablehtmlSB.append("</a>");
-				} else {
-					tablehtmlSB.append(valueColumn);
-				}
+            tablehtmlSB.append("<td class=\"nameColumn\">");
+            tablehtmlSB.append(nameColumn);
+            tablehtmlSB.append("</td>");
 
-				tablehtmlSB.append("</td>");
-			}
+            if (valueColumn != null) {
+                tablehtmlSB.append("<td class=\"valueColumn\">");
 
-			tablehtmlSB.append("</tr>");
-		}
+                if (isHref) {
+                    tablehtmlSB.append("<a href=\"");
+                    tablehtmlSB.append(valueColumn);
+                    tablehtmlSB.append("\">");
+                    tablehtmlSB.append(valueColumn);
+                    tablehtmlSB.append("</a>");
+                } else {
+                    tablehtmlSB.append(valueColumn);
+                }
 
-		tablehtmlSB.append("</table>");
+                tablehtmlSB.append("</td>");
+            }
 
-		return tablehtmlSB.toString();
-	}
+            tablehtmlSB.append("</tr>");
+        }
 
-	private class TableData {
+        tablehtmlSB.append("</table>");
 
-		private String nameColumn;
-
-		private String valueColumn;
-
-		private boolean isHREF;
-
-		public TableData(String nameColumn, String valueColumn, boolean isHREF) {
-			super();
-			this.nameColumn = nameColumn;
-			this.valueColumn = valueColumn;
-			this.isHREF = isHREF;
-		}
-
-		public String getNameColumn() {
-			return nameColumn;
-		}
-
-		public String getValueColumn() {
-			return valueColumn;
-		}
-
-		public boolean isHREF() {
-			return isHREF;
-		}
-
-	}
+        return tablehtmlSB.toString();
+    }
 }

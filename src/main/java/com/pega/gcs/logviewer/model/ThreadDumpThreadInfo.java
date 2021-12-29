@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.model;
 
 import java.util.ArrayList;
@@ -11,132 +12,132 @@ import java.util.List;
 
 public abstract class ThreadDumpThreadInfo implements Comparable<ThreadDumpThreadInfo> {
 
-	private long threadId;
+    private long threadId;
 
-	private String threadName;
+    private String threadName;
 
-	private String threadNameText;
+    private String threadNameText;
 
-	private boolean pegaThread;
+    private boolean pegaThread;
 
-	private String stackMethod;
+    private String stackMethod;
 
-	private int stackDepth;
+    private int stackDepth;
 
-	private List<String> threadSubLineList;
+    private List<String> threadSubLineList;
 
-	public abstract Object getValue(String columnName);
+    public abstract Object getValue(String columnName);
 
-	public ThreadDumpThreadInfo(Long threadID, String threadName, String threadText) {
+    public ThreadDumpThreadInfo(Long threadId, String threadName, String threadText) {
 
-		this.threadId = threadID;
-		this.threadName = threadName;
-		this.threadNameText = threadText;
+        this.threadId = threadId;
+        this.threadName = threadName;
+        this.threadNameText = threadText;
 
-		this.pegaThread = false;
-		this.stackMethod = null;
+        this.pegaThread = false;
+        this.stackMethod = null;
 
-		this.threadSubLineList = new ArrayList<String>();
+        this.threadSubLineList = new ArrayList<String>();
 
-	}
+    }
 
-	public long getThreadId() {
-		return threadId;
-	}
+    public long getThreadId() {
+        return threadId;
+    }
 
-	public String getThreadName() {
-		return threadName;
-	}
+    public String getThreadName() {
+        return threadName;
+    }
 
-	public String getThreadNameText() {
-		return threadNameText;
-	}
+    public String getThreadNameText() {
+        return threadNameText;
+    }
 
-	public boolean isPegaThread() {
-		return pegaThread;
-	}
+    public boolean isPegaThread() {
+        return pegaThread;
+    }
 
-	public void setPegaThread(Boolean pegaThread) {
-		this.pegaThread = pegaThread;
-	}
+    public void setPegaThread(Boolean pegaThread) {
+        this.pegaThread = pegaThread;
+    }
 
-	public String getStackMethod() {
-		return stackMethod;
-	}
+    public String getStackMethod() {
+        return stackMethod;
+    }
 
-	public void setStackMethod(String stackMethod) {
-		this.stackMethod = stackMethod;
-	}
+    public void setStackMethod(String stackMethod) {
+        this.stackMethod = stackMethod;
+    }
 
-	public int getStackDepth() {
-		return stackDepth;
-	}
+    public int getStackDepth() {
+        return stackDepth;
+    }
 
-	public void setStackDepth(int stackDepth) {
-		this.stackDepth = stackDepth;
-	}
+    public void setStackDepth(int stackDepth) {
+        this.stackDepth = stackDepth;
+    }
 
-	public List<String> getThreadSubLineList() {
-		return threadSubLineList;
-	}
+    public List<String> getThreadSubLineList() {
+        return threadSubLineList;
+    }
 
-	// if case sensitive is false, then the string is passed as UPPER CASE.
-	// otherwise the it is passed as it is.
-	public boolean search(String searchStr, boolean casesensitive) {
-		boolean found = false;
+    // if case sensitive is false, then the string is passed as UPPER CASE.
+    // otherwise the it is passed as it is.
+    public boolean search(String searchStr, boolean casesensitive) {
 
-		String threadStr = threadNameText;
+        boolean found = false;
 
-		if (!casesensitive) {
-			threadStr = threadNameText.toUpperCase();
-		}
+        String threadStr = threadNameText;
 
-		if (threadStr.contains(searchStr)) {
-			found = true;
-		} else {
+        if (!casesensitive) {
+            threadStr = threadNameText.toUpperCase();
+        }
 
-			for (String threadSubLine : threadSubLineList) {
+        if (threadStr.contains(searchStr)) {
+            found = true;
+        } else {
 
-				threadStr = threadSubLine;
+            for (String threadSubLine : threadSubLineList) {
 
-				if (!casesensitive) {
-					threadStr = threadSubLine.toUpperCase();
-				}
+                threadStr = threadSubLine;
 
-				if (threadStr.contains(searchStr)) {
-					found = true;
-					break;
-				}
-			}
-		}
+                if (!casesensitive) {
+                    threadStr = threadSubLine.toUpperCase();
+                }
 
-		return found;
-	}
+                if (threadStr.contains(searchStr)) {
+                    found = true;
+                    break;
+                }
+            }
+        }
 
-	public String getThreadDumpString() {
+        return found;
+    }
 
-		StringBuffer tdsb = new StringBuffer();
+    public String getThreadDumpString() {
 
-		tdsb.append(threadNameText);
-		tdsb.append(System.getProperty("line.separator"));
+        StringBuilder tdsb = new StringBuilder();
 
-		for (String threadSubLine : threadSubLineList) {
-			tdsb.append(threadSubLine);
-			tdsb.append(System.getProperty("line.separator"));
-		}
+        tdsb.append(threadNameText);
+        tdsb.append(System.getProperty("line.separator"));
 
-		return tdsb.toString();
-	}
+        for (String threadSubLine : threadSubLineList) {
+            tdsb.append(threadSubLine);
+            tdsb.append(System.getProperty("line.separator"));
+        }
 
-	@Override
-	public String toString() {
-		return getThreadName();
-	}
+        return tdsb.toString();
+    }
 
-	@Override
-	public int compareTo(ThreadDumpThreadInfo o) {
-		// return new Long(threadId).compareTo(new Long(o.threadID));
-		return getThreadName().compareTo(o.getThreadName());
-	}
+    @Override
+    public String toString() {
+        return getThreadName();
+    }
+
+    @Override
+    public int compareTo(ThreadDumpThreadInfo other) {
+        return getThreadName().compareTo(other.getThreadName());
+    }
 
 }

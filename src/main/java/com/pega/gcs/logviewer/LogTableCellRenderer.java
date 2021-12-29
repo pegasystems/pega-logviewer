@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.Color;
@@ -18,57 +19,56 @@ import com.pega.gcs.logviewer.model.LogEntry;
 
 public class LogTableCellRenderer extends DefaultTableCellRenderer {
 
-	private static final long serialVersionUID = -5768343434033636406L;
+    private static final long serialVersionUID = -5768343434033636406L;
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * javax.swing.table.DefaultTableCellRenderer#getTableCellRendererComponent
-	 * (javax.swing.JTable, java.lang.Object, boolean, boolean, int, int)
-	 */
-	@Override
-	public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
-			int row, int column) {
+    /*
+     * (non-Javadoc)
+     * 
+     * @see javax.swing.table.DefaultTableCellRenderer#getTableCellRendererComponent (javax.swing.JTable, java.lang.Object, boolean,
+     * boolean, int, int)
+     */
+    @Override
+    public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus,
+            int row, int column) {
 
-		LogEntry le = (LogEntry) value;
+        LogEntry le = (LogEntry) value;
 
-		if (le != null) {
+        if (le != null) {
 
-			LogTableModel ttm = (LogTableModel) table.getModel();
-			String text = ttm.getFormattedLogEntryValue(le, column);
+            LogTableModel ttm = (LogTableModel) table.getModel();
+            String text = ttm.getColumnValue(le, column);
 
-			super.getTableCellRendererComponent(table, text, isSelected, hasFocus, row, column);
+            super.getTableCellRendererComponent(table, text, isSelected, hasFocus, row, column);
 
-			if (!table.isRowSelected(row)) {
+            if (!table.isRowSelected(row)) {
 
-				Color foregroundColor = Color.BLACK;
-				Color backgroundColor = null;
+                Color foregroundColor = Color.BLACK;
+                Color backgroundColor = null;
 
-				boolean searchFound = le.isSearchFound();
+                boolean searchFound = le.isSearchFound();
 
-				if (searchFound) {
-					backgroundColor = MyColor.LIGHT_YELLOW;
-				} else {
-					foregroundColor = le.getForegroundColor();
-					backgroundColor = le.getBackgroundColor();
+                if (searchFound) {
+                    backgroundColor = MyColor.LIGHT_YELLOW;
+                } else {
+                    foregroundColor = le.getForegroundColor();
+                    backgroundColor = le.getBackgroundColor();
 
-				}
+                }
 
-				setForeground(foregroundColor);
-				setBackground(backgroundColor);
-			}
+                setForeground(foregroundColor);
+                setBackground(backgroundColor);
+            }
 
-			setBorder(new EmptyBorder(1, 3, 1, 1));
+            setBorder(new EmptyBorder(1, 3, 1, 1));
 
-			setToolTipText(text);
+            setToolTipText(text);
 
-		} else {
-			setBackground(Color.WHITE);
-			super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-		}
+        } else {
+            setBackground(Color.WHITE);
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+        }
 
-		return this;
-	}
+        return this;
+    }
 
 }

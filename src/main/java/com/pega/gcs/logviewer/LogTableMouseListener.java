@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer;
 
 import java.awt.Component;
@@ -17,276 +18,490 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import javax.swing.ImageIcon;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPopupMenu;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import com.pega.gcs.fringecommon.guiutilities.BaseFrame;
+import com.pega.gcs.fringecommon.guiutilities.ModalProgressMonitor;
 import com.pega.gcs.fringecommon.guiutilities.RightClickMenuItem;
 import com.pega.gcs.fringecommon.guiutilities.bookmark.BookmarkAddDialog;
 import com.pega.gcs.fringecommon.guiutilities.bookmark.BookmarkDeleteDialog;
 import com.pega.gcs.fringecommon.guiutilities.bookmark.BookmarkModel;
 import com.pega.gcs.fringecommon.guiutilities.bookmark.BookmarkOpenDialog;
 import com.pega.gcs.fringecommon.guiutilities.markerbar.Marker;
+import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.logviewer.model.LogEntry;
+import com.pega.gcs.logviewer.model.LogEntryColumn;
+import com.pega.gcs.logviewer.model.LogEntryKey;
+import com.pega.gcs.logviewer.model.LogEntryModel;
 
 public class LogTableMouseListener extends MouseAdapter {
 
-	private Map<Integer, JFrame> logEntryModelDialogMap;
+    private static final Log4j2Helper LOG = new Log4j2Helper(LogTableMouseListener.class);
 
-	private Component mainWindow;
+    private Map<LogEntryKey, JFrame> logEntryModelFrameMap;
 
-	/**
-	 * @param logTableList
-	 */
-	public LogTableMouseListener(Component mainWindow) {
+    private Component mainWindow;
 
-		this.mainWindow = mainWindow;
-		logEntryModelDialogMap = new HashMap<Integer, JFrame>();
-	}
+    public LogTableMouseListener(Component mainWindow) {
 
-	protected Component getMainWindow() {
-		return mainWindow;
-	}
+        this.mainWindow = mainWindow;
 
-	protected Map<Integer, JFrame> getLogEntryModelDialogMap() {
-		return logEntryModelDialogMap;
-	}
+        logEntryModelFrameMap = new HashMap<>();
+    }
 
-	@Override
-	public void mouseClicked(MouseEvent e) {
+    private Component getMainWindow() {
+        return mainWindow;
+    }
 
-		if (SwingUtilities.isRightMouseButton(e)) {
+    private Map<LogEntryKey, JFrame> getLogEntryModelFrameMap() {
+        return logEntryModelFrameMap;
+    }
 
-			Point point = e.getPoint();
+    @Override
+    public void mouseClicked(MouseEvent mouseEvent) {
 
-			final List<Integer> selectedRowList = new LinkedList<Integer>();
+        if (SwingUtilities.isRightMouseButton(mouseEvent)) {
 
-			final LogTable source = (LogTable) e.getSource();
-			final LogTableModel logTableModel = (LogTableModel) source.getModel();
+            Point point = mouseEvent.getPoint();
 
-			int[] selectedRows = source.getSelectedRows();
+            final List<Integer> selectedRowList = new ArrayList<Integer>();
 
-			// in case the row was not selected when right clicking then based
-			// on the point, select the row.
-			if ((selectedRows != null) && (selectedRows.length <= 1)) {
+            final LogTable logTable = (LogTable) mouseEvent.getSource();
 
-				int selectedRow = source.rowAtPoint(point);
+            int[] selectedRows = logTable.getSelectedRows();
 
-				if (selectedRow != -1) {
-					// select the row first
-					source.setRowSelectionInterval(selectedRow, selectedRow);
-					selectedRows = new int[] { selectedRow };
-				}
-			}
+            // in case the row was not selected when right clicking then based
+            // on the point, select the row.
+            if ((selectedRows != null) && (selectedRows.length <= 1)) {
 
-			for (int selectedRow : selectedRows) {
-				selectedRowList.add(selectedRow);
-			}
+                int selectedRow = logTable.rowAtPoint(point);
 
-			final int size = selectedRowList.size();
+                if (selectedRow != -1) {
+                    // select the row first
+                    logTable.setRowSelectionInterval(selectedRow, selectedRow);
+                    selectedRows = new int[] { selectedRow };
+                }
+            }
 
-			if (size > 0) {
+            for (int selectedRow : selectedRows) {
+                selectedRowList.add(selectedRow);
+            }
 
-				final JPopupMenu popupMenu = new JPopupMenu();
+            final int size = selectedRowList.size();
 
-				ImageIcon appIcon = BaseFrame.getAppIcon();
+            if (size > 0) {
 
-				final RightClickMenuItem copyMenuItem = new RightClickMenuItem("Copy");
+                final JPopupMenu popupMenu = new JPopupMenu();
 
-				copyMenuItem.addActionListener(new ActionListener() {
+                RightClickMenuItem copyLogEntryMenuItem = null;
+                RightClickMenuItem exportLogEntryLogMenuItem = null;
+                RightClickMenuItem addBookmarkMenuItem = null;
+                RightClickMenuItem openBookmarkMenuItem = null;
+                RightClickMenuItem deleteBookmarkMenuItem = null;
 
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                copyLogEntryMenuItem = getCopyLogEntryRightClickMenuItem(popupMenu, logTable, selectedRowList);
+                exportLogEntryLogMenuItem = getExportLogEventRightClickMenuItem(popupMenu, logTable, selectedRowList);
+                addBookmarkMenuItem = getAddBookmarkRightClickMenuItem(popupMenu, selectedRowList, logTable);
 
-						int[] array = selectedRowList.stream().mapToInt(i -> i).toArray();
-						String selectedRowsData = logTableModel.getSelectedRowsData(array);
+                // show open and delete bookmark
+                if (size == 1) {
 
-						clipboard.setContents(new StringSelection(selectedRowsData), copyMenuItem);
+                    Integer selectedRow = selectedRowList.get(0);
 
-						popupMenu.setVisible(false);
+                    LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-					}
-				});
+                    LogEntry logEntry = (LogEntry) logTableModel.getValueAt(selectedRow, 0);
 
-				popupMenu.add(copyMenuItem);
+                    if (logEntry != null) {
 
-				final BookmarkModel<Integer> bookmarkModel = logTableModel.getBookmarkModel();
+                        LogEntryKey logEntryKey = logEntry.getKey();
 
-				// add bookmark
-				Map<Integer, LogEntry> leKeyMap = new HashMap<>();
+                        BookmarkModel<LogEntryKey> bookmarkModel = logTableModel.getBookmarkModel();
 
-				for (int selectedRow : selectedRowList) {
+                        List<Marker<LogEntryKey>> bookmarkList = bookmarkModel.getMarkers(logEntryKey);
 
-					LogEntry logEntry = (LogEntry) logTableModel.getValueAt(selectedRow, 0);
+                        if ((bookmarkList != null) && (bookmarkList.size() > 0)) {
 
-					if (logEntry != null) {
+                            openBookmarkMenuItem = getOpenBookmarkRightClickMenuItem(popupMenu, logEntryKey,
+                                    bookmarkModel);
 
-						leKeyMap.put(logEntry.getKey(), logEntry);
-					}
-				}
+                            deleteBookmarkMenuItem = getDeleteBookmarkRightClickMenuItem(popupMenu, logEntryKey,
+                                    bookmarkModel);
+                        }
+                    }
 
-				RightClickMenuItem addBookmarkMenuItem = new RightClickMenuItem("Add Bookmark");
+                }
+                // expected order
+                if (copyLogEntryMenuItem != null) {
+                    addPopupMenu(popupMenu, copyLogEntryMenuItem);
+                }
 
-				addBookmarkMenuItem.addActionListener(new ActionListener() {
+                if (exportLogEntryLogMenuItem != null) {
+                    addPopupMenu(popupMenu, exportLogEntryLogMenuItem);
+                }
 
-					@Override
-					public void actionPerformed(ActionEvent e) {
+                if (addBookmarkMenuItem != null) {
+                    addPopupMenu(popupMenu, addBookmarkMenuItem);
+                }
 
-						Component mainWindow = getMainWindow();
+                if (openBookmarkMenuItem != null) {
+                    addPopupMenu(popupMenu, openBookmarkMenuItem);
+                }
 
-						BookmarkAddDialog<Integer> bookmarkAddDialog;
-						bookmarkAddDialog = new BookmarkAddDialog<Integer>(appIcon, mainWindow, bookmarkModel,
-								new ArrayList<Integer>(leKeyMap.keySet())) {
+                if (deleteBookmarkMenuItem != null) {
+                    addPopupMenu(popupMenu, deleteBookmarkMenuItem);
+                }
 
-							private static final long serialVersionUID = 9033469590975413111L;
+                popupMenu.show(mouseEvent.getComponent(), mouseEvent.getX(), mouseEvent.getY());
+            }
 
-							@Override
-							public List<Marker<Integer>> getMarkerList(List<Integer> keyList, String text) {
+        } else if (mouseEvent.getClickCount() == 2) {
 
-								List<Marker<Integer>> markerList = new ArrayList<>();
+            LogTable logTable = (LogTable) mouseEvent.getSource();
 
-								for (Integer key : keyList) {
+            performDoubleClick(logTable);
 
-									Marker<Integer> marker = new Marker<Integer>(key, text);
+        } else {
+            super.mouseClicked(mouseEvent);
+        }
+    }
 
-									markerList.add(marker);
-								}
+    private void addPopupMenu(JPopupMenu popupMenu, RightClickMenuItem rightClickMenuItem) {
 
-								return markerList;
-							}
+        if (rightClickMenuItem != null) {
+            popupMenu.add(rightClickMenuItem);
+        }
+    }
 
-						};
+    public void clearJDialogList() {
 
-						bookmarkAddDialog.setVisible(true);
-						popupMenu.setVisible(false);
+        Map<LogEntryKey, JFrame> logEntryModelFrameMap = getLogEntryModelFrameMap();
 
-					}
-				});
+        for (JFrame logEntryModelDialog : logEntryModelFrameMap.values()) {
+            logEntryModelDialog.dispose();
+        }
 
-				popupMenu.add(addBookmarkMenuItem);
+        logEntryModelFrameMap.clear();
 
-				// show open and delete
-				if (size == 1) {
+    }
 
-					LogEntry logEntry = (LogEntry) logTableModel.getValueAt(selectedRowList.get(0), 0);
+    private RightClickMenuItem getCopyLogEntryRightClickMenuItem(JPopupMenu popupMenu, LogTable logTable,
+            List<Integer> selectedRowList) {
 
-					if (logEntry != null) {
+        final RightClickMenuItem copyLogEntryMenuItem = new RightClickMenuItem("Copy");
 
-						Integer key = logEntry.getKey();
+        copyLogEntryMenuItem.addActionListener(new ActionListener() {
 
-						List<Marker<Integer>> bookmarkList = bookmarkModel.getMarkers(key);
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
 
-						if ((bookmarkList != null) && (bookmarkList.size() > 0)) {
+                LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-							RightClickMenuItem openBookmarkMenuItem = new RightClickMenuItem("Open Bookmark");
+                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 
-							openBookmarkMenuItem.addActionListener(new ActionListener() {
+                int[] array = selectedRowList.stream().mapToInt(i -> i).toArray();
+                String selectedRowsData = logTableModel.getSelectedRowsData(array);
 
-								@Override
-								public void actionPerformed(ActionEvent e) {
+                clipboard.setContents(new StringSelection(selectedRowsData), copyLogEntryMenuItem);
 
-									Component mainWindow = getMainWindow();
+                popupMenu.setVisible(false);
 
-									Map<Integer, List<Marker<Integer>>> bookmarkListMap = new HashMap<>();
-									bookmarkListMap.put(key, bookmarkList);
+            }
+        });
 
-									BookmarkOpenDialog<Integer> bookmarkOpenDialog;
-									bookmarkOpenDialog = new BookmarkOpenDialog<Integer>(appIcon, mainWindow,
-											bookmarkListMap);
+        return copyLogEntryMenuItem;
+    }
 
-									bookmarkOpenDialog.setVisible(true);
+    private RightClickMenuItem getExportLogEventRightClickMenuItem(JPopupMenu popupMenu, LogTable logTable,
+            List<Integer> selectedRowList) {
 
-									popupMenu.setVisible(false);
+        RightClickMenuItem exportLogEntryLogMenuItem = new RightClickMenuItem("Export selected log event(s)");
 
-								}
-							});
+        exportLogEntryLogMenuItem.addActionListener(new ActionListener() {
 
-							RightClickMenuItem deleteBookmarkMenuItem = new RightClickMenuItem("Delete Bookmark");
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
 
-							deleteBookmarkMenuItem.addActionListener(new ActionListener() {
+                try {
 
-								@Override
-								public void actionPerformed(ActionEvent e) {
+                    LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-									Component mainWindow = getMainWindow();
+                    LogEntry logEntry = (LogEntry) logTableModel.getValueAt(selectedRowList.get(0), 0);
 
-									List<Integer> keyList = new ArrayList<>();
-									keyList.add(key);
-									BookmarkDeleteDialog<Integer> bookmarkDeleteDialog;
+                    String postfix = logEntry.getKey().toString();
 
-									bookmarkDeleteDialog = new BookmarkDeleteDialog<Integer>(appIcon, mainWindow,
-											bookmarkModel, keyList);
+                    String filePath = logTableModel.getFilePath();
+                    File logFile = new File(filePath);
 
-									bookmarkDeleteDialog.setVisible(true);
+                    String fileName = FileUtilities.getNameWithoutExtension(logFile);
+                    fileName = fileName + "-" + postfix + ".log";
+                    File currentDirectory = logFile.getParentFile();
 
-									popupMenu.setVisible(false);
+                    File proposedFile = new File(currentDirectory, fileName);
 
-								}
-							});
+                    JFileChooser fileChooser = new JFileChooser(currentDirectory);
 
-							popupMenu.add(openBookmarkMenuItem);
-							popupMenu.add(deleteBookmarkMenuItem);
-						}
-					}
-				}
+                    fileChooser.setDialogTitle("Save LOG(.log) File");
+                    fileChooser.setSelectedFile(proposedFile);
+                    fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
-				popupMenu.show(e.getComponent(), e.getX(), e.getY());
-			}
+                    FileNameExtensionFilter filter = new FileNameExtensionFilter("LOG Format", "log");
 
-		} else if (e.getClickCount() == 2) {
+                    fileChooser.setFileFilter(filter);
 
-			LogTable logTable = (LogTable) e.getSource();
+                    Component mainWindow = getMainWindow();
 
-			int row = logTable.getSelectedRow();
+                    int returnValue = fileChooser.showSaveDialog(mainWindow);
 
-			LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+                    if (returnValue == JFileChooser.APPROVE_OPTION) {
 
-			LogEntry logEntry = (LogEntry) logTableModel.getValueAt(row, 0);
+                        File exportFile = fileChooser.getSelectedFile();
 
-			final Integer logEntryIndex = logEntry.getKey();
+                        returnValue = JOptionPane.YES_OPTION;
 
-			JFrame logEntryModelDialog = logEntryModelDialogMap.get(logEntryIndex);
+                        if (exportFile.exists()) {
 
-			if (logEntryModelDialog == null) {
+                            returnValue = JOptionPane.showConfirmDialog(mainWindow,
+                                    "Replace existing file '" + exportFile.getAbsolutePath() + "' ?", "File Exists",
+                                    JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                        }
 
-				logEntryModelDialog = new LogNavigationDialog(logEntry, logTable, BaseFrame.getAppIcon());
+                        if (returnValue == JOptionPane.YES_OPTION) {
 
-				logEntryModelDialog.addWindowListener(new WindowAdapter() {
+                            UIManager.put("ModalProgressMonitor.progressText", "Exporting selected log entries");
 
-					@Override
-					public void windowClosed(WindowEvent e) {
-						Map<Integer, JFrame> logEntryModelDialogMap = getLogEntryModelDialogMap();
-						logEntryModelDialogMap.remove(logEntryIndex);
-					}
+                            ModalProgressMonitor modalProgressMonitor = new ModalProgressMonitor(mainWindow, "",
+                                    "Exporting selected log entries (0%)                                   ", 0, 100);
+                            modalProgressMonitor.setMillisToDecideToPopup(0);
+                            modalProgressMonitor.setMillisToPopup(0);
 
-				});
+                            LogEventLogExportTask logEventLogExportTask;
 
-				logEntryModelDialogMap.put(logEntryIndex, logEntryModelDialog);
-			} else {
-				logEntryModelDialog.toFront();
-			}
-		} else {
-			super.mouseClicked(e);
-		}
-	}
+                            logEventLogExportTask = new LogEventLogExportTask(logTableModel, selectedRowList,
+                                    exportFile, modalProgressMonitor) {
 
-	public void clearJDialogList() {
+                                @Override
+                                protected void done() {
 
-		for (JFrame logEntryModelDialog : logEntryModelDialogMap.values()) {
-			logEntryModelDialog.dispose();
-		}
+                                    Boolean success = Boolean.FALSE;
+                                    try {
 
-		logEntryModelDialogMap.clear();
+                                        success = get();
 
-	}
+                                    } catch (Exception e) {
+                                        LOG.error("LogEventLogExportTask erorr: ", e);
+                                    } finally {
 
+                                        modalProgressMonitor.close();
+                                        System.gc();
+
+                                        if ((success != null) && (success)) {
+
+                                            String message = "Exported Log entries to '" + exportFile.getAbsolutePath()
+                                                    + "'.\nOpen in new tab?";
+
+                                            int nextAction = JOptionPane.showConfirmDialog(mainWindow, message,
+                                                    "Open Exported Log file?", JOptionPane.YES_NO_OPTION,
+                                                    JOptionPane.INFORMATION_MESSAGE);
+
+                                            if (nextAction == JOptionPane.YES_OPTION) {
+                                                LogViewer logViewer = LogViewer.getInstance();
+                                                logViewer.loadLogFile(exportFile);
+                                            }
+
+                                        }
+                                    }
+                                }
+
+                            };
+
+                            logEventLogExportTask.execute();
+
+                            modalProgressMonitor.show();
+                        }
+                    }
+                } catch (Exception ex) {
+                    LOG.error("Error in Export Log entries", ex);
+                } finally {
+                    popupMenu.setVisible(false);
+                }
+
+            }
+        });
+
+        return exportLogEntryLogMenuItem;
+    }
+
+    private RightClickMenuItem getAddBookmarkRightClickMenuItem(JPopupMenu popupMenu, List<Integer> selectedRowList,
+            LogTable logTable) {
+
+        LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+
+        Map<LogEntryKey, LogEntry> leKeyMap = new HashMap<>();
+
+        for (int selectedRow : selectedRowList) {
+
+            LogEntry logEntry = (LogEntry) logTableModel.getValueAt(selectedRow, 0);
+
+            if (logEntry != null) {
+
+                leKeyMap.put(logEntry.getKey(), logEntry);
+            }
+        }
+
+        RightClickMenuItem addBookmarkMenuItem = new RightClickMenuItem("Add Bookmark");
+
+        addBookmarkMenuItem.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+
+                ImageIcon appIcon = BaseFrame.getAppIcon();
+                Component mainWindow = getMainWindow();
+
+                BookmarkModel<LogEntryKey> bookmarkModel = logTableModel.getBookmarkModel();
+
+                BookmarkAddDialog<LogEntryKey> bookmarkAddDialog;
+                bookmarkAddDialog = new BookmarkAddDialog<LogEntryKey>(null, bookmarkModel,
+                        new ArrayList<>(leKeyMap.keySet()), appIcon, mainWindow) {
+
+                    private static final long serialVersionUID = 9033469590975413111L;
+
+                    @Override
+                    public List<Marker<LogEntryKey>> getMarkerList(List<LogEntryKey> keyList, String text) {
+
+                        LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
+
+                        List<Marker<LogEntryKey>> markerList = new ArrayList<>();
+
+                        for (LogEntryKey key : keyList) {
+
+                            LogEntry logEntry = leKeyMap.get(key);
+
+                            String logEntryTimeText = logEntryModel.getFormattedLogEntryValue(logEntry,
+                                    LogEntryColumn.TIMESTAMP);
+
+                            LogEntryMarker logEntryMarker = new LogEntryMarker(key, logEntryTimeText, text);
+
+                            markerList.add(logEntryMarker);
+                        }
+
+                        return markerList;
+                    }
+
+                };
+
+                bookmarkAddDialog.setVisible(true);
+                popupMenu.setVisible(false);
+
+            }
+        });
+
+        return addBookmarkMenuItem;
+    }
+
+    private RightClickMenuItem getOpenBookmarkRightClickMenuItem(JPopupMenu popupMenu, LogEntryKey key,
+            BookmarkModel<LogEntryKey> bookmarkModel) {
+
+        RightClickMenuItem openBookmark = new RightClickMenuItem("Open Bookmark");
+
+        openBookmark.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+
+                ImageIcon appIcon = BaseFrame.getAppIcon();
+                Component mainWindow = getMainWindow();
+
+                BookmarkOpenDialog<LogEntryKey> bookmarkOpenDialog;
+                bookmarkOpenDialog = new BookmarkOpenDialog<>(bookmarkModel, key, appIcon, mainWindow);
+
+                bookmarkOpenDialog.setVisible(true);
+
+                popupMenu.setVisible(false);
+
+            }
+        });
+
+        return openBookmark;
+    }
+
+    private RightClickMenuItem getDeleteBookmarkRightClickMenuItem(JPopupMenu popupMenu, LogEntryKey key,
+            BookmarkModel<LogEntryKey> bookmarkModel) {
+
+        RightClickMenuItem deleteBookmark = new RightClickMenuItem("Delete Bookmark");
+
+        deleteBookmark.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent actionEvent) {
+
+                ImageIcon appIcon = BaseFrame.getAppIcon();
+                Component mainWindow = getMainWindow();
+
+                BookmarkDeleteDialog<LogEntryKey> bookmarkDeleteDialog;
+                bookmarkDeleteDialog = new BookmarkDeleteDialog<>(bookmarkModel, key, appIcon, mainWindow);
+
+                bookmarkDeleteDialog.setVisible(true);
+
+                popupMenu.setVisible(false);
+
+            }
+        });
+
+        return deleteBookmark;
+    }
+
+    private void performDoubleClick(LogTable logTable) {
+
+        int row = logTable.getSelectedRow();
+
+        LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+
+        LogEntry logEntry = (LogEntry) logTableModel.getValueAt(row, 0);
+
+        final LogEntryKey logEntryKey = logEntry.getKey();
+
+        Map<LogEntryKey, JFrame> logEntryModelFrameMap = getLogEntryModelFrameMap();
+
+        JFrame logEntryModelDialog = logEntryModelFrameMap.get(logEntryKey);
+
+        if (logEntryModelDialog == null) {
+
+            Component mainWindow = getMainWindow();
+
+            logEntryModelDialog = new LogNavigationDialog(logEntry, logTable, BaseFrame.getAppIcon(), mainWindow);
+
+            logEntryModelDialog.addWindowListener(new WindowAdapter() {
+
+                @Override
+                public void windowClosed(WindowEvent windowEvent) {
+                    Map<LogEntryKey, JFrame> logEntryModelDialogMap = getLogEntryModelFrameMap();
+                    logEntryModelDialogMap.remove(logEntryKey);
+                }
+
+            });
+
+            logEntryModelFrameMap.put(logEntryKey, logEntryModelDialog);
+
+            logEntryModelDialog.setVisible(true);
+
+        } else {
+            logEntryModelDialog.toFront();
+        }
+    }
 }

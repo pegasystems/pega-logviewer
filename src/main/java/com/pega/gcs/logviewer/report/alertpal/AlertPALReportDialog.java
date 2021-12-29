@@ -4,6 +4,7 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alertpal;
 
 import java.awt.BorderLayout;
@@ -25,141 +26,139 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.ScrollPaneConstants;
-import javax.swing.SwingConstants;
 
 import com.pega.gcs.fringecommon.guiutilities.BaseFrame;
 import com.pega.gcs.fringecommon.guiutilities.MultipleTableSelectionListener;
 import com.pega.gcs.fringecommon.guiutilities.NavigationTableController;
 import com.pega.gcs.logviewer.LogTableModel;
+import com.pega.gcs.logviewer.model.LogEntryKey;
 
 public class AlertPALReportDialog extends JFrame {
 
-	private static final long serialVersionUID = -4294293375116690122L;
+    private static final long serialVersionUID = -4294293375116690122L;
 
-	private LogTableModel logTableModel;
+    private LogTableModel logTableModel;
 
-	private AlertPALTable alertPALTable;
+    private AlertPALTable alertPalTable;
 
-	private JButton exportToTSVJButton;
+    private JButton exportToTsvButton;
 
-	private MultipleTableSelectionListener multipleTableSelectionListener;
+    private MultipleTableSelectionListener<LogEntryKey> multipleTableSelectionListener;
 
-	public AlertPALReportDialog(LogTableModel logTableModel,
-			NavigationTableController<Integer> navigationTableController, ImageIcon appIcon, Component parent) {
+    public AlertPALReportDialog(LogTableModel logTableModel,
+            NavigationTableController<LogEntryKey> navigationTableController, ImageIcon appIcon, Component parent) {
 
-		super();
+        super();
 
-		this.logTableModel = logTableModel;
+        this.logTableModel = logTableModel;
 
-		setTitle("Alert PAL Overview - " + logTableModel.getModelName());
+        setTitle("Alert PAL Overview - " + logTableModel.getModelName());
 
-		multipleTableSelectionListener = new MultipleTableSelectionListener(logTableModel, navigationTableController);
+        multipleTableSelectionListener = new MultipleTableSelectionListener<>(logTableModel, navigationTableController);
 
-		setIconImage(appIcon.getImage());
+        setIconImage(appIcon.getImage());
 
-		setPreferredSize(new Dimension(1200, 600));
+        setPreferredSize(new Dimension(1200, 600));
 
-		setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 
-		setContentPane(getMainJPanel());
+        setContentPane(getMainPanel());
 
-		pack();
+        pack();
 
-		setLocationRelativeTo(parent);
+        setLocationRelativeTo(parent);
 
-		// setVisible called by caller.
-		// setVisible(true);
+        // setVisible called by caller.
+        // setVisible(true);
 
-	}
+    }
 
-	public void destroyJPanel() {
-		multipleTableSelectionListener.clearCustomJTables();
-	}
+    public void destroyPanel() {
+        multipleTableSelectionListener.clearCustomJTables();
+    }
 
-	private JComponent getMainJPanel() {
+    private JComponent getMainPanel() {
 
-		JPanel mainJPanel = new JPanel();
-		mainJPanel.setLayout(new BorderLayout());
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BorderLayout());
 
-		JPanel controlsJPanel = getControlsJPanel();
+        JPanel controlsPanel = getControlsPanel();
 
-		JTable alertPALTable = getAlertPALTable();
+        JTable alertPalTable = getAlertPalTable();
 
-		JScrollPane palJTableScrollpane = new JScrollPane(alertPALTable, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
-				ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        JScrollPane palTableScrollpane = new JScrollPane(alertPalTable, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 
-		palJTableScrollpane.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        palTableScrollpane.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-		mainJPanel.add(controlsJPanel, BorderLayout.NORTH);
+        mainPanel.add(controlsPanel, BorderLayout.NORTH);
 
-		mainJPanel.add(palJTableScrollpane, BorderLayout.CENTER);
+        mainPanel.add(palTableScrollpane, BorderLayout.CENTER);
 
-		return mainJPanel;
-	}
+        return mainPanel;
+    }
 
-	private JPanel getControlsJPanel() {
+    private JPanel getControlsPanel() {
 
-		JPanel controlsJPanel = new JPanel();
+        JPanel controlsPanel = new JPanel();
 
-		LayoutManager layout = new BoxLayout(controlsJPanel, BoxLayout.X_AXIS);
-		controlsJPanel.setLayout(layout);
+        LayoutManager layout = new BoxLayout(controlsPanel, BoxLayout.X_AXIS);
+        controlsPanel.setLayout(layout);
 
-		JButton exportToTSVJButton = getExportToTSVJButton();
+        JButton exportToTsvButton = getExportToTsvButton();
 
-		Dimension startDim = new Dimension(20, 40);
+        Dimension startDim = new Dimension(20, 40);
 
-		controlsJPanel.add(Box.createHorizontalGlue());
-		controlsJPanel.add(Box.createRigidArea(startDim));
-		controlsJPanel.add(exportToTSVJButton);
-		controlsJPanel.add(Box.createRigidArea(startDim));
-		controlsJPanel.add(Box.createHorizontalGlue());
-		controlsJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        controlsPanel.add(Box.createHorizontalGlue());
+        controlsPanel.add(Box.createRigidArea(startDim));
+        controlsPanel.add(exportToTsvButton);
+        controlsPanel.add(Box.createRigidArea(startDim));
+        controlsPanel.add(Box.createHorizontalGlue());
+        controlsPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-		return controlsJPanel;
-	}
+        return controlsPanel;
+    }
 
-	private AlertPALTable getAlertPALTable() {
+    private AlertPALTable getAlertPalTable() {
 
-		if (alertPALTable == null) {
+        if (alertPalTable == null) {
 
-			AlertPALTableModel aptm = new AlertPALTableModel(logTableModel);
+            AlertPALTableModel aptm = new AlertPALTableModel(logTableModel);
 
-			alertPALTable = new AlertPALTable(aptm);
+            alertPalTable = new AlertPALTable(aptm);
 
-			multipleTableSelectionListener.addCustomJTable(alertPALTable);
-		}
+            multipleTableSelectionListener.addCustomJTable(alertPalTable);
+        }
 
-		return alertPALTable;
-	}
+        return alertPalTable;
+    }
 
-	protected JButton getExportToTSVJButton() {
+    private JButton getExportToTsvButton() {
 
-		if (exportToTSVJButton == null) {
-			exportToTSVJButton = new JButton("Export table as TSV");
+        if (exportToTsvButton == null) {
+            exportToTsvButton = new JButton("Export table as TSV");
 
-			Dimension size = new Dimension(200, 20);
-			exportToTSVJButton.setPreferredSize(size);
-			exportToTSVJButton.setMaximumSize(size);
-			exportToTSVJButton.setHorizontalTextPosition(SwingConstants.LEADING);
+            Dimension size = new Dimension(200, 26);
+            exportToTsvButton.setPreferredSize(size);
 
-			exportToTSVJButton.addActionListener(new ActionListener() {
+            exportToTsvButton.addActionListener(new ActionListener() {
 
-				@Override
-				public void actionPerformed(ActionEvent e) {
+                @Override
+                public void actionPerformed(ActionEvent actionEvent) {
 
-					JTable alertPALTable = getAlertPALTable();
+                    JTable alertPalTable = getAlertPalTable();
 
-					AlertPALTableModel aptm = (AlertPALTableModel) alertPALTable.getModel();
+                    AlertPALTableModel aptm = (AlertPALTableModel) alertPalTable.getModel();
 
-					AlertPALExportDialog apaled = new AlertPALExportDialog(logTableModel, aptm, BaseFrame.getAppIcon(),
-							AlertPALReportDialog.this);
-					apaled.setVisible(true);
-				}
-			});
+                    AlertPALExportDialog apaled = new AlertPALExportDialog(logTableModel, aptm, BaseFrame.getAppIcon(),
+                            AlertPALReportDialog.this);
+                    apaled.setVisible(true);
+                }
+            });
 
-		}
+        }
 
-		return exportToTSVJButton;
-	}
+        return exportToTsvButton;
+    }
 
 }

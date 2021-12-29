@@ -4,38 +4,39 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alert;
 
 import com.pega.gcs.fringecommon.guiutilities.FilterTable;
 
 public class AlertMessageReportTable extends FilterTable<AlertMessageReportEntry> {
 
-	private static final long serialVersionUID = -636596447061745747L;
+    private static final long serialVersionUID = -636596447061745747L;
 
-	private AlertMessageReportTableMouseListener alertMessageReportTableMouseListener;
+    private AlertMessageReportTableMouseListener alertMessageReportTableMouseListener;
 
-	public AlertMessageReportTable(String alertModelName, AlertMessageReportModel alertMessageReportModel) {
+    public AlertMessageReportTable(String alertModelName, AlertMessageReportModel alertMessageReportModel) {
 
-		super(alertMessageReportModel);
-	}
+        super(alertMessageReportModel);
+    }
 
-	public void setAlertMessageReportTableMouseListener(
-			AlertMessageReportTableMouseListener alertMessageReportTableMouseListener) {
-		this.alertMessageReportTableMouseListener = alertMessageReportTableMouseListener;
+    public void setAlertMessageReportTableMouseListener(
+            AlertMessageReportTableMouseListener alertMessageReportTableMouseListener) {
+        this.alertMessageReportTableMouseListener = alertMessageReportTableMouseListener;
 
-		addMouseListener(alertMessageReportTableMouseListener);
-	}
+        addMouseListener(alertMessageReportTableMouseListener);
+    }
 
-	@Override
-	public void removeNotify() {
+    @Override
+    public void removeNotify() {
 
-		super.removeNotify();
+        super.removeNotify();
 
-		if (alertMessageReportTableMouseListener != null) {
+        if (alertMessageReportTableMouseListener != null) {
 
-			removeMouseListener(alertMessageReportTableMouseListener);
+            removeMouseListener(alertMessageReportTableMouseListener);
 
-			alertMessageReportTableMouseListener.clearFrameMap();
-		}
-	}
+            alertMessageReportTableMouseListener.clearFrameMap();
+        }
+    }
 }

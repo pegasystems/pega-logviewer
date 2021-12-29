@@ -4,115 +4,122 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.report.alert;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.SwingConstants;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.logviewer.model.AlertLogEntry;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
+import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 
 public class PEGA0091ReportModel extends AlertMessageReportModel {
 
-	private static final long serialVersionUID = -8889727175209305065L;
+    private static final long serialVersionUID = -8889727175209305065L;
 
-	private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0091ReportModel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0091ReportModel.class);
 
-	private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
+    private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
 
-	private Pattern pattern;
+    private Pattern pattern;
 
-	public PEGA0091ReportModel(long thresholdKPI, String kpiUnit, AlertLogEntryModel alertLogEntryModel) {
+    private Pattern pattern82;
 
-		super("PEGA0091", thresholdKPI, kpiUnit, alertLogEntryModel);
+    public PEGA0091ReportModel(AlertMessage alertMessage, long thresholdKPI, AlertLogEntryModel alertLogEntryModel,
+            Locale locale) {
 
-		String regex = "Data lost detected for cache\\:(.*)";
-		pattern = Pattern.compile(regex);
-	}
+        super(alertMessage, thresholdKPI, alertLogEntryModel, locale);
 
-	@Override
-	protected List<AlertBoxAndWhiskerReportColumn> getAlertMessageReportColumnList() {
+        String regex = "Data lost detected for cache\\:(.*)";
+        pattern = Pattern.compile(regex);
 
-		if (alertMessageReportColumnList == null) {
-			alertMessageReportColumnList = new ArrayList<AlertBoxAndWhiskerReportColumn>();
+        // Migration failed MigrationEvent{partitionId=0, status=FAILED, oldOwner=Member [10.0.22.54]:5701 -
+        // a55b0f98-01a9-4ace-b507-6dd96ace49f1, newOwner=Member [10.0.21.231]:5701 - 5bf53df8-cb66-4306-aa70-e5a2a08eb307}
+        String regex82 = "Migration failed MigrationEvent\\{(.*)\\}";
+        pattern82 = Pattern.compile(regex82);
+    }
 
-			String displayName;
-			int prefColWidth;
-			int hAlignment;
-			boolean filterable;
-			AlertBoxAndWhiskerReportColumn amReportColumn = null;
+    @Override
+    protected List<AlertBoxAndWhiskerReportColumn> getAlertMessageReportColumnList() {
 
-			// first column data is the key
-			displayName = "Ignite Cluster - Cache Name";
-			prefColWidth = 500;
-			hAlignment = SwingConstants.LEFT;
-			filterable = true;
-			amReportColumn = new AlertBoxAndWhiskerReportColumn(AlertBoxAndWhiskerReportColumn.KEY, displayName,
-					prefColWidth, hAlignment, filterable);
+        if (alertMessageReportColumnList == null) {
+            alertMessageReportColumnList = new ArrayList<AlertBoxAndWhiskerReportColumn>();
 
-			alertMessageReportColumnList.add(amReportColumn);
+            String displayName;
+            int prefColWidth;
+            int horizontalAlignment;
+            boolean filterable;
 
-			List<AlertBoxAndWhiskerReportColumn> defaultAlertMessageReportColumnList = AlertBoxAndWhiskerReportColumn
-					.getDefaultAlertMessageReportColumnList();
+            // first column data is the key
+            displayName = "Alert Subject (\"Cache Name\")";
+            prefColWidth = 500;
+            horizontalAlignment = SwingConstants.LEFT;
+            filterable = true;
 
-			alertMessageReportColumnList.addAll(defaultAlertMessageReportColumnList);
-		}
+            AlertBoxAndWhiskerReportColumn amReportColumn;
+            amReportColumn = new AlertBoxAndWhiskerReportColumn(AlertBoxAndWhiskerReportColumn.KEY, displayName,
+                    prefColWidth, horizontalAlignment, filterable);
 
-		return alertMessageReportColumnList;
-	}
+            alertMessageReportColumnList.add(amReportColumn);
 
-	@Override
-	public String getAlertMessageReportEntryKey(AlertLogEntry alertLogEntry, ArrayList<String> logEntryValueList) {
+            List<AlertBoxAndWhiskerReportColumn> defaultAlertMessageReportColumnList = AlertBoxAndWhiskerReportColumn
+                    .getDefaultAlertMessageReportColumnList();
 
-		String alertMessageReportEntryKey = null;
+            alertMessageReportColumnList.addAll(defaultAlertMessageReportColumnList);
+        }
 
-		AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
+        return alertMessageReportColumnList;
+    }
 
-		List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
+    @Override
+    public String getAlertMessageReportEntryKey(String dataText) {
 
-		int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
-		String message = logEntryValueList.get(messageIndex);
+        String alertMessageReportEntryKey = null;
 
-		Matcher patternMatcher = pattern.matcher(message);
-		boolean matches = patternMatcher.find();
+        Matcher patternMatcher = pattern.matcher(dataText);
+        boolean matches = patternMatcher.find();
 
-		if (matches) {
-			alertMessageReportEntryKey = patternMatcher.group(1).trim();
-		}
+        if (matches) {
+            alertMessageReportEntryKey = patternMatcher.group(1).trim();
+        } else {
+            patternMatcher = pattern82.matcher(dataText);
+            matches = patternMatcher.find();
 
-		if (alertMessageReportEntryKey == null) {
-			LOG.info("PEGA0091ReportModel - Could'nt match - [" + message + "]");
-		}
+            if (matches) {
+                alertMessageReportEntryKey = patternMatcher.group(1).trim();
+            }
+        }
 
-		return alertMessageReportEntryKey;
-	}
+        return alertMessageReportEntryKey;
 
-	public static void main(String[] args) {
+    }
 
-		long before = System.currentTimeMillis();
-		String message1 = "Data lost detected for cache: " + "cachename";
+    @Override
+    public String getAlertMessageReportEntryKey(ArrayList<String> logEntryValueList) {
 
-		String regex = "Data lost detected for cache\\:(.*)";
+        String alertMessageReportEntryKey = null;
 
-		Pattern pattern = Pattern.compile(regex);
+        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
 
-		Matcher patternMatcher = pattern.matcher(message1);
-		boolean matches = patternMatcher.find();
-		System.out.println(matches);
+        List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
 
-		if (matches) {
-			System.out.println(patternMatcher.groupCount());
-			System.out.println(patternMatcher.group(1));
-		}
-		long after = System.currentTimeMillis();
+        int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
+        String message = logEntryValueList.get(messageIndex);
 
-		System.out.println(after - before);
-	}
+        alertMessageReportEntryKey = getAlertMessageReportEntryKey(message);
+
+        if (alertMessageReportEntryKey == null) {
+            LOG.info("PEGA0091ReportModel - Could'nt match - [" + message + "]");
+        }
+
+        return alertMessageReportEntryKey;
+    }
 
 }

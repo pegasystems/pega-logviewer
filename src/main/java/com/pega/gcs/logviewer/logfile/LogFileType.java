@@ -4,53 +4,51 @@
  * Contributors:
  *     Manu Varghese
  *******************************************************************************/
+
 package com.pega.gcs.logviewer.logfile;
 
 public class LogFileType {
 
-	public enum LogType {
-		PEGA_ALERT, PEGA_RULES, WAS, WLS, JBOSS
-	}
+    public enum LogType {
+        PEGA_ALERT, PEGA_RULES/* Future - , WAS, WLS, JBOSS */
+    }
 
-	private LogType logType;
+    private LogType logType;
 
-	private LogPattern logPattern;
+    private LogPattern logPattern;
 
-	// for kryo
-	private LogFileType() {
-		super();
-	}
+    // for kryo
+    private LogFileType() {
+        super();
+    }
 
-	/**
-	 * @param aLogType
-	 * @param aLogPattern
-	 */
-	public LogFileType(LogType aLogType, LogPattern aLogPattern) {
-		super();
-		logType = aLogType;
-		logPattern = aLogPattern;
-	}
+    public LogFileType(LogType logType, LogPattern logPattern) {
+        super();
+        this.logType = logType;
+        this.logPattern = logPattern;
+    }
 
-	public LogType getLogType() {
-		return logType;
-	}
+    public LogType getLogType() {
+        return logType;
+    }
 
-	public LogPattern getLogPattern() {
-		return logPattern;
-	}
+    public LogPattern getLogPattern() {
+        return logPattern;
+    }
 
-	@Override
-	public String toString() {
+    @Override
+    public String toString() {
 
-		StringBuffer sb = new StringBuffer();
-		sb.append(logType.name());
-		sb.append(" ");
+        StringBuilder sb = new StringBuilder();
+        sb.append(logType.name());
 
-		if (logPattern != null) {
-			sb.append(logPattern.toString());
-		}
+        if (logPattern != null) {
+            sb.append(" [");
+            sb.append(logPattern.toString());
+            sb.append("]");
+        }
 
-		return sb.toString();
-	}
+        return sb.toString();
+    }
 
 }
