@@ -94,7 +94,7 @@ public class AlertCheatSheetTable extends FilterTable<Integer> {
                                     String pdnURL = (String) alertCheatSheetTableModel.getValueAt(rowIndex,
                                             columnIndex);
 
-                                    if (Desktop.isDesktopSupported()) {
+                                    if (Desktop.isDesktopSupported() && (!"".equals(pdnURL))) {
 
                                         Desktop desktop = Desktop.getDesktop();
 

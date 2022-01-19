@@ -12,7 +12,8 @@ public class PEGA0067ReportModelTest {
     @Test
     public void testGetAlertMessageReportEntryKeyString1() {
 
-        String dataText = "";
+        String dataText = "Social data flow recieved error for dataset id: <datasetId> for dataset type: <datasetType> with error type: <er"
+                + "rorType> on social object: <socialobject> due to reason: <reason>";
 
         LOG.info("dataText: " + dataText);
 
@@ -23,8 +24,7 @@ public class PEGA0067ReportModelTest {
 
         LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.assertEquals("", alertMessageReportEntryKey);
-        org.junit.jupiter.api.Assertions.fail();
+        org.junit.jupiter.api.Assertions.assertEquals("<datasetType> [<datasetId>]", alertMessageReportEntryKey);
     }
 
 }

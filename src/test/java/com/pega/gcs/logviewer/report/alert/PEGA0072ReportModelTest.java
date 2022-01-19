@@ -23,7 +23,25 @@ public class PEGA0072ReportModelTest {
 
         LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.assertEquals("", alertMessageReportEntryKey);
-        org.junit.jupiter.api.Assertions.fail();
+        org.junit.jupiter.api.Assertions.assertEquals("pyBatchIndexClassesProcessor", alertMessageReportEntryKey);
+    }
+
+    @Test
+    public void testGetAlertMessageReportEntryKeyString2() {
+
+        String dataText = "Data flow run [Custom-151024-1] for data flow name [DF_GenerateFilesCustom] failed on node [dataflow-i-01579b4e3"
+                + "71aa7a45]. Node data flow metrics: [{\"stageMetrics\":[{\"stageId\":\"Source\",\"dataFlowKeys\":{\"className\":\"ABC-SR-"
+                + "BatchOutput\",\"name\":\"DF_GenerateFilesCustom\"},\"stageName\":\"Batch Output ";
+
+        LOG.info("dataText: " + dataText);
+
+        PEGA0072ReportModel pega0072ReportModel = new PEGA0072ReportModel(null, 0, null, null);
+
+        String alertMessageReportEntryKey;
+        alertMessageReportEntryKey = pega0072ReportModel.getAlertMessageReportEntryKey(dataText);
+
+        LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
+
+        org.junit.jupiter.api.Assertions.assertEquals("DF_GenerateFilesCustom", alertMessageReportEntryKey);
     }
 }

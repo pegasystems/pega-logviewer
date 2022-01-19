@@ -51,7 +51,7 @@ public class PEGA0068ReportModel extends AlertMessageReportModel {
             boolean filterable;
 
             // first column data is the key
-            displayName = "Alert Subject (\"Social Source [Data Set]\")";
+            displayName = "Alert Subject (\"Social Source [Data Set Id]\")";
             prefColWidth = 500;
             horizontalAlignment = SwingConstants.LEFT;
             filterable = true;

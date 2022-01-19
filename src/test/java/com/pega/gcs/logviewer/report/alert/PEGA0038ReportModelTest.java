@@ -12,7 +12,9 @@ public class PEGA0038ReportModelTest {
     @Test
     public void testGetAlertMessageReportEntryKeyString1() {
 
-        String dataText = "";
+        String dataText = "Cache find synchronization time has exceeded threshold of 30 ms: 856 ms. Details: Total find time: ELAPSED time "
+                + "= 1,712; Synchronization time = 856; Caller ActivityClassName = ; Caller ActivityRuleSet time = ; aFUA Aspect = Action; "
+                + "aFUA Identification = Rule-Obj-Activity Code-.SystemIndexer;aFUA Defining Class = Rule-Obj-Activity";
 
         LOG.info("dataText: " + dataText);
 
@@ -23,8 +25,7 @@ public class PEGA0038ReportModelTest {
 
         LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.assertEquals("", alertMessageReportEntryKey);
-        org.junit.jupiter.api.Assertions.fail("");
+        org.junit.jupiter.api.Assertions.assertEquals("Rule-Obj-Activity Code-.SystemIndexer", alertMessageReportEntryKey);
     }
 
 }

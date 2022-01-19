@@ -444,6 +444,10 @@ public class Log4jPatternParser extends LogParser {
 
                 break;
 
+            default:
+                LOG.error("Unknown patternConverterName: " + patternConverterName);
+                break;
+
             }
 
         }

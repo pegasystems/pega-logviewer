@@ -45,10 +45,6 @@ public class PEGA0075ReportModelTest {
 
         LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.assertEquals(
-                "10.0.30.158 - BEGIN BATCH com.pega.dsm.dnode.impl.dataset.cassandra.statement.RequestorAwareBoundStatement@53fcc0dd[s"
-                        + "tatement=insert into data.es_1291363649_adaptive_cst(pxCustomerId, pxCaptureTime, pxEventId, pxEventType, pxDesc"
-                        + "ription, pxGroupId) values(?,?,?,?,?,?) using ttl ? and timestamp ?,token=<null>] APPLY BATCH",
-                alertMessageReportEntryKey);
+        org.junit.jupiter.api.Assertions.assertEquals("data.es_1291363649_adaptive_cst", alertMessageReportEntryKey);
     }
 }

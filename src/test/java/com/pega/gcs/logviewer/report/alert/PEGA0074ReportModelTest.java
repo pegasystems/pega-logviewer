@@ -12,8 +12,8 @@ public class PEGA0074ReportModelTest {
     @Test
     public void testGetAlertMessageReportEntryKeyString1() {
 
-        String dataText = "DDS write duration <actual value> ms exceeds the threshold of <threshold> ms for column family <column family> w"
-                + "ith keys <keys> record size <record size> KB";
+        String dataText = "DDS write duration 25455ms exceeds the threshold of 200ms for column family data.pzresponseeventstore_pega_decis"
+                + "ionengine_6b2fe8c with keys {pyID=9_11, pyClusterKey=1234_ 1798695, ds_=top_} record size 6KB";
 
         LOG.info("dataText: " + dataText);
 
@@ -24,8 +24,8 @@ public class PEGA0074ReportModelTest {
 
         LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.assertEquals("", alertMessageReportEntryKey);
-        org.junit.jupiter.api.Assertions.fail();
+        org.junit.jupiter.api.Assertions.assertEquals("data.pzresponseeventstore_pega_decisionengine_6b2fe8c",
+                alertMessageReportEntryKey);
     }
 
 }

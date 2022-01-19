@@ -268,6 +268,29 @@ public abstract class LogParser {
         return logParser;
     }
 
+    public static LogParser getLogParser(AbstractLogPattern abstractLogPattern, Charset charset, Locale locale,
+            TimeZone displayTimezone) {
+
+        LogParser logParser = null;
+
+        LogType logType = abstractLogPattern.getLogType();
+
+        // TODO implement other types as well
+        switch (logType) {
+
+        case PEGA_ALERT:
+            logParser = new AlertLogParser((AlertLogPattern) abstractLogPattern, charset, locale);
+            break;
+        case PEGA_RULES:
+            logParser = new Log4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale, displayTimezone);
+            break;
+        default:
+            break;
+        }
+
+        return logParser;
+    }
+
     // currently assuming all pattern as of type pegarules. change when
     // implementing other types like WAS, WLS
     // with 8.6 changes, multiple patterns are now matching , hence selecting a pattern that returns the max nos of rows.
@@ -325,29 +348,6 @@ public abstract class LogParser {
             // success
             LOG.info("Creating Log4jPatternParser using " + log4jPattern);
             logParser = log4jPatternParser;
-        }
-
-        return logParser;
-    }
-
-    public static LogParser getLogParser(AbstractLogPattern abstractLogPattern, Charset charset, Locale locale,
-            TimeZone displayTimezone) {
-
-        LogParser logParser = null;
-
-        LogType logType = abstractLogPattern.getLogType();
-
-        // TODO implement other types as well
-        switch (logType) {
-
-        case PEGA_ALERT:
-            logParser = new AlertLogParser((AlertLogPattern) abstractLogPattern, charset, locale);
-            break;
-        case PEGA_RULES:
-            logParser = new Log4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale, displayTimezone);
-            break;
-        default:
-            break;
         }
 
         return logParser;

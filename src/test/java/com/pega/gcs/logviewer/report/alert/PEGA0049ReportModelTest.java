@@ -12,7 +12,7 @@ public class PEGA0049ReportModelTest {
     @Test
     public void testGetAlertMessageReportEntryKeyString1() {
 
-        String dataText = "";
+        String dataText = "Lucene search feature is unavailable for Rules";
 
         LOG.info("dataText: " + dataText);
 
@@ -23,9 +23,8 @@ public class PEGA0049ReportModelTest {
 
         LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.assertEquals("", alertMessageReportEntryKey);
+        org.junit.jupiter.api.Assertions.assertEquals("Rules", alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.fail("");
     }
 
 }

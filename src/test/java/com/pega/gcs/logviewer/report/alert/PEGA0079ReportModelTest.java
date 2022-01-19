@@ -12,8 +12,8 @@ public class PEGA0079ReportModelTest {
     @Test
     public void testGetAlertMessageReportEntryKeyString1() {
 
-        String dataText = "DDS record size <actual size> KB exceeds the threshold of <threshold> KB for column family <column family> with "
-                + "keys <keys>";
+        String dataText = "DDS record size 2476KB exceeds the threshold of 1024KB for column family data.mysimulat_d86b9bd6558b527f5a249920"
+                + "b855ce31 with keys {CustomerID=000000123456789, ds_=ClickBehavior}";
 
         LOG.info("dataText: " + dataText);
 
@@ -24,8 +24,8 @@ public class PEGA0079ReportModelTest {
 
         LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.assertEquals("", alertMessageReportEntryKey);
-        org.junit.jupiter.api.Assertions.fail();
+        org.junit.jupiter.api.Assertions.assertEquals("{CustomerID=000000123456789, ds_=ClickBehavior}",
+                alertMessageReportEntryKey);
     }
 
 }

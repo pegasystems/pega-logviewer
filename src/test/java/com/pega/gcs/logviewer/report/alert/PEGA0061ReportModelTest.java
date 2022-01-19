@@ -12,20 +12,20 @@ public class PEGA0061ReportModelTest {
     @Test
     public void testGetAlertMessageReportEntryKeyString1() {
 
-        String dataText = "";
+        String dataText = "The number of written interaction history fact records is more than the threshold of <threshold> rows : <actual "
+                + "value> rows : SQL : <list of rows>";
 
         LOG.info("dataText: " + dataText);
 
-        PEGA0060ReportModel pega0060ReportModel = new PEGA0060ReportModel(null, 0, null, null);
+        PEGA0061ReportModel pega0061ReportModel = new PEGA0061ReportModel(null, 0, null, null);
 
         String alertMessageReportEntryKey;
-        alertMessageReportEntryKey = pega0060ReportModel.getAlertMessageReportEntryKey(dataText);
+        alertMessageReportEntryKey = pega0061ReportModel.getAlertMessageReportEntryKey(dataText);
 
         LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.assertEquals("", alertMessageReportEntryKey);
+        org.junit.jupiter.api.Assertions.assertEquals("<list of rows>", alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.fail("");
     }
 
 }

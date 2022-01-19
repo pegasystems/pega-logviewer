@@ -10,33 +10,22 @@ package com.pega.gcs.logviewer.report.alert;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.swing.SwingConstants;
 
-import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
-import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 
 public class PEGA0065ReportModel extends AlertMessageReportModel {
 
     private static final long serialVersionUID = -8889727175209305065L;
 
-    private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0065ReportModel.class);
-
     private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
-
-    private Pattern pattern;
 
     public PEGA0065ReportModel(AlertMessage alertMessage, long thresholdKPI, AlertLogEntryModel alertLogEntryModel,
             Locale locale) {
 
         super(alertMessage, thresholdKPI, alertLogEntryModel, locale);
-
-        String regex = "Action \\[(.*?)\\]";
-        pattern = Pattern.compile(regex);
     }
 
     @Override
@@ -76,13 +65,6 @@ public class PEGA0065ReportModel extends AlertMessageReportModel {
 
         String alertMessageReportEntryKey = null;
 
-        Matcher patternMatcher = pattern.matcher(dataText);
-        boolean matches = patternMatcher.find();
-
-        if (matches) {
-            alertMessageReportEntryKey = patternMatcher.group(1).trim();
-        }
-
         return alertMessageReportEntryKey;
 
     }
@@ -90,20 +72,7 @@ public class PEGA0065ReportModel extends AlertMessageReportModel {
     @Override
     public String getAlertMessageReportEntryKey(ArrayList<String> logEntryValueList) {
 
-        String alertMessageReportEntryKey = null;
-
-        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
-
-        List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
-
-        int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
-        String message = logEntryValueList.get(messageIndex);
-
-        alertMessageReportEntryKey = getAlertMessageReportEntryKey(message);
-
-        if (alertMessageReportEntryKey == null) {
-            LOG.info("PEGA0065ReportModel - Could'nt match - [" + message + "]");
-        }
+        String alertMessageReportEntryKey = "ADM Set Response Time";
 
         return alertMessageReportEntryKey;
     }

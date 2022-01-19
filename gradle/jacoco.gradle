@@ -9,6 +9,16 @@ jacocoTestReport {
         xml.enabled = false
         html.enabled = true
     }
+    
+    afterEvaluate {
+        classDirectories.setFrom(classDirectories.files.collect {
+            fileTree(dir: it,
+                exclude: [
+                    '**/plugins/**'
+                ]
+            )
+        })
+    }
 }
 
 // enforce 100% coverage
@@ -19,5 +29,15 @@ jacocoTestCoverageVerification {
                 minimum = 1.0
             }
         }
+    }
+    
+    afterEvaluate {
+        classDirectories.setFrom(classDirectories.files.collect {
+            fileTree(dir: it,
+                exclude: [
+                    '**/plugins/**'
+                ]
+            )
+        })
     }
 }

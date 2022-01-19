@@ -12,7 +12,8 @@ public class PEGA0087ReportModelTest {
     @Test
     public void testGetAlertMessageReportEntryKeyString1() {
 
-        String dataText = "serviceType Service serviceInsName circuit breaker tripped due to maxConsecutiveFailures consecutive timeouts.";
+        String dataText = "REST Service PEGAMKTCONTAINER!V3!CONTAINER0E7278CDA02A9C0446DCC75A4DF34EB2 circuit breaker tripped due to 3 cons"
+                + "ecutive timeouts.";
 
         LOG.info("dataText: " + dataText);
 
@@ -23,8 +24,8 @@ public class PEGA0087ReportModelTest {
 
         LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.assertEquals("", alertMessageReportEntryKey);
-        org.junit.jupiter.api.Assertions.fail();
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "REST - PEGAMKTCONTAINER!V3!CONTAINER0E7278CDA02A9C0446DCC75A4DF34EB2", alertMessageReportEntryKey);
     }
 
 }

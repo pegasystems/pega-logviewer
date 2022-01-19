@@ -35,7 +35,7 @@ public class PEGA0038ReportModel extends AlertMessageReportModel {
 
         super(alertMessage, thresholdKPI, alertLogEntryModel, locale);
 
-        String regex = "Caller ActivityClassName =(.*);";
+        String regex = "aFUA Identification =(.*);";
         pattern = Pattern.compile(regex);
     }
 

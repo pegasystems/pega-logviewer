@@ -12,7 +12,8 @@ public class PEGA0089ReportModelTest {
     @Test
     public void testGetAlertMessageReportEntryKeyString1() {
 
-        String dataText = "member" + " unexpectably disconnected from the cluster";
+        String dataText = "Member: [name=pega-web-abcdefgh-xsbph, address=pega-web-abcdefgh-xsbph/10.10.10.10:5701, uuid=d8a59e4e-abcd-ef"
+                + "gh-ijkl-c9149578b562, mode=SERVER] unexpectably disconnected from the cluster.";
 
         LOG.info("dataText: " + dataText);
 
@@ -23,8 +24,10 @@ public class PEGA0089ReportModelTest {
 
         LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.assertEquals("", alertMessageReportEntryKey);
-        org.junit.jupiter.api.Assertions.fail();
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "Member: [name=pega-web-abcdefgh-xsbph, address=pega-web-abcdefgh-xsbph/10.10.10.10:5701, uuid=d8a59e4e-abcd-efgh-ijkl-c914"
+                        + "9578b562, mode=SERVER]",
+                alertMessageReportEntryKey);
     }
 
 }

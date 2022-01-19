@@ -12,7 +12,8 @@ public class PEGA0047ReportModelTest {
     @Test
     public void testGetAlertMessageReportEntryKeyString1() {
 
-        String dataText = "";
+        String dataText = "Page copy time 25 s is more than Data Source execution time 16 s for data page D_BISEquipmentDe"
+                + "tails having pzInskey=RULE-DECLARE-PAGES D_BISEQUIPMENTDETAILS #20170207T201818.984 GMT";
 
         LOG.info("dataText: " + dataText);
 
@@ -23,8 +24,24 @@ public class PEGA0047ReportModelTest {
 
         LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.assertEquals("", alertMessageReportEntryKey);
-        org.junit.jupiter.api.Assertions.fail("");
+        org.junit.jupiter.api.Assertions.assertEquals("D_BISEquipmentDetails", alertMessageReportEntryKey);
     }
 
+    @Test
+    public void testGetAlertMessageReportEntryKeyString2() {
+
+        String dataText = "Page copy time and waiting time 16 s is more than Data Source execution time 8 s for data page D_GetSalesOrder h"
+                + "aving pzInsKey RULE-DECLARE-PAGES D_GETSALESORDER #20190116T122147.347 GMT";
+
+        LOG.info("dataText: " + dataText);
+
+        PEGA0047ReportModel pega0047ReportModel = new PEGA0047ReportModel(null, 0, null, null);
+
+        String alertMessageReportEntryKey;
+        alertMessageReportEntryKey = pega0047ReportModel.getAlertMessageReportEntryKey(dataText);
+
+        LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
+
+        org.junit.jupiter.api.Assertions.assertEquals("D_GetSalesOrder", alertMessageReportEntryKey);
+    }
 }

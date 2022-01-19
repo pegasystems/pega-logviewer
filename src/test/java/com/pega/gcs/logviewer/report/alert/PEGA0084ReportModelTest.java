@@ -12,7 +12,7 @@ public class PEGA0084ReportModelTest {
     @Test
     public void testGetAlertMessageReportEntryKeyString1() {
 
-        String dataText = "Not enough active shards for index indexType.asString() to meet write consistency of quorum";
+        String dataText = "Not enough active shards for index rule to meet write consistency of quorum ";
 
         LOG.info("dataText: " + dataText);
 
@@ -23,8 +23,7 @@ public class PEGA0084ReportModelTest {
 
         LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
 
-        org.junit.jupiter.api.Assertions.assertEquals("", alertMessageReportEntryKey);
-        org.junit.jupiter.api.Assertions.fail();
+        org.junit.jupiter.api.Assertions.assertEquals("rule", alertMessageReportEntryKey);
     }
 
 }

@@ -36,7 +36,7 @@ public class PEGA0100ReportModel extends AlertMessageReportModel {
         super(alertMessage, thresholdKPI, alertLogEntryModel, locale);
 
         // "Queue processor registration failed because : %s"
-        String regex = "Queue processor registration failed because : (.*?)";
+        String regex = "Queue processor registration failed because \\:(.*)";
 
         pattern = Pattern.compile(regex);
     }

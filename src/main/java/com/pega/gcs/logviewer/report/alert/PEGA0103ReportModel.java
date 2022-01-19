@@ -36,7 +36,7 @@ public class PEGA0103ReportModel extends AlertMessageReportModel {
         super(alertMessage, thresholdKPI, alertLogEntryModel, locale);
 
         // "Queue processor run failed : %s "
-        String regex = "Queue processor run failed : (.*?)";
+        String regex = "Queue processor run failed \\:(.*)";
 
         pattern = Pattern.compile(regex);
     }

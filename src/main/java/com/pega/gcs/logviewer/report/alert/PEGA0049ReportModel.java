@@ -35,7 +35,7 @@ public class PEGA0049ReportModel extends AlertMessageReportModel {
 
         super(alertMessage, thresholdKPI, alertLogEntryModel, locale);
 
-        String regex = "Lucene Search is unavailable for(.*)";
+        String regex = "is unavailable for(.*)";
         pattern = Pattern.compile(regex);
     }
 
