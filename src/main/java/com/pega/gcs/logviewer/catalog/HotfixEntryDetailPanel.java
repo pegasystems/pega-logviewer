@@ -46,13 +46,13 @@ public class HotfixEntryDetailPanel extends JPanel {
 
     private List<HotfixColumn> hotfixColumnList;
 
-    private JEditorPane hfixIdJEditorPane;
+    private JEditorPane hfixIdEditorPane;
 
-    private JEditorPane hfixDescJEditorPane;
+    private JEditorPane hfixDescEditorPane;
 
-    private JLabel stateJLabel;
+    private JLabel stateLabel;
 
-    private JLabel statusJLabel;
+    private JLabel statusLabel;
 
     private JTextArea dependencyTextArea;
 
@@ -93,9 +93,9 @@ public class HotfixEntryDetailPanel extends JPanel {
         gbc3.insets = new Insets(2, 2, 2, 2);
         gbc3.gridwidth = GridBagConstraints.REMAINDER;
 
-        JPanel detailsPanel = getDetailsJPanel();
-        JScrollPane dependencyJScrollPane = getDependencyJScrollPane();
-        JScrollPane tableJScrollPane = getTableJScrollPane();
+        JPanel detailsPanel = getDetailsPanel();
+        JScrollPane dependencyJScrollPane = getDependencyScrollPane();
+        JScrollPane tableJScrollPane = getTableScrollPane();
 
         add(detailsPanel, gbc1);
         add(dependencyJScrollPane, gbc2);
@@ -104,35 +104,35 @@ public class HotfixEntryDetailPanel extends JPanel {
         populateData();
     }
 
-    private JScrollPane getDependencyJScrollPane() {
+    private JScrollPane getDependencyScrollPane() {
 
         JTextArea dependencyTextArea = getDependencyTextArea();
 
-        JScrollPane dependencyJScrollPane = new JScrollPane(dependencyTextArea);
+        JScrollPane dependencyScrollPane = new JScrollPane(dependencyTextArea);
 
-        return dependencyJScrollPane;
+        return dependencyScrollPane;
     }
 
-    private JScrollPane getTableJScrollPane() {
+    private JScrollPane getTableScrollPane() {
 
         HotfixRecordEntryTable hotfixRecordEntryTable = getHotfixRecordEntryTable();
 
-        JScrollPane tableJScrollPane = new JScrollPane(hotfixRecordEntryTable);
+        JScrollPane tableScrollPane = new JScrollPane(hotfixRecordEntryTable);
 
-        return tableJScrollPane;
+        return tableScrollPane;
     }
 
-    private JEditorPane getHfixIdJEditorPane() {
+    private JEditorPane getHfixIdEditorPane() {
 
-        if (hfixIdJEditorPane == null) {
+        if (hfixIdEditorPane == null) {
 
-            hfixIdJEditorPane = new JEditorPane();
+            hfixIdEditorPane = new JEditorPane();
 
-            hfixIdJEditorPane.setSize(Integer.MAX_VALUE, 80);
-            hfixIdJEditorPane.setEditable(false);
-            hfixIdJEditorPane.setContentType("text/html");
-            hfixIdJEditorPane.setOpaque(false);
-            hfixIdJEditorPane.setBackground(this.getBackground());
+            hfixIdEditorPane.setSize(Integer.MAX_VALUE, 80);
+            hfixIdEditorPane.setEditable(false);
+            hfixIdEditorPane.setContentType("text/html");
+            hfixIdEditorPane.setOpaque(false);
+            hfixIdEditorPane.setBackground(this.getBackground());
 
             StyleSheet styleSheet = FileUtilities.getStyleSheet(this.getClass(), "styles.css");
 
@@ -142,10 +142,10 @@ public class HotfixEntryDetailPanel extends JPanel {
                 StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
                 htmlStyleSheet.addStyleSheet(styleSheet);
 
-                hfixIdJEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
+                hfixIdEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
             }
 
-            hfixIdJEditorPane.addHyperlinkListener(new HyperlinkListener() {
+            hfixIdEditorPane.addHyperlinkListener(new HyperlinkListener() {
 
                 @Override
                 public void hyperlinkUpdate(HyperlinkEvent hyperlinkEvent) {
@@ -167,19 +167,19 @@ public class HotfixEntryDetailPanel extends JPanel {
             });
         }
 
-        return hfixIdJEditorPane;
+        return hfixIdEditorPane;
     }
 
-    private JEditorPane getHfixDescJEditorPane() {
+    private JEditorPane getHfixDescEditorPane() {
 
-        if (hfixDescJEditorPane == null) {
+        if (hfixDescEditorPane == null) {
 
-            hfixDescJEditorPane = new JEditorPane();
+            hfixDescEditorPane = new JEditorPane();
 
-            hfixDescJEditorPane.setEditable(false);
-            hfixDescJEditorPane.setContentType("text/html");
-            hfixDescJEditorPane.setOpaque(false);
-            hfixDescJEditorPane.setBackground(this.getBackground());
+            hfixDescEditorPane.setEditable(false);
+            hfixDescEditorPane.setContentType("text/html");
+            hfixDescEditorPane.setOpaque(false);
+            hfixDescEditorPane.setBackground(this.getBackground());
 
             StyleSheet styleSheet = FileUtilities.getStyleSheet(this.getClass(), "styles.css");
 
@@ -189,10 +189,10 @@ public class HotfixEntryDetailPanel extends JPanel {
                 StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
                 htmlStyleSheet.addStyleSheet(styleSheet);
 
-                hfixDescJEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
+                hfixDescEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
             }
 
-            hfixDescJEditorPane.addHyperlinkListener(new HyperlinkListener() {
+            hfixDescEditorPane.addHyperlinkListener(new HyperlinkListener() {
 
                 @Override
                 public void hyperlinkUpdate(HyperlinkEvent hyperlinkEvent) {
@@ -214,25 +214,25 @@ public class HotfixEntryDetailPanel extends JPanel {
             });
         }
 
-        return hfixDescJEditorPane;
+        return hfixDescEditorPane;
     }
 
-    private JLabel getStateJLabel() {
+    private JLabel getStateLabel() {
 
-        if (stateJLabel == null) {
-            stateJLabel = new JLabel();
+        if (stateLabel == null) {
+            stateLabel = new JLabel();
         }
 
-        return stateJLabel;
+        return stateLabel;
     }
 
-    private JLabel getStatusJLabel() {
+    private JLabel getStatusLabel() {
 
-        if (statusJLabel == null) {
-            statusJLabel = new JLabel();
+        if (statusLabel == null) {
+            statusLabel = new JLabel();
         }
 
-        return statusJLabel;
+        return statusLabel;
     }
 
     private JTextArea getDependencyTextArea() {
@@ -263,7 +263,7 @@ public class HotfixEntryDetailPanel extends JPanel {
         return hotfixRecordEntryTable;
     }
 
-    private JPanel getDetailsJPanel() {
+    private JPanel getDetailsPanel() {
 
         JPanel detailsPanel = new JPanel();
 
@@ -346,29 +346,29 @@ public class HotfixEntryDetailPanel extends JPanel {
         int existFontSize = existingFont.getSize();
         Font newFont = new Font(existingFontName, Font.BOLD, existFontSize);
 
-        JLabel idLabelJLabel = new JLabel("Hotfix ID: ");
-        JLabel descriptionLabelJLabel = new JLabel("Hotfix Description: ");
-        JLabel stateLabelJLabel = new JLabel("Hotfix State: ");
-        JLabel statusLabelJLabel = new JLabel("Hotfix Status: ");
+        JLabel idNameLabel = new JLabel("Hotfix ID: ");
+        JLabel descriptionNameLabel = new JLabel("Hotfix Description: ");
+        JLabel stateNameLabel = new JLabel("Hotfix State: ");
+        JLabel statusNameLabel = new JLabel("Hotfix Status: ");
 
-        idLabelJLabel.setFont(newFont);
-        descriptionLabelJLabel.setFont(newFont);
-        stateLabelJLabel.setFont(newFont);
-        statusLabelJLabel.setFont(newFont);
+        idNameLabel.setFont(newFont);
+        descriptionNameLabel.setFont(newFont);
+        stateNameLabel.setFont(newFont);
+        statusNameLabel.setFont(newFont);
 
-        JEditorPane hfixIdJEditorPane = getHfixIdJEditorPane();
-        JEditorPane hfixDescJEditorPane = getHfixDescJEditorPane();
-        JLabel stateJLabel = getStateJLabel();
-        JLabel statusJLabel = getStatusJLabel();
+        JEditorPane hfixIdEditorPane = getHfixIdEditorPane();
+        JEditorPane hfixDescEditorPane = getHfixDescEditorPane();
+        JLabel stateLabel = getStateLabel();
+        JLabel statusLabel = getStatusLabel();
 
-        detailsPanel.add(idLabelJLabel, gbc1);
-        detailsPanel.add(hfixIdJEditorPane, gbc2);
-        detailsPanel.add(descriptionLabelJLabel, gbc3);
-        detailsPanel.add(hfixDescJEditorPane, gbc4);
-        detailsPanel.add(stateLabelJLabel, gbc5);
-        detailsPanel.add(stateJLabel, gbc6);
-        detailsPanel.add(statusLabelJLabel, gbc7);
-        detailsPanel.add(statusJLabel, gbc8);
+        detailsPanel.add(idNameLabel, gbc1);
+        detailsPanel.add(hfixIdEditorPane, gbc2);
+        detailsPanel.add(descriptionNameLabel, gbc3);
+        detailsPanel.add(hfixDescEditorPane, gbc4);
+        detailsPanel.add(stateNameLabel, gbc5);
+        detailsPanel.add(stateLabel, gbc6);
+        detailsPanel.add(statusNameLabel, gbc7);
+        detailsPanel.add(statusLabel, gbc8);
 
         detailsPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
 
@@ -377,10 +377,10 @@ public class HotfixEntryDetailPanel extends JPanel {
 
     private void populateData() {
 
-        JEditorPane hfixIdJEditorPane = getHfixIdJEditorPane();
-        JEditorPane hfixDescJEditorPane = getHfixDescJEditorPane();
-        JLabel stateJLabel = getStateJLabel();
-        JLabel statusJLabel = getStatusJLabel();
+        JEditorPane hfixIdEditorPane = getHfixIdEditorPane();
+        JEditorPane hfixDescEditorPane = getHfixDescEditorPane();
+        JLabel stateLabel = getStateLabel();
+        JLabel statusLabel = getStatusLabel();
         JTextArea dependencyTextArea = getDependencyTextArea();
 
         String hotfixId;
@@ -389,21 +389,23 @@ public class HotfixEntryDetailPanel extends JPanel {
         HotfixColumn hotfixColumn = null;
         int columnIndex = -1;
 
+        CatalogManagerWrapper catalogManagerWrapper = CatalogManagerWrapper.getInstance();
+
         hotfixId = hotfixEntry.getHotfixId();
-        data = LogViewerUtil.getHotfixIDHyperlinkText(hotfixId);
-        hfixIdJEditorPane.setText(data);
+        data = catalogManagerWrapper.getWorkItemHyperlinkText(hotfixId);
+        hfixIdEditorPane.setText(data);
 
         hotfixColumn = HotfixColumn.HOTFIX_DESCRIPTION;
         columnIndex = hotfixColumnList.indexOf(hotfixColumn);
         description = hotfixEntry.getHotfixEntryData(hotfixColumn, columnIndex);
 
-        data = LogViewerUtil.getHotfixDescHyperlinkText(description);
-        hfixDescJEditorPane.setText(data);
+        data = catalogManagerWrapper.getWorkDescHyperlinkText(description);
+        hfixDescEditorPane.setText(data);
 
         hotfixColumn = HotfixColumn.PXHOTFIXSTATE;
         columnIndex = hotfixColumnList.indexOf(hotfixColumn);
         data = hotfixEntry.getHotfixEntryData(hotfixColumn, columnIndex);
-        stateJLabel.setText(data);
+        stateLabel.setText(data);
 
         // catalog doesnt have status
         HotfixStatus hotfixStatus = hotfixEntry.getHotfixStatus();
@@ -414,7 +416,7 @@ public class HotfixEntryDetailPanel extends JPanel {
             data = "";
         }
 
-        statusJLabel.setText(data);
+        statusLabel.setText(data);
 
         StringBuilder sb = new StringBuilder();
         TreeSet<HotfixEntry> totalBackwardHotfixEntrySet = new TreeSet<>();

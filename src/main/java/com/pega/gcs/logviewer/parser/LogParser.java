@@ -21,9 +21,12 @@ import java.util.regex.Pattern;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.DateTimeUtilities;
-import com.pega.gcs.logviewer.logfile.LogFileType;
-import com.pega.gcs.logviewer.logfile.LogFileType.LogType;
-import com.pega.gcs.logviewer.logfile.LogPattern;
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern.LogType;
+import com.pega.gcs.logviewer.logfile.AlertLogPattern;
+import com.pega.gcs.logviewer.logfile.Log4jPattern;
+import com.pega.gcs.logviewer.logfile.Log4jPatternManager;
+import com.pega.gcs.logviewer.logfile.LogPatternFactory;
 import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 
@@ -31,7 +34,7 @@ public abstract class LogParser {
 
     private static final Log4j2Helper LOG = new Log4j2Helper(LogParser.class);
 
-    private LogFileType logFileType;
+    private AbstractLogPattern abstractLogPattern;
 
     private Charset charset;
 
@@ -49,17 +52,17 @@ public abstract class LogParser {
 
     private boolean resetProcessedCount;
 
-    public LogParser(LogFileType logFileType, Charset charset, Locale locale) {
+    public LogParser(AbstractLogPattern abstractLogPattern, Charset charset, Locale locale) {
         this.dateFormat = null;
-        this.logFileType = logFileType;
+        this.abstractLogPattern = abstractLogPattern;
         this.charset = charset;
         this.locale = locale;
         this.processedCount = new AtomicInteger(0);
         this.resetProcessedCount = false;
     }
 
-    public LogFileType getLogFileType() {
-        return logFileType;
+    public AbstractLogPattern getLogPattern() {
+        return abstractLogPattern;
     }
 
     protected Charset getCharset() {
@@ -201,7 +204,7 @@ public abstract class LogParser {
         escapedStr = escapedStr.replaceAll(Pattern.quote("]"), "\\\\]");
         escapedStr = escapedStr.replaceAll(Pattern.quote("["), "\\\\[");
         escapedStr = escapedStr.replaceAll(Pattern.quote("^"), "\\\\^");
-        escapedStr = escapedStr.replaceAll(Pattern.quote("$"), "\\\\$");
+        // escapedStr = escapedStr.replaceAll(Pattern.quote("$"), "\\\\$");
         escapedStr = escapedStr.replaceAll(Pattern.quote("."), "\\\\.");
         escapedStr = escapedStr.replaceAll(Pattern.quote("|"), "\\\\|");
         escapedStr = escapedStr.replaceAll(Pattern.quote("?"), "\\\\?");
@@ -217,18 +220,19 @@ public abstract class LogParser {
         return escapedStr;
     }
 
-    public static LogParser getLogParser(String filename, List<String> readLineList,
-            Set<LogPattern> pegaRulesLog4jPatternSet, Set<LogPattern> pegaClusterLog4jPatternSet, Charset charset,
-            Locale locale, TimeZone displayTimezone) {
+    public static LogParser getLogParser(String filename, List<String> readLineList, Charset charset, Locale locale,
+            TimeZone displayTimezone) {
 
         LogParser logParser = null;
+
+        Log4jPatternManager log4jPatternManager = Log4jPatternManager.getInstance();
 
         // check if an Alert log file
         if (filename.toUpperCase().contains("ALERT")) {
 
-            LogFileType logFileType = new LogFileType(LogType.PEGA_ALERT, null);
+            AlertLogPattern alertLogPattern = LogPatternFactory.getInstance().getAlertLogPattern();
 
-            AlertLogParser alertLogParser = new AlertLogParser(logFileType, charset, locale);
+            AlertLogParser alertLogParser = new AlertLogParser(alertLogPattern, charset, locale);
 
             for (String readLine : readLineList) {
                 alertLogParser.parse(readLine);
@@ -245,12 +249,18 @@ public abstract class LogParser {
             }
         } else if ((filename.toUpperCase().contains("CLUSTER")) || (filename.toUpperCase().contains("HAZELCAST"))
                 || (filename.toUpperCase().contains("BIX"))) {
-            logParser = getLogParser(readLineList, pegaClusterLog4jPatternSet, charset, locale, displayTimezone);
+
+            Set<Log4jPattern> pegaClusterLog4jPatternSet = log4jPatternManager.getDefaultClusterLog4jPatternSet();
+
+            logParser = getLog4jParser(readLineList, pegaClusterLog4jPatternSet, charset, locale, displayTimezone);
         }
 
         // check if a PegaRules log file
         if (logParser == null) {
-            logParser = getLogParser(readLineList, pegaRulesLog4jPatternSet, charset, locale, displayTimezone);
+
+            Set<Log4jPattern> pegaRulesLog4jPatternSet = log4jPatternManager.getDefaultRulesLog4jPatternSet();
+
+            logParser = getLog4jParser(readLineList, pegaRulesLog4jPatternSet, charset, locale, displayTimezone);
         }
 
         // TODO other log file types
@@ -261,14 +271,14 @@ public abstract class LogParser {
     // currently assuming all pattern as of type pegarules. change when
     // implementing other types like WAS, WLS
     // with 8.6 changes, multiple patterns are now matching , hence selecting a pattern that returns the max nos of rows.
-    public static LogParser getLogParser(List<String> readLineList, Set<LogPattern> logPatternSet, Charset charset,
-            Locale locale, TimeZone displayTimezone) {
+    private static LogParser getLog4jParser(List<String> readLineList, Set<Log4jPattern> log4jPatternSet,
+            Charset charset, Locale locale, TimeZone displayTimezone) {
 
         LogParser logParser = null;
 
-        for (LogPattern logPattern : logPatternSet) {
+        for (Log4jPattern log4jPattern : log4jPatternSet) {
 
-            LogParser log4jPatternParser = getLogParser(readLineList, logPattern, charset, locale, displayTimezone);
+            LogParser log4jPatternParser = getLog4jParser(readLineList, log4jPattern, charset, locale, displayTimezone);
 
             int log4jPatternParserRowCount = (log4jPatternParser != null)
                     ? log4jPatternParser.getLogEntryModel().getTotalRowCount()
@@ -286,8 +296,7 @@ public abstract class LogParser {
             LogEntryModel lem = logParser.getLogEntryModel();
             int logParserRowCount = lem.getTotalRowCount();
 
-            LOG.info("Creating Log4jPatternParser: *rowCount: " + logParserRowCount + " Type: "
-                    + logParser.getLogFileType());
+            LOG.info("Creating Log4jPatternParser: *rowCount: " + logParserRowCount + " Parser: " + logParser);
         }
 
         return logParser;
@@ -295,16 +304,14 @@ public abstract class LogParser {
 
     // currently assuming all pattern as of type pegarules. change when
     // implementing other types like WAS, WLS
-    public static LogParser getLogParser(List<String> readLineList, LogPattern logPattern, Charset charset,
+    public static LogParser getLog4jParser(List<String> readLineList, Log4jPattern log4jPattern, Charset charset,
             Locale locale, TimeZone displayTimezone) {
 
         LogParser logParser = null;
 
-        LOG.info("Trying log Pattern " + logPattern);
+        LOG.info("Trying Log4j Pattern " + log4jPattern);
 
-        LogFileType logFileType = new LogFileType(LogType.PEGA_RULES, logPattern);
-
-        Log4jPatternParser log4jPatternParser = new Log4jPatternParser(logFileType, charset, locale, displayTimezone);
+        Log4jPatternParser log4jPatternParser = new Log4jPatternParser(log4jPattern, charset, locale, displayTimezone);
 
         for (String readLine : readLineList) {
             log4jPatternParser.parse(readLine);
@@ -316,28 +323,28 @@ public abstract class LogParser {
 
         if (lem.getTotalRowCount() > 0) {
             // success
-            LOG.info("Creating Log4jPatternParser using " + logPattern);
+            LOG.info("Creating Log4jPatternParser using " + log4jPattern);
             logParser = log4jPatternParser;
         }
 
         return logParser;
     }
 
-    public static LogParser getLogParser(LogFileType logFileType, Charset charset, Locale locale,
+    public static LogParser getLogParser(AbstractLogPattern abstractLogPattern, Charset charset, Locale locale,
             TimeZone displayTimezone) {
 
         LogParser logParser = null;
 
-        LogType logType = logFileType.getLogType();
+        LogType logType = abstractLogPattern.getLogType();
 
         // TODO implement other types as well
         switch (logType) {
 
         case PEGA_ALERT:
-            logParser = new AlertLogParser(logFileType, charset, locale);
+            logParser = new AlertLogParser((AlertLogPattern) abstractLogPattern, charset, locale);
             break;
         case PEGA_RULES:
-            logParser = new Log4jPatternParser(logFileType, charset, locale, displayTimezone);
+            logParser = new Log4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale, displayTimezone);
             break;
         default:
             break;

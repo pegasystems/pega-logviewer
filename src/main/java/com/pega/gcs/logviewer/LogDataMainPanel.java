@@ -72,8 +72,8 @@ import com.pega.gcs.fringecommon.guiutilities.search.SearchMarkerModel;
 import com.pega.gcs.fringecommon.guiutilities.search.SearchPanel;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
-import com.pega.gcs.logviewer.logfile.LogFileType;
-import com.pega.gcs.logviewer.logfile.LogFileType.LogType;
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern.LogType;
 import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
@@ -318,9 +318,9 @@ public class LogDataMainPanel extends JPanel {
 
             LogTable logTable = getLogTable();
             LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+            AbstractLogPattern abstractLogPattern = logTableModel.getLogPattern();
 
-            LogFileType logFileType = logTableModel.getLogFileType();
-            LogType logType = logFileType.getLogType();
+            LogType logType = abstractLogPattern.getLogType();
 
             NavigationTableController<LogEntryKey> navigationTableController = getNavigationTableController();
 
@@ -792,9 +792,9 @@ public class LogDataMainPanel extends JPanel {
                         // only for alerts
                         LogTable logTable = getLogTable();
                         LogTableModel logTableModel = (LogTableModel) logTable.getModel();
+                        AbstractLogPattern abstractLogPattern = logTableModel.getLogPattern();
 
-                        LogFileType logFileType = logTableModel.getLogFileType();
-                        LogType logType = logFileType.getLogType();
+                        LogType logType = abstractLogPattern.getLogType();
 
                         if (logType == LogType.PEGA_ALERT) {
 
@@ -1023,7 +1023,7 @@ public class LogDataMainPanel extends JPanel {
         LogTable logTable = getLogTable();
         LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-        LogFileType logFileType = logTableModel.getLogFileType();
+        AbstractLogPattern abstractLogPattern = logTableModel.getLogPattern();
 
         JButton palOverviewJButton = getPalOverviewButton();
         JButton logExportButton = getLogExportButton();
@@ -1031,9 +1031,9 @@ public class LogDataMainPanel extends JPanel {
         palOverviewJButton.setEnabled(false);
         logExportButton.setEnabled(false);
 
-        if (logFileType != null) {
+        if (abstractLogPattern != null) {
 
-            LogType logType = logFileType.getLogType();
+            LogType logType = abstractLogPattern.getLogType();
 
             if (logType == LogType.PEGA_ALERT) {
 

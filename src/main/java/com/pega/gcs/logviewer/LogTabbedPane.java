@@ -33,7 +33,7 @@ import com.pega.gcs.fringecommon.guiutilities.ButtonTabComponent;
 import com.pega.gcs.fringecommon.guiutilities.RecentFileContainer;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.hotfixscan.HotfixScanMainPanel;
-import com.pega.gcs.logviewer.logfile.LogFileType;
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
 import com.pega.gcs.logviewer.socketreceiver.SocketReceiverLogMainPanel;
 import com.pega.gcs.logviewer.systemstate.SystemStateMainPanel;
@@ -290,7 +290,7 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 
     }
 
-    public void loadSocketReceiverLog(final int port, LogFileType logFileType) throws Exception {
+    public void loadSocketReceiverLog(final int port, AbstractLogPattern abstractLogPattern) throws Exception {
 
         String path = "SockectReceiver_UDP_" + port;
 
@@ -303,7 +303,7 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
         } else {
 
             SocketReceiverLogMainPanel socketReceiverLogMainPanel = new SocketReceiverLogMainPanel(port, path,
-                    logFileType, recentFileContainer, logViewerSetting);
+                    abstractLogPattern, recentFileContainer, logViewerSetting);
 
             addTab(path, path, socketReceiverLogMainPanel);
         }

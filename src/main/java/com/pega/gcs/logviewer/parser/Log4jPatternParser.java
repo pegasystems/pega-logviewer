@@ -21,34 +21,18 @@ import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.logging.log4j.core.pattern.ClassNamePatternConverter;
-import org.apache.logging.log4j.core.pattern.DatePatternConverter;
-import org.apache.logging.log4j.core.pattern.FileLocationPatternConverter;
 import org.apache.logging.log4j.core.pattern.FormattingInfo;
-import org.apache.logging.log4j.core.pattern.FullLocationPatternConverter;
-import org.apache.logging.log4j.core.pattern.LevelPatternConverter;
-import org.apache.logging.log4j.core.pattern.LineLocationPatternConverter;
-import org.apache.logging.log4j.core.pattern.LineSeparatorPatternConverter;
 import org.apache.logging.log4j.core.pattern.LiteralPatternConverter;
-import org.apache.logging.log4j.core.pattern.LoggerPatternConverter;
-import org.apache.logging.log4j.core.pattern.MapPatternConverter;
-import org.apache.logging.log4j.core.pattern.MdcPatternConverter;
-import org.apache.logging.log4j.core.pattern.MessagePatternConverter;
-import org.apache.logging.log4j.core.pattern.MethodLocationPatternConverter;
-import org.apache.logging.log4j.core.pattern.NdcPatternConverter;
 import org.apache.logging.log4j.core.pattern.PatternConverter;
 import org.apache.logging.log4j.core.pattern.PatternFormatter;
 import org.apache.logging.log4j.core.pattern.PatternParser;
-import org.apache.logging.log4j.core.pattern.RelativeTimePatternConverter;
-import org.apache.logging.log4j.core.pattern.SequenceNumberPatternConverter;
-import org.apache.logging.log4j.core.pattern.ThreadNamePatternConverter;
 import org.apache.logging.log4j.core.util.OptionConverter;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.DateTimeUtilities;
 import com.pega.gcs.fringecommon.utilities.TimeZoneUtil;
-import com.pega.gcs.logviewer.logfile.LogFileType;
-import com.pega.gcs.logviewer.logfile.LogPattern;
+import com.pega.gcs.logviewer.logfile.Log4jPattern;
+import com.pega.gcs.logviewer.logfile.LogPatternFactory;
 import com.pega.gcs.logviewer.model.HazelcastMemberInfo;
 import com.pega.gcs.logviewer.model.HazelcastMembership;
 import com.pega.gcs.logviewer.model.HazelcastMembership.HzMembershipEvent;
@@ -75,6 +59,9 @@ public class Log4jPatternParser extends LogParser {
     private static final String LOG_LEVEL_GROUP = "([a-zA-Z\\s]{n,m})"; // (\\s*?.{5,5})
     private static final String MULTIPLE_SPACES_REGEXP = "[ ]+";
     private static final String OPTIONAL_GROUP = "(.*?)?";
+
+    private static Pattern MDC_PATTERN = Pattern.compile("MDC\\{(.*?)\\}");
+    private static Pattern MAP_PATTERN = Pattern.compile("MAP\\{(.*?)\\}");
 
     private static final long THREADDUMP_TIMESTAMP_INTERVAL = 5 * 60 * 1000;
 
@@ -119,10 +106,11 @@ public class Log4jPatternParser extends LogParser {
 
     private AtomicInteger hzMembershipCounter;
     private HazelcastMembership hazelcastMembership;
+    private Boolean clusterMembershipManagerV84;
 
-    public Log4jPatternParser(LogFileType logFileType, Charset charset, Locale locale, TimeZone displayTimezone) {
+    public Log4jPatternParser(Log4jPattern log4jPattern, Charset charset, Locale locale, TimeZone displayTimezone) {
 
-        super(logFileType, charset, locale);
+        super(log4jPattern, charset, locale);
 
         this.displayTimezone = displayTimezone;
 
@@ -146,6 +134,7 @@ public class Log4jPatternParser extends LogParser {
         // Hazelcast Membership
         hzMembershipCounter = new AtomicInteger(0);
         hazelcastMembership = null;
+        clusterMembershipManagerV84 = null;
 
         logEntryColumnList = new ArrayList<String>();
         logEntryColumnValueList = new ArrayList<String>();
@@ -179,7 +168,7 @@ public class Log4jPatternParser extends LogParser {
 
     @Override
     public String toString() {
-        return "Log4jPatternParser [regExp=" + regExp + ", log4jPattern=" + getLogFileType().getLogPattern() + "]";
+        return "Log4jPatternParser [regExp=" + regExp + ", log4jPattern=" + getLogPattern() + "]";
     }
 
     private void generateRegExp() {
@@ -187,14 +176,15 @@ public class Log4jPatternParser extends LogParser {
         lineCount = 0;
         regExp = "";
 
-        LogFileType logFileType = getLogFileType();
-        LogPattern logPattern = logFileType.getLogPattern();
+        Log4jPattern log4jPattern = (Log4jPattern) getLogPattern();
 
-        String logPatternStr = logPattern.getPatternString();
+        String logPatternStr = log4jPattern.getPatternString();
+
         String pattern = OptionConverter.convertSpecialChars(logPatternStr);
 
         LOG.info("generateRegExp - logPatternStr: " + logPatternStr);
-        PatternParser patternParser = new PatternParser("Converter");
+
+        PatternParser patternParser = LogPatternFactory.getInstance().getPatternParser();
 
         List<PatternFormatter> patternFormatterList = patternParser.parse(pattern);
 
@@ -204,21 +194,44 @@ public class Log4jPatternParser extends LogParser {
 
             String format = null;
 
-            PatternConverter patternConverter = patternFormatter.getConverter();
             FormattingInfo formattingInfo = patternFormatter.getFormattingInfo();
             int minLength = formattingInfo.getMinLength();
             int maxLength = formattingInfo.getMaxLength();
 
-            if (patternConverter instanceof DatePatternConverter) {
+            PatternConverter patternConverter = patternFormatter.getConverter();
+            String patternConverterName = patternConverter.getName();
+
+            String mapPropertyName = null;
+            String mdcPropertyName = null;
+
+            if (patternConverterName.startsWith("MAP{")) {
+                mapPropertyName = getMAPName(patternConverterName);
+                patternConverterName = "MAP";
+
+            } else if (patternConverterName.startsWith("MDC{")) {
+                mdcPropertyName = getMDCName(patternConverterName);
+                patternConverterName = "MDC";
+            }
+
+            switch (patternConverterName) {
+
+            // ClassNamePatternConverter
+            case "Class Name":
+
+                format = DEFAULT_GROUP;
+
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.CLASS.getColumnId());
+
+                break;
+
+            // DatePatternConverter
+            case "Date":
 
                 format = getTimeStampFormat(logPatternStr);
-
                 format = format.replaceAll(Pattern.quote("+"), "[+]");
-
                 format = format.replaceAll(("[" + DateTimeUtilities.VALID_DATEFORMAT_CHARS + "]+"), "\\\\S+");
-
                 format = format.replaceAll(Pattern.quote("."), "\\\\.");
-
                 format = "(" + format + ")";
 
                 regExp = regExp + format;
@@ -227,54 +240,30 @@ public class Log4jPatternParser extends LogParser {
                 // column list has additional LINE, column
                 timestampIndex = logEntryColumnList.size() - 2;
 
-            } else if (patternConverter instanceof MessagePatternConverter) {
-                format = GREEDY_GROUP;
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.MESSAGE.getColumnId());
-                // column list has additional LINE, column
-                messageIndex = logEntryColumnList.size() - 2;
-            } else if (patternConverter instanceof LoggerPatternConverter) {
-                format = NOSPACE_GROUP;
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.LOGGER.getColumnId());
-                // column list has additional LINE, column
-                loggerIndex = logEntryColumnList.size() - 2;
-            } else if (patternConverter instanceof ClassNamePatternConverter) {
-                format = DEFAULT_GROUP;
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.CLASS.getColumnId());
-            } else if (patternConverter instanceof RelativeTimePatternConverter) {
-                format = DEFAULT_GROUP;
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.RELATIVETIME.getColumnId());
-            } else if (patternConverter instanceof ThreadNamePatternConverter) {
-                format = DEFAULT_GROUP;
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.THREAD.getColumnId());
-            } else if (patternConverter instanceof NdcPatternConverter) {
-                format = DEFAULT_GROUP;
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.NDC.getColumnId());
-            } else if (patternConverter instanceof LiteralPatternConverter) {
-                // Pega log pattern contains literals '[' ']' that are also regex keywords.
-                // hence this conflicts, should i escape it or use it.
-                // At present I decided to just use * as regex literal. All other 'regex' literals are escaped.
-                // This change was done to accommodate cloud watch logs which has an additional timestamp on the front.
-                format = ((LiteralPatternConverter) patternConverter).getLiteral();
+                break;
 
-                if (format.contains("*")) {
-                    format = format.replaceAll(Pattern.quote("*"), ".*?");
-                    format = format.replaceAll(MULTIPLE_SPACES_REGEXP, MULTIPLE_SPACES_REGEXP);
-                } else {
-                    format = escapeRegexChars(format);
-                }
+            // FileLocationPatternConverter
+            case "File Location":
+
+                format = DEFAULT_GROUP;
 
                 regExp = regExp + format;
-            } else if (patternConverter instanceof SequenceNumberPatternConverter) {
+                logEntryColumnList.add(LogEntryColumn.FILE.getColumnId());
+
+                break;
+
+            // FullLocationPatternConverter
+            case "Full Location":
+
                 format = DEFAULT_GROUP;
+
                 regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.LOG4JID.getColumnId());
-            } else if (patternConverter instanceof LevelPatternConverter) {
+                logEntryColumnList.add(LogEntryColumn.LOCATIONINFO.getColumnId());
+
+                break;
+
+            // LevelPatternConverter
+            case "Level":
 
                 if (minLength > 0) {
                     format = LOG_LEVEL_GROUP;
@@ -295,25 +284,69 @@ public class Log4jPatternParser extends LogParser {
 
                 regExp = regExp + format;
                 logEntryColumnList.add(LogEntryColumn.LEVEL.getColumnId());
+
                 // column list has additional LINE column
                 levelIndex = logEntryColumnList.size() - 2;
-            } else if (patternConverter instanceof MethodLocationPatternConverter) {
+
+                break;
+
+            // LineLocationPatternConverter
+            case "Line":
+
                 format = DEFAULT_GROUP;
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.METHOD.getColumnId());
-            } else if (patternConverter instanceof FullLocationPatternConverter) {
-                format = DEFAULT_GROUP;
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.LOCATIONINFO.getColumnId());
-            } else if (patternConverter instanceof LineLocationPatternConverter) {
-                format = DEFAULT_GROUP;
+
                 regExp = regExp + format;
                 logEntryColumnList.add(LogEntryColumn.LINE.getColumnId());
-            } else if (patternConverter instanceof FileLocationPatternConverter) {
-                format = DEFAULT_GROUP;
+
+                break;
+
+            // LineSeparatorPatternConverter
+            case "Line Sep":
+
+                lineCount++;
+
+                break;
+
+            // LiteralPatternConverter
+            case "Literal":
+
+                format = ((LiteralPatternConverter) patternConverter).getLiteral();
+
+                if (Pattern.quote("${CW_LOG} ").equals(Pattern.quote(format))) {
+                    format = ".*?[ ]+";
+                } else {
+                    format = escapeRegexChars(format);
+                }
+
                 regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.FILE.getColumnId());
-            } else if (patternConverter instanceof MdcPatternConverter) {
+
+                break;
+
+            // LoggerPatternConverter
+            case "Logger":
+
+                format = NOSPACE_GROUP;
+
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.LOGGER.getColumnId());
+
+                // column list has additional LINE, column
+                loggerIndex = logEntryColumnList.size() - 2;
+
+                break;
+
+            // MapPatternConverter
+            case "MAP":
+
+                format = DEFAULT_GROUP;
+
+                regExp = regExp + format;
+                logEntryColumnList.add(mapPropertyName.toUpperCase());
+
+                break;
+
+            // MdcPatternConverter
+            case "MDC":
 
                 if (minLength > 0) {
                     format = LIMITING_GROUP;
@@ -329,17 +362,88 @@ public class Log4jPatternParser extends LogParser {
                 }
 
                 regExp = regExp + format;
-                String patternConverterName = patternConverter.getName();
-                String propertyName = getMDCName(patternConverterName);
-                logEntryColumnList.add(propertyName.toUpperCase());
-            } else if (patternConverter instanceof MapPatternConverter) {
-                format = DEFAULT_GROUP;
+                logEntryColumnList.add(mdcPropertyName.toUpperCase());
+
+                break;
+
+            // MessagePatternConverter
+            case "Message":
+
+                format = GREEDY_GROUP;
+
                 regExp = regExp + format;
-                String patternConverterName = patternConverter.getName();
-                String propertyName = getMAPName(patternConverterName);
-                logEntryColumnList.add(propertyName.toUpperCase());
-            } else if (patternConverter instanceof LineSeparatorPatternConverter) {
-                lineCount++;
+                logEntryColumnList.add(LogEntryColumn.MESSAGE.getColumnId());
+
+                // column list has additional LINE, column
+                messageIndex = logEntryColumnList.size() - 2;
+
+                break;
+
+            // MethodLocationPatternConverter
+            case "Method":
+
+                format = DEFAULT_GROUP;
+
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.METHOD.getColumnId());
+
+                break;
+
+            // NdcPatternConverter
+            case "NDC":
+
+                format = DEFAULT_GROUP;
+
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.NDC.getColumnId());
+
+                break;
+
+            // RelativeTimePatternConverter
+            case "Time":
+
+                format = DEFAULT_GROUP;
+
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.RELATIVETIME.getColumnId());
+
+                break;
+
+            // SequenceNumberPatternConverter
+            case "Sequence Number":
+
+                format = DEFAULT_GROUP;
+
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.LOG4JID.getColumnId());
+
+                break;
+
+            // SimpleLiteralPatternConverter
+            case "SimpleLiteral":
+
+                StringBuilder literalSB = new StringBuilder();
+
+                patternConverter.format(null, literalSB);
+
+                format = literalSB.toString();
+
+                format = escapeRegexChars(format);
+
+                regExp = regExp + format;
+
+                break;
+
+            // ThreadNamePatternConverter
+            case "Thread":
+
+                format = DEFAULT_GROUP;
+
+                regExp = regExp + format;
+                logEntryColumnList.add(LogEntryColumn.THREAD.getColumnId());
+
+                break;
+
             }
 
         }
@@ -352,12 +456,11 @@ public class Log4jPatternParser extends LogParser {
         linePattern = Pattern.compile(regExp);
     }
 
-    private static String getMDCName(String patternConverterName) {
+    private String getMDCName(String patternConverterName) {
 
         String propertyName = patternConverterName;
-        Pattern pattern = Pattern.compile("MDC\\{(.*?)\\}");
 
-        Matcher matcher = pattern.matcher(patternConverterName);
+        Matcher matcher = MDC_PATTERN.matcher(patternConverterName);
 
         boolean found = matcher.find();
 
@@ -368,12 +471,11 @@ public class Log4jPatternParser extends LogParser {
         return propertyName;
     }
 
-    private static String getMAPName(String patternConverterName) {
+    private String getMAPName(String patternConverterName) {
 
         String propertyName = patternConverterName;
-        Pattern pattern = Pattern.compile("MAP\\{(.*?)\\}");
 
-        Matcher matcher = pattern.matcher(patternConverterName);
+        Matcher matcher = MAP_PATTERN.matcher(patternConverterName);
 
         boolean found = matcher.find();
 
@@ -488,6 +590,7 @@ public class Log4jPatternParser extends LogParser {
             boolean requestorLockEntry = false;
             boolean exceptionsEntry = false;
             boolean hzMembershipEntry = false;
+            boolean clusterMembershipEntry = false;
 
             byte logLevelId = 0;
 
@@ -583,41 +686,29 @@ public class Log4jPatternParser extends LogParser {
 
             } else if (logger.endsWith(".UTIL.CLUSTERMEMBERSHIPMANAGER")) {
 
-                // the members info is also printed on node start. currently not handling this scenario
-                if ((hazelcastMembership != null) && (message.trim().equals("}"))) {
+                clusterMembershipEntry = true;
+                // the members info is also printed on node start. currently not handling that scenario
 
-                    // members block ended
-                    hazelcastMembership.postProcess();
+                // Topology print format changed in 8.4
+                if (clusterMembershipManagerV84 == null) {
 
-                    hazelcastMembership = null;
+                    if ("".equals(message)) {
+                        clusterMembershipManagerV84 = Boolean.TRUE;
+                    } else {
+                        clusterMembershipManagerV84 = Boolean.FALSE;
+                    }
+                }
 
-                } else if (hazelcastMembership != null) {
+                if (!clusterMembershipManagerV84) {
 
-                    Matcher hzMembersMatcher = hzMemberspattern.matcher(message);
+                    if ((hazelcastMembership != null) && (message.trim().equals("}"))) {
+                        // members block ended
+                        hazelcastMembership.postProcess();
 
-                    if (hzMembersMatcher.matches()) {
-                        String memberCountStr = hzMembersMatcher.group(1);
-
-                        try {
-
-                            int memberCount = Integer.parseInt(memberCountStr);
-
-                            hazelcastMembership.setMemberCount(memberCount);
-
-                        } catch (NumberFormatException nfe) {
-                            LOG.error("Unable to parse Hz Member count: " + message);
-                        }
+                        hazelcastMembership = null;
 
                     } else {
-                        LogHzMemberInfoParser logHzMemberInfoParser = LogHzMemberInfoParser.getInstance();
-
-                        HazelcastMemberInfo hzMemberInfo = logHzMemberInfoParser.getHazelcastMemberInfo(message);
-
-                        if (hzMemberInfo != null) {
-                            hazelcastMembership.addHzMemberInfo(hzMemberInfo);
-                        } else {
-                            LOG.error("Unable to parse Hz Member Info: " + message);
-                        }
+                        processHazelcastMembership(hazelcastMembership, message);
                     }
                 }
             }
@@ -686,6 +777,22 @@ public class Log4jPatternParser extends LogParser {
                     }
 
                     exceptionLineCounter++;
+
+                    // Topology print format changed in 8.4
+                    if (clusterMembershipEntry && (clusterMembershipManagerV84 != null)
+                            && (clusterMembershipManagerV84)) {
+
+                        if ((hazelcastMembership != null) && (line.trim().equals("}"))) {
+
+                            // members block ended
+                            hazelcastMembership.postProcess();
+
+                            hazelcastMembership = null;
+
+                        } else {
+                            processHazelcastMembership(hazelcastMembership, line);
+                        }
+                    }
                 }
             }
 
@@ -868,6 +975,39 @@ public class Log4jPatternParser extends LogParser {
             additionalLines.clear();
         }
 
+    }
+
+    private void processHazelcastMembership(HazelcastMembership hazelcastMembership, String message) {
+
+        if (hazelcastMembership != null) {
+
+            Matcher hzMembersMatcher = hzMemberspattern.matcher(message);
+
+            if (hzMembersMatcher.matches()) {
+                String memberCountStr = hzMembersMatcher.group(1);
+
+                try {
+
+                    int memberCount = Integer.parseInt(memberCountStr);
+
+                    hazelcastMembership.setMemberCount(memberCount);
+
+                } catch (NumberFormatException nfe) {
+                    LOG.error("Unable to parse Hz Member count: " + message);
+                }
+
+            } else {
+                LogHzMemberInfoParser logHzMemberInfoParser = LogHzMemberInfoParser.getInstance();
+
+                HazelcastMemberInfo hzMemberInfo = logHzMemberInfoParser.getHazelcastMemberInfo(message);
+
+                if (hzMemberInfo != null) {
+                    hazelcastMembership.addHzMemberInfo(hzMemberInfo);
+                } else {
+                    LOG.error("Unable to parse Hz Member Info: " + message);
+                }
+            }
+        }
     }
 
     private byte getLogLevelId(String level) {

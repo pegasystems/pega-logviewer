@@ -43,7 +43,9 @@ import javax.swing.border.EtchedBorder;
 
 import com.pega.gcs.fringecommon.guiutilities.MyColor;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.logviewer.logfile.LogPattern;
+import com.pega.gcs.logviewer.logfile.Log4jPattern;
+import com.pega.gcs.logviewer.logfile.Log4jPatternManager;
+import com.pega.gcs.logviewer.logfile.LogPatternFactory;
 import com.pega.gcs.logviewer.parser.LogParser;
 
 public class LogPatternSelectionDialog extends JDialog {
@@ -56,8 +58,6 @@ public class LogPatternSelectionDialog extends JDialog {
 
     private List<String> readLineList;
 
-    private Set<LogPattern> logPatternSet;
-
     private Charset charset;
 
     private Locale locale;
@@ -68,13 +68,12 @@ public class LogPatternSelectionDialog extends JDialog {
 
     private JComboBox<String> log4jPatternComboBox;
 
-    public LogPatternSelectionDialog(List<String> readLineList, Set<LogPattern> logPatternSet, Charset charset,
-            Locale locale, TimeZone displayTimezone, ImageIcon appIcon, Component parent) {
+    public LogPatternSelectionDialog(List<String> readLineList, Charset charset, Locale locale,
+            TimeZone displayTimezone, ImageIcon appIcon, Component parent) {
 
         super();
 
         this.readLineList = readLineList;
-        this.logPatternSet = logPatternSet;
         this.charset = charset;
         this.locale = locale;
         this.displayTimezone = displayTimezone;
@@ -283,16 +282,19 @@ public class LogPatternSelectionDialog extends JDialog {
 
         if (log4jPatternComboBox == null) {
 
-            String[] patternStrArray = new String[logPatternSet.size()];
+            Log4jPatternManager log4jPatternManager = Log4jPatternManager.getInstance();
+            Set<Log4jPattern> pegaRulesLog4jPatternSet = log4jPatternManager.getDefaultRulesLog4jPatternSet();
+
+            String[] patternStrArray = new String[pegaRulesLog4jPatternSet.size()];
 
             int index = 0;
 
-            Iterator<LogPattern> logpatternIt = logPatternSet.iterator();
+            Iterator<Log4jPattern> logpatternIt = pegaRulesLog4jPatternSet.iterator();
 
             while (logpatternIt.hasNext()) {
 
-                LogPattern logPattern = logpatternIt.next();
-                patternStrArray[index] = logPattern.getPatternString();
+                Log4jPattern log4jPattern = logpatternIt.next();
+                patternStrArray[index] = log4jPattern.getPatternString();
 
                 index++;
             }
@@ -360,9 +362,12 @@ public class LogPatternSelectionDialog extends JDialog {
                     if ((logPatternName != null) && (!"".equals(logPatternName)) && (logPatternStr != null)
                             && (!"".equals(logPatternStr))) {
 
-                        LogPattern logPattern = new LogPattern(logPatternName, logPatternStr, false);
+                        LogPatternFactory logPatternFactory = LogPatternFactory.getInstance();
 
-                        LogParser logParser = LogParser.getLogParser(getReadLineList(), logPattern, charset, locale,
+                        Log4jPattern log4jPattern = logPatternFactory.getLog4jPattern(logPatternName, logPatternStr,
+                                false);
+
+                        LogParser logParser = LogParser.getLog4jParser(getReadLineList(), log4jPattern, charset, locale,
                                 displayTimezone);
 
                         if (logParser != null) {

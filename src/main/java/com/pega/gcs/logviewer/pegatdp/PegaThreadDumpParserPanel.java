@@ -57,6 +57,7 @@ import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.logviewer.LogTableModel;
 import com.pega.gcs.logviewer.ThreadDumpRequestorLockTableMouseListener;
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
 import com.pega.gcs.logviewer.model.Log4jLogThreadDumpEntry;
 import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
@@ -116,7 +117,9 @@ public class PegaThreadDumpParserPanel extends JPanel {
                 try {
                     logEntryText = logEntryText.substring(java7ThreadDumpIndex);
 
-                    boolean isCW = logTableModel.getLogFileType().getLogPattern().isCW();
+                    AbstractLogPattern abstractLogPattern = logTableModel.getLogPattern();
+
+                    boolean isCW = abstractLogPattern.isCW();
 
                     if (isCW) {
                         logEntryText = sanitiseThreadDumpText(logEntryText);

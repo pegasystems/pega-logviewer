@@ -51,8 +51,6 @@ import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.time.TimeSeriesDataItem;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
-import com.pega.gcs.logviewer.catalog.CatalogManagerWrapper;
 import com.pega.gcs.logviewer.catalog.model.HotfixEntry;
 import com.pega.gcs.logviewer.model.LogSeries;
 import com.pega.gcs.logviewer.model.LogSeriesCollection;
@@ -429,32 +427,6 @@ public class LogViewerUtil {
         logXYPlot.setDataset(tsc);
 
         return logXYPlot;
-    }
-
-    public static String getHotfixIDHyperlinkText(String hotfixId) {
-
-        String hotfixIDHyperlinkText = hotfixId;
-
-        CatalogManagerWrapper catalogManagerWrapper = CatalogManagerWrapper.getInstance();
-
-        if (catalogManagerWrapper.isInitialised()) {
-            hotfixIDHyperlinkText = GeneralUtilities.getWorkIdHyperlinkText(hotfixId);
-        }
-
-        return hotfixIDHyperlinkText;
-    }
-
-    public static String getHotfixDescHyperlinkText(String hotfixDesc) {
-
-        String hotfixDescHyperlinkText = hotfixDesc;
-
-        CatalogManagerWrapper catalogManagerWrapper = CatalogManagerWrapper.getInstance();
-
-        if (catalogManagerWrapper.isInitialised()) {
-            hotfixDescHyperlinkText = GeneralUtilities.getWorkDescHyperlinkText(hotfixDesc);
-        }
-
-        return hotfixDescHyperlinkText;
     }
 
     public static void recursiveEvaluateBackwardHotfixEntrySet(HotfixEntry hotfixEntry,

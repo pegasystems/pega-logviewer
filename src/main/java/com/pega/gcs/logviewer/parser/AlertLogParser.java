@@ -21,7 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.logviewer.logfile.LogFileType;
+import com.pega.gcs.logviewer.logfile.AlertLogPattern;
 import com.pega.gcs.logviewer.model.AlertLogEntry;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
@@ -58,9 +58,9 @@ public class AlertLogParser extends LogParser {
 
     private Pattern alertDatePattern;
 
-    public AlertLogParser(LogFileType logFileType, Charset charset, Locale locale) {
+    public AlertLogParser(AlertLogPattern alertLogPattern, Charset charset, Locale locale) {
 
-        super(logFileType, charset, locale);
+        super(alertLogPattern, charset, locale);
 
         alertVersion = -1;
         logEntryColumnList = null;

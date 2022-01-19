@@ -38,9 +38,9 @@ import org.apache.commons.io.IOUtils;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
-import com.pega.gcs.logviewer.logfile.LogFileType;
-import com.pega.gcs.logviewer.logfile.LogFileType.LogType;
-import com.pega.gcs.logviewer.logfile.LogPattern;
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
+import com.pega.gcs.logviewer.logfile.Log4jPatternManager;
+import com.pega.gcs.logviewer.logfile.LogPatternFactory;
 
 public class SocketReceiverOpenDialog extends JDialog {
 
@@ -50,7 +50,7 @@ public class SocketReceiverOpenDialog extends JDialog {
 
     private int port;
 
-    private LogFileType logFileType;
+    private AbstractLogPattern abstractLogPattern;
 
     private JComboBox<AppenderType> appenderTypeComboBox;
 
@@ -85,8 +85,8 @@ public class SocketReceiverOpenDialog extends JDialog {
         return port;
     }
 
-    public LogFileType getLogFileType() {
-        return logFileType;
+    public AbstractLogPattern getAbstractLogPattern() {
+        return abstractLogPattern;
     }
 
     private JComboBox<AppenderType> getAppenderTypeComboBox() {
@@ -200,13 +200,17 @@ public class SocketReceiverOpenDialog extends JDialog {
                                 switch (appenderType) {
 
                                 case PEGA_ALERT:
-                                    logFileType = new LogFileType(LogType.PEGA_ALERT, null);
+                                    LogPatternFactory logPatternFactory = LogPatternFactory.getInstance();
+                                    abstractLogPattern = logPatternFactory.getAlertLogPattern();
                                     break;
                                 case PEGA_RULES:
-                                    logFileType = new LogFileType(LogType.PEGA_RULES, LogPattern.getPattern715());
+
+                                    Log4jPatternManager log4jPatternManager = Log4jPatternManager.getInstance();
+
+                                    abstractLogPattern = log4jPatternManager.getSocketRecieverLog4jPattern();
                                     break;
                                 default:
-                                    logFileType = null;
+                                    abstractLogPattern = null;
                                     break;
 
                                 }
@@ -388,7 +392,7 @@ public class SocketReceiverOpenDialog extends JDialog {
             @Override
             public void actionPerformed(ActionEvent event) {
                 port = 0;
-                logFileType = null;
+                abstractLogPattern = null;
                 dispose();
             }
         });

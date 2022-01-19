@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.PluginClassloader;
 import com.pega.gcs.logviewer.PluginWrapper;
@@ -170,4 +171,49 @@ public class CatalogManagerWrapper extends PluginWrapper {
         return hotfixEntryDataListMapForProductRelease;
     }
 
+    public String getWorkItemHyperlinkText(String workid) {
+
+        String workItemLink = null;
+
+        if (isInitialised()) {
+
+            try {
+
+                Method getWorkItemLinkMethod = catalogManagerClass.getDeclaredMethod("getWorkItemHyperlinkText",
+                        String.class);
+
+                workItemLink = (String) getWorkItemLinkMethod.invoke(catalogManager, workid);
+
+            } catch (Exception e) {
+                LOG.error("Error getting WorkItemHyperlinkText", e);
+            }
+        } else {
+            workItemLink = GUIUtilities.getHyperlinkText(null, workid);
+        }
+
+        return workItemLink;
+    }
+
+    public String getWorkDescHyperlinkText(String workDesc) {
+
+        String workDescLink = workDesc;
+
+        if (isInitialised()) {
+
+            try {
+
+                Method getWorkItemLinkMethod = catalogManagerClass.getDeclaredMethod("getWorkDescHyperlinkText",
+                        String.class);
+
+                workDescLink = (String) getWorkItemLinkMethod.invoke(catalogManager, workDesc);
+
+            } catch (Exception e) {
+                LOG.error("Error getting WorkDescHyperlinkText", e);
+            }
+        } else {
+            workDescLink = GUIUtilities.getHyperlinkText(null, workDescLink);
+        }
+
+        return workDescLink;
+    }
 }

@@ -20,24 +20,22 @@ import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 
-public class PEGA0103ReportModel extends AlertMessageReportModel {
+public class PEGA0118ReportModel extends AlertMessageReportModel {
 
     private static final long serialVersionUID = -8889727175209305065L;
 
-    private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0103ReportModel.class);
+    private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0118ReportModel.class);
 
     private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
 
     private Pattern pattern;
 
-    public PEGA0103ReportModel(AlertMessage alertMessage, long thresholdKPI, AlertLogEntryModel alertLogEntryModel,
+    public PEGA0118ReportModel(AlertMessage alertMessage, long thresholdKPI, AlertLogEntryModel alertLogEntryModel,
             Locale locale) {
 
         super(alertMessage, thresholdKPI, alertLogEntryModel, locale);
 
-        // "Queue processor run failed : %s "
-        String regex = "Queue processor run failed : (.*?)";
-
+        String regex = ".*job scheduler=(.*?),.*";
         pattern = Pattern.compile(regex);
     }
 
@@ -53,7 +51,7 @@ public class PEGA0103ReportModel extends AlertMessageReportModel {
             boolean filterable;
 
             // first column data is the key
-            displayName = "Alert Subject (\"Queue Processor Name\")";
+            displayName = "Alert Subject (\"Job Name\")";
             prefColWidth = 500;
             horizontalAlignment = SwingConstants.LEFT;
             filterable = true;
@@ -82,12 +80,7 @@ public class PEGA0103ReportModel extends AlertMessageReportModel {
         boolean matches = patternMatcher.find();
 
         if (matches) {
-            String failReason = patternMatcher.group(1).trim();
-
-            StringBuilder sb = new StringBuilder();
-            sb.append(failReason);
-
-            alertMessageReportEntryKey = sb.toString();
+            alertMessageReportEntryKey = patternMatcher.group(1).trim();
         }
 
         return alertMessageReportEntryKey;
@@ -109,7 +102,7 @@ public class PEGA0103ReportModel extends AlertMessageReportModel {
         alertMessageReportEntryKey = getAlertMessageReportEntryKey(message);
 
         if (alertMessageReportEntryKey == null) {
-            LOG.info("PEGA0103ReportModel - Could'nt match - [" + message + "]");
+            LOG.info("PEGA0118ReportModel - Could'nt match - [" + message + "]");
         }
 
         return alertMessageReportEntryKey;

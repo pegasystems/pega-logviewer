@@ -10,16 +10,13 @@ package com.pega.gcs.logviewer.model;
 import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.util.Locale;
-import java.util.Set;
-
-import com.pega.gcs.logviewer.logfile.LogPattern;
 
 public class LogViewerSetting implements Serializable {
 
     private static final long serialVersionUID = -1881754960326903255L;
 
     // force reset, in case any default value changes
-    private static final int SETTING_VERSION = 3;
+    private static final int SETTING_VERSION = 4;
 
     // for kryo obj persistence
     private final int objVersion;
@@ -33,10 +30,6 @@ public class LogViewerSetting implements Serializable {
     private boolean reloadPreviousFiles;
 
     private Locale locale;
-
-    private Set<LogPattern> pegaRuleslog4jPatternSet;
-
-    private Set<LogPattern> pegaClusterlog4jPatternSet;
 
     public LogViewerSetting() {
 
@@ -61,8 +54,6 @@ public class LogViewerSetting implements Serializable {
         tailLogFile = false;
         reloadPreviousFiles = false;
         locale = Locale.getDefault();
-        pegaRuleslog4jPatternSet = LogPattern.getDefaultPegaRulesLog4jPatternSet();
-        pegaClusterlog4jPatternSet = LogPattern.getDefaultPegaClusterLog4jPatternSet();
     }
 
     public int getRecentItemsCount() {
@@ -113,24 +104,6 @@ public class LogViewerSetting implements Serializable {
 
     public void setLocale(Locale locale) {
         this.locale = locale;
-    }
-
-    public Set<LogPattern> getPegaRuleslog4jPatternSet() {
-
-        if (pegaRuleslog4jPatternSet == null) {
-            pegaRuleslog4jPatternSet = LogPattern.getDefaultPegaRulesLog4jPatternSet();
-        }
-
-        return pegaRuleslog4jPatternSet;
-    }
-
-    public Set<LogPattern> getPegaClusterlog4jPatternSet() {
-
-        if (pegaClusterlog4jPatternSet == null) {
-            pegaClusterlog4jPatternSet = LogPattern.getDefaultPegaClusterLog4jPatternSet();
-        }
-
-        return pegaClusterlog4jPatternSet;
     }
 
 }

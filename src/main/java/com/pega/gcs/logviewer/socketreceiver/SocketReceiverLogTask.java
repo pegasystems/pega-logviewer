@@ -23,7 +23,7 @@ import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
 import com.pega.gcs.fringecommon.utilities.KnuthMorrisPrattAlgorithm;
 import com.pega.gcs.logviewer.LogTableModel;
-import com.pega.gcs.logviewer.logfile.LogFileType;
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.parser.LogParser;
 
@@ -84,12 +84,12 @@ public class SocketReceiverLogTask extends SwingWorker<LogParser, ReadCounterTas
 
         LOG.info("SocketReceiverLogTask - Starting receiving on port " + port);
 
-        LogFileType logFileType = logTableModel.getLogFileType();
+        AbstractLogPattern abstractLogPattern = logTableModel.getLogPattern();
         Charset charset = logTableModel.getCharset();
         Locale locale = logTableModel.getLocale();
         TimeZone displayTimezone = logTableModel.getLogTimeZone();
 
-        LogParser logParser = LogParser.getLogParser(logFileType, charset, locale, displayTimezone);
+        LogParser logParser = LogParser.getLogParser(abstractLogPattern, charset, locale, displayTimezone);
 
         updateLogTableModel(logParser);
 

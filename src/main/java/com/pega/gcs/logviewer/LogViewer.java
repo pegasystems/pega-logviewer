@@ -43,7 +43,7 @@ import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
 import com.pega.gcs.fringecommon.utilities.kyro.KryoSerializer;
 import com.pega.gcs.logviewer.alert.AlertCheatSheetFrame;
 import com.pega.gcs.logviewer.catalog.CatalogManagerWrapper;
-import com.pega.gcs.logviewer.logfile.LogFileType;
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
 import com.pega.gcs.logviewer.patchreleasecatalog.PatchReleaseCatalogWrapper;
 import com.pega.gcs.logviewer.socketreceiver.SocketReceiverOpenDialog;
@@ -522,10 +522,10 @@ public class LogViewer extends BaseFrame {
 
                 int port = socketReceiverOpenDialog.getPort();
 
-                LogFileType logFileType = socketReceiverOpenDialog.getLogFileType();
+                AbstractLogPattern abstractLogPattern = socketReceiverOpenDialog.getAbstractLogPattern();
 
-                if ((port > 0) && (logFileType != null)) {
-                    loadSocketReceiverLog(port, logFileType);
+                if ((port > 0) && (abstractLogPattern != null)) {
+                    loadSocketReceiverLog(port, abstractLogPattern);
                 }
             }
         });
@@ -941,7 +941,7 @@ public class LogViewer extends BaseFrame {
         }
     }
 
-    private void loadSocketReceiverLog(final int port, final LogFileType logFileType) {
+    private void loadSocketReceiverLog(final int port, final AbstractLogPattern abstractLogPattern) {
 
         this.selectedFile = null;
 
@@ -949,12 +949,12 @@ public class LogViewer extends BaseFrame {
 
         try {
 
-            logTabbedPane.loadSocketReceiverLog(port, logFileType);
+            logTabbedPane.loadSocketReceiverLog(port, abstractLogPattern);
 
             saveOpenFileList();
 
         } catch (Exception e) {
-            LOG.error("Error loading Socket receiver: Port" + port + " LogFileType: " + logFileType, e);
+            LOG.error("Error loading Socket receiver: Port" + port + " LogPattern: " + abstractLogPattern, e);
 
             JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile), "Error loading Log file: ",
                     JOptionPane.ERROR_MESSAGE);

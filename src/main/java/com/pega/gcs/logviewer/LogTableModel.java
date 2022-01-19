@@ -34,7 +34,7 @@ import com.pega.gcs.fringecommon.guiutilities.search.SearchData;
 import com.pega.gcs.fringecommon.guiutilities.search.SearchModel;
 import com.pega.gcs.fringecommon.guiutilities.treetable.AbstractTreeTableNode;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.logviewer.logfile.LogFileType;
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
 import com.pega.gcs.logviewer.model.LogEntry;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.LogEntryKey;
@@ -223,17 +223,17 @@ public class LogTableModel extends FilterTableModel<LogEntryKey> {
         return tableColumnModel;
     }
 
-    public LogFileType getLogFileType() {
+    public AbstractLogPattern getLogPattern() {
 
-        LogFileType logFileType = null;
+        AbstractLogPattern abstractLogPattern = null;
 
         RecentFile recentFile = getRecentFile();
 
         if (recentFile != null) {
-            logFileType = (LogFileType) recentFile.getAttribute(RecentFile.KEY_LOGFILETYPE);
+            abstractLogPattern = (AbstractLogPattern) recentFile.getAttribute(RecentFile.KEY_LOGFILETYPE);
         }
 
-        return logFileType;
+        return abstractLogPattern;
     }
 
     public TimeZone getLogTimeZone() {

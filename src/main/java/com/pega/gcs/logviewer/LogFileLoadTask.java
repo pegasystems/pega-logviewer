@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -39,8 +38,7 @@ import com.pega.gcs.fringecommon.guiutilities.RecentFile;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
 import com.pega.gcs.fringecommon.utilities.KnuthMorrisPrattAlgorithm;
-import com.pega.gcs.logviewer.logfile.LogFileType;
-import com.pega.gcs.logviewer.logfile.LogPattern;
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
 import com.pega.gcs.logviewer.parser.LogParser;
@@ -62,8 +60,6 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
 
     private LogTableModel logTableModel;
 
-    private LogViewerSetting logViewerSetting;
-
     private FileReaderThread fileReaderThread;
 
     private boolean tailLogFile;
@@ -83,7 +79,6 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
 
         this.parent = parent;
         this.logTableModel = logTableModel;
-        this.logViewerSetting = logViewerSetting;
         this.fileReaderThread = null;
 
         this.modalProgressMonitor = modalProgressMonitor;
@@ -102,10 +97,10 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
         // the file anyways to get the column list
         if (logParser != null) {
 
-            LogFileType logFileType = logParser.getLogFileType();
+            AbstractLogPattern abstractLogPattern = logParser.getLogPattern();
 
-            if ((logFileType != null) && (logFileType.getLogPattern() != null)) {
-                LOG.info("Using Log Pattern: " + logFileType.getLogPattern().getPatternString());
+            if (abstractLogPattern != null) {
+                LOG.info("Using Log Pattern: " + abstractLogPattern);
                 LogEntryModel logEntryModel;
                 logEntryModel = logParser.getLogEntryModel();
                 logTableModel.setLogEntryModel(logEntryModel);
@@ -471,9 +466,9 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
 
             RecentFile recentFile = logTableModel.getRecentFile();
 
-            LogFileType logFileType = logParser.getLogFileType();
+            AbstractLogPattern abstractLogPattern = logParser.getLogPattern();
 
-            recentFile.setAttribute(RecentFile.KEY_LOGFILETYPE, logFileType);
+            recentFile.setAttribute(RecentFile.KEY_LOGFILETYPE, abstractLogPattern);
 
             LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
@@ -542,15 +537,15 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
 
         LogParser logParser = null;
 
-        LogFileType logFileType = logTableModel.getLogFileType();
+        AbstractLogPattern abstractLogPattern = logTableModel.getLogPattern();
 
-        if (logFileType != null) {
+        if (abstractLogPattern != null) {
             // get values from saved pref data
             Charset charset = logTableModel.getCharset();
             Locale locale = logTableModel.getLocale();
             TimeZone displayTimezone = logTableModel.getLogTimeZone();
 
-            logParser = LogParser.getLogParser(logFileType, charset, locale, displayTimezone);
+            logParser = LogParser.getLogParser(abstractLogPattern, charset, locale, displayTimezone);
         }
 
         return logParser;
@@ -562,17 +557,13 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
 
         LogParser aiLogParser = null;
 
-        Set<LogPattern> pegaRulesLog4jPatternSet = logViewerSetting.getPegaRuleslog4jPatternSet();
-        Set<LogPattern> pegaClusterLog4jPatternSet = logViewerSetting.getPegaClusterlog4jPatternSet();
-
-        aiLogParser = LogParser.getLogParser(fileName, readLineList, pegaRulesLog4jPatternSet,
-                pegaClusterLog4jPatternSet, charset, locale, displayTimezone);
+        aiLogParser = LogParser.getLogParser(fileName, readLineList, charset, locale, displayTimezone);
 
         if (aiLogParser == null) {
             // ask user for pattern
             // open dialog to user
-            LogPatternSelectionDialog lpsd = new LogPatternSelectionDialog(readLineList, pegaRulesLog4jPatternSet,
-                    charset, locale, displayTimezone, BaseFrame.getAppIcon(), parent);
+            LogPatternSelectionDialog lpsd = new LogPatternSelectionDialog(readLineList, charset, locale,
+                    displayTimezone, BaseFrame.getAppIcon(), parent);
 
             lpsd.setVisible(true);
 

@@ -16,6 +16,9 @@ BODY {
 	scrollbar-darkshadow-color: #5270A4;
 	scrollbar-arrow-color: #5270A4;
 	scrollbar-track-color: white;
+	font-family: Verdana, Arial, sans-serif;
+    font-size: 12pt;
+    font-weight: normal;
 }
 
 DIV {

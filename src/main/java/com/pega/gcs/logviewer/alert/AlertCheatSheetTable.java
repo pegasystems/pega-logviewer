@@ -80,7 +80,7 @@ public class AlertCheatSheetTable extends FilterTable<Integer> {
 
                         if (size == 1) {
 
-                            RightClickMenuItem openPDNUrl = new RightClickMenuItem("Open PDN URL");
+                            RightClickMenuItem openPDNUrl = new RightClickMenuItem("Open url in browser");
 
                             openPDNUrl.addActionListener(new ActionListener() {
 
@@ -113,7 +113,7 @@ public class AlertCheatSheetTable extends FilterTable<Integer> {
 
                             popupMenu.add(openPDNUrl);
 
-                            RightClickMenuItem copyPDNUrl = new RightClickMenuItem("Copy PDN URL");
+                            RightClickMenuItem copyPDNUrl = new RightClickMenuItem("Copy url to clipboard");
 
                             copyPDNUrl.addActionListener(new ActionListener() {
 
