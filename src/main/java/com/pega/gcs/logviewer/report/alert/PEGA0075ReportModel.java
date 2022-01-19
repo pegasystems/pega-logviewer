@@ -109,18 +109,20 @@ public class PEGA0075ReportModel extends AlertMessageReportModel {
 
                     if ((queryStr.startsWith("insert")) || (queryStr.startsWith("begin batch"))) {
 
-                        int beginIndex = queryStr.indexOf("insert into ") + 12;
+                        int beginIndex = queryStr.indexOf("insert into ");
                         int endIndex = queryStr.indexOf("(");
 
-                        colfamily = queryStr.substring(beginIndex, endIndex);
-
+                        if ((beginIndex != -1) && (endIndex != -1)) {
+                            colfamily = queryStr.substring(beginIndex + 12, endIndex);
+                        }
                     } else if (queryStr.startsWith("select")) {
 
-                        int beginIndex = queryStr.indexOf("from ") + 5;
+                        int beginIndex = queryStr.indexOf("from ");
                         int endIndex = queryStr.indexOf(" where");
 
-                        colfamily = queryStr.substring(beginIndex, endIndex);
-
+                        if ((beginIndex != -1) && (endIndex != -1)) {
+                            colfamily = queryStr.substring(beginIndex + 5, endIndex);
+                        }
                     }
                 }
 
