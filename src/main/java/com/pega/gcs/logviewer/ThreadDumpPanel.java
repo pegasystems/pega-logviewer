@@ -174,7 +174,7 @@ public class ThreadDumpPanel extends JPanel {
         PegaThreadDumpParser pegaThreadDumpParser = PegaThreadDumpParser.getInstance();
 
         if (pegaThreadDumpParser.isInitialised()) {
-            
+
             tabText = "Thread Dump Report";
             tabLabel = new JLabel(tabText);
             tabLabel.setFont(tabFont);
