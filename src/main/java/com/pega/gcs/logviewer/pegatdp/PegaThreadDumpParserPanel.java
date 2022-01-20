@@ -50,7 +50,6 @@ import javax.swing.table.TableColumnModel;
 import org.apache.commons.io.FileUtils;
 
 import com.pega.gcs.fringecommon.guiutilities.ClickableFilePathPanel;
-import com.pega.gcs.fringecommon.guiutilities.ClickablePathPanel;
 import com.pega.gcs.fringecommon.guiutilities.MyColor;
 import com.pega.gcs.fringecommon.guiutilities.RecentFile;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
@@ -452,66 +451,13 @@ public class PegaThreadDumpParserPanel extends JPanel {
         gbc1.gridx = 0;
         gbc1.gridy = 0;
         gbc1.weightx = 1.0D;
-        gbc1.weighty = 0.0D;
+        gbc1.weighty = 1.0D;
         gbc1.fill = GridBagConstraints.BOTH;
         gbc1.anchor = GridBagConstraints.NORTHWEST;
         gbc1.insets = new Insets(10, 5, 2, 2);
         gbc1.gridwidth = GridBagConstraints.REMAINDER;
 
-        GridBagConstraints gbc2 = new GridBagConstraints();
-        gbc2.gridx = 0;
-        gbc2.gridy = 1;
-        gbc2.weightx = 0.0D;
-        gbc2.weighty = 0.0D;
-        gbc2.fill = GridBagConstraints.BOTH;
-        gbc2.anchor = GridBagConstraints.NORTHWEST;
-        gbc2.insets = new Insets(2, 5, 2, 2);
-
-        GridBagConstraints gbc3 = new GridBagConstraints();
-        gbc3.gridx = 1;
-        gbc3.gridy = 1;
-        gbc3.weightx = 1.0D;
-        gbc3.weighty = 0.0D;
-        gbc3.fill = GridBagConstraints.BOTH;
-        gbc3.anchor = GridBagConstraints.NORTHWEST;
-        gbc3.insets = new Insets(2, 2, 2, 2);
-
-        GridBagConstraints gbc4 = new GridBagConstraints();
-        gbc4.gridx = 0;
-        gbc4.gridy = 2;
-        gbc4.weightx = 1.0D;
-        gbc4.weighty = 0.0D;
-        gbc4.fill = GridBagConstraints.BOTH;
-        gbc4.anchor = GridBagConstraints.NORTHWEST;
-        gbc4.insets = new Insets(2, 5, 2, 2);
-        gbc4.gridwidth = GridBagConstraints.REMAINDER;
-
-        GridBagConstraints gbc5 = new GridBagConstraints();
-        gbc5.gridx = 0;
-        gbc5.gridy = 3;
-        gbc5.weightx = 1.0D;
-        gbc5.weighty = 1.0D;
-        gbc5.fill = GridBagConstraints.BOTH;
-        gbc5.anchor = GridBagConstraints.NORTHWEST;
-        gbc5.insets = new Insets(2, 5, 2, 2);
-        gbc5.gridwidth = GridBagConstraints.REMAINDER;
-
-        JLabel label1 = new JLabel(
-                "This tab is loaded from 'Pega 7 Thread Dump Parser' tool built by Domenico Giffone");
-        JLabel label2 = new JLabel("Please download the tool from Pega Mesh.");
-        ClickablePathPanel meshClickablePathPanel = new ClickablePathPanel();
-
-        String meshLink = "https://mesh.pega.com/docs/DOC-110737";
-
-        meshClickablePathPanel.setUrl(meshLink);
-
-        JLabel label3 = new JLabel("Put pegatdp.jar to 'plugins' directory and restart Pega-Logviewer.");
-
-        defaultThreadDumpReportJPanel.add(label1, gbc1);
-        defaultThreadDumpReportJPanel.add(label2, gbc2);
-        defaultThreadDumpReportJPanel.add(meshClickablePathPanel, gbc3);
-        defaultThreadDumpReportJPanel.add(label3, gbc4);
-        defaultThreadDumpReportJPanel.add(new JPanel(), gbc5);
+        defaultThreadDumpReportJPanel.add(new JPanel(), gbc1);
 
         return defaultThreadDumpReportJPanel;
     }

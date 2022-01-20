@@ -53,6 +53,7 @@ import com.pega.gcs.logviewer.model.Log4jLogRequestorLockEntry;
 import com.pega.gcs.logviewer.model.Log4jLogThreadDumpEntry;
 import com.pega.gcs.logviewer.model.ThreadDumpThreadInfo;
 import com.pega.gcs.logviewer.parser.LogThreadDumpParser;
+import com.pega.gcs.logviewer.pegatdp.PegaThreadDumpParser;
 import com.pega.gcs.logviewer.pegatdp.PegaThreadDumpParserPanel;
 
 public class ThreadDumpPanel extends JPanel {
@@ -170,30 +171,35 @@ public class ThreadDumpPanel extends JPanel {
         tabCounter++;
 
         // Pega 7 Thread Dump Parser
-        tabText = "Thread Dump Report";
-        tabLabel = new JLabel(tabText);
-        tabLabel.setFont(tabFont);
-        tabLabel.setSize(dim);
-        tabLabel.setPreferredSize(dim);
-        tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        PegaThreadDumpParser pegaThreadDumpParser = PegaThreadDumpParser.getInstance();
 
-        ThreadDumpTable threadDumpTable = getThreadDumpTable();
+        if (pegaThreadDumpParser.isInitialised()) {
+            
+            tabText = "Thread Dump Report";
+            tabLabel = new JLabel(tabText);
+            tabLabel.setFont(tabFont);
+            tabLabel.setSize(dim);
+            tabLabel.setPreferredSize(dim);
+            tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-        boolean v7ThreadDump = threadDumpTableModel.isV7ThreadDump();
+            ThreadDumpTable threadDumpTable = getThreadDumpTable();
 
-        List<Integer> threadColumnList = new ArrayList<>();
-        threadColumnList.add(0);
+            boolean v7ThreadDump = threadDumpTableModel.isV7ThreadDump();
 
-        ThreadDumpRequestorLockTableMouseListener threadDumpRequestorLockTableMouseListener;
-        threadDumpRequestorLockTableMouseListener = new ThreadDumpRequestorLockTableMouseListener(threadDumpTable,
-                threadDumpTabbedPane, threadColumnList);
+            List<Integer> threadColumnList = new ArrayList<>();
+            threadColumnList.add(0);
 
-        JPanel pegaThreadDumpParserPanel = new PegaThreadDumpParserPanel(logEntryText, log4jLogThreadDumpEntry,
-                v7ThreadDump, logTableModel, threadDumpRequestorLockTableMouseListener);
+            ThreadDumpRequestorLockTableMouseListener threadDumpRequestorLockTableMouseListener;
+            threadDumpRequestorLockTableMouseListener = new ThreadDumpRequestorLockTableMouseListener(threadDumpTable,
+                    threadDumpTabbedPane, threadColumnList);
 
-        threadDumpTabbedPane.addTab(tabText, pegaThreadDumpParserPanel);
-        threadDumpTabbedPane.setTabComponentAt(tabCounter, tabLabel);
-        tabCounter++;
+            JPanel pegaThreadDumpParserPanel = new PegaThreadDumpParserPanel(logEntryText, log4jLogThreadDumpEntry,
+                    v7ThreadDump, logTableModel, threadDumpRequestorLockTableMouseListener);
+
+            threadDumpTabbedPane.addTab(tabText, pegaThreadDumpParserPanel);
+            threadDumpTabbedPane.setTabComponentAt(tabCounter, tabLabel);
+            tabCounter++;
+        }
 
         int defaultSelectedTab = threadDumpSelectedTab.get();
         int tabCount = threadDumpTabbedPane.getTabCount();
