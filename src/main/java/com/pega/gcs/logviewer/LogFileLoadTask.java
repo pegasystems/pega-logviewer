@@ -39,6 +39,7 @@ import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
 import com.pega.gcs.fringecommon.utilities.KnuthMorrisPrattAlgorithm;
 import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern.LogType;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
 import com.pega.gcs.logviewer.parser.LogParser;
@@ -99,11 +100,12 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
 
             AbstractLogPattern abstractLogPattern = logParser.getLogPattern();
 
-            if (abstractLogPattern != null) {
+            if ((abstractLogPattern != null) && (!abstractLogPattern.getLogType().equals(LogType.PEGA_ALERT))) {
+
                 LOG.info("Using Log Pattern: " + abstractLogPattern);
-                LogEntryModel logEntryModel;
-                logEntryModel = logParser.getLogEntryModel();
-                logTableModel.setLogEntryModel(logEntryModel);
+
+                updateLogTableModel(logParser);
+
             } else {
                 logParser = null;
             }

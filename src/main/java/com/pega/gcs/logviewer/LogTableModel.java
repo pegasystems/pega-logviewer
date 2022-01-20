@@ -68,6 +68,7 @@ public class LogTableModel extends FilterTableModel<LogEntryKey> {
     // explicitly setting the lem as the type of model will be known only after
     // parsing the log file
     public void setLogEntryModel(LogEntryModel logEntryModel) {
+        LOG.debug("setting LogEntryModel: " + logEntryModel);
         this.logEntryModel = logEntryModel;
 
         PropertyChangeSupport propertyChangeSupport = getPropertyChangeSupport();
