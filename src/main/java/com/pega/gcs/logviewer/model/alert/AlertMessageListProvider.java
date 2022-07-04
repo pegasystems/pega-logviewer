@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.xml.XMLConstants;
 import javax.xml.transform.stream.StreamSource;
@@ -35,12 +36,13 @@ public class AlertMessageListProvider {
 
     private static final String ALERT_MESSAGE_LIST_XML = "/AlertMessageList.xml";
 
-    private static AlertMessageListProvider _INSTANCE;
+    // checking for null is not thread safe; static initialisation
+    private static AlertMessageListProvider _INSTANCE = new AlertMessageListProvider();
 
     private Map<Integer, AlertMessage> alertMessageMap;
 
     // can store additional unknown alert message id's found during parsing
-    private static int adhocAlertId;
+    private AtomicInteger adhocAlertId;
 
     private Map<String, Integer> messageIdAlertIdMap;
 
@@ -53,6 +55,8 @@ public class AlertMessageListProvider {
 
         alertMessageMap = null;
         messageIdAlertIdMap = null;
+
+        adhocAlertId = new AtomicInteger(10000);
 
         InputStream amlInputStream = FileUtilities.getResourceAsStreamFromUserDir(getClass(), ALERT_MESSAGE_LIST_XML);
 
@@ -115,23 +119,48 @@ public class AlertMessageListProvider {
         } else {
             LOG.info("AlertMessageList.xml could not be found");
         }
-
-        adhocAlertId = 10000;
-
     }
 
-    /*
-     * returns unmodifiableMap use addNewAlertMessage to append to this map
-     */
-    public Map<Integer, AlertMessage> getAlertMessageMap() {
-        return Collections.unmodifiableMap(alertMessageMap);
+    public Integer getAlertId(String messageId) {
+
+        Integer alertId = messageIdAlertIdMap.get(messageId);
+
+        if (alertId == null) {
+            AlertMessage alertMessage = addNewAlertMessage(messageId);
+            alertId = alertMessage.getId();
+        }
+
+        return alertId;
     }
 
-    /*
-     * returns unmodifiableMap use addNewAlertMessage to append to this map
-     */
-    public Map<String, Integer> getMessageIdAlertIdMap() {
-        return Collections.unmodifiableMap(messageIdAlertIdMap);
+    public AlertMessage getAlertMessage(String messageId) {
+
+        Integer alertId = getAlertId(messageId);
+
+        AlertMessage alertMessage = alertMessageMap.get(alertId);
+
+        return alertMessage;
+    }
+
+    public AlertMessage getAlertMessage(Integer alertId) {
+
+        AlertMessage alertMessage = alertMessageMap.get(alertId);
+
+        return alertMessage;
+    }
+
+    private synchronized AlertMessage addNewAlertMessage(String messageId) {
+
+        int id = adhocAlertId.incrementAndGet();
+        AlertMessage alertMessage = new AlertMessage();
+        alertMessage.setId(id);
+        alertMessage.setMessageID(messageId);
+        alertMessage.setSeverity(Severity.NORMAL);
+
+        alertMessageMap.put(id, alertMessage);
+        messageIdAlertIdMap.put(messageId, id);
+
+        return alertMessage;
     }
 
     public Map<String, List<String>> getAlertMessageTypeMap() {
@@ -147,23 +176,14 @@ public class AlertMessageListProvider {
     }
 
     public static AlertMessageListProvider getInstance() {
-        if (_INSTANCE == null) {
-            _INSTANCE = new AlertMessageListProvider();
-        }
+
+        // checking for null is not thread safe; static initialisation
+        //
+        // if (_INSTANCE == null) {
+        // _INSTANCE = new AlertMessageListProvider();
+        // }
 
         return _INSTANCE;
-    }
-
-    public int getNextAdhocAlertId() {
-        return adhocAlertId++;
-    }
-
-    public void addNewAlertMessage(AlertMessage alertMessage) {
-        Integer id = alertMessage.getId();
-        String messageId = alertMessage.getMessageID();
-
-        alertMessageMap.put(id, alertMessage);
-        messageIdAlertIdMap.put(messageId, id);
     }
 
     public static void main(String[] args) {

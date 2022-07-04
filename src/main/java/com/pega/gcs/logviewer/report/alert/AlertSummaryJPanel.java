@@ -170,12 +170,7 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
         titleJLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
         AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
-        Map<Integer, AlertMessage> alertMessageMap = alertMessageListProvider.getAlertMessageMap();
-        Map<String, Integer> messageIdAlertIdMap = alertMessageListProvider.getMessageIdAlertIdMap();
-
-        Integer alertId = messageIdAlertIdMap.get(alertMessageId);
-
-        AlertMessage alertMessage = alertMessageMap.get(alertId);
+        AlertMessage alertMessage = alertMessageListProvider.getAlertMessage(alertMessageId);
 
         JPanel alertMessageJPanel = getAlertMessageJPanel(alertMessage);
 
@@ -530,9 +525,7 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
 
         String messageId = logTimeSeriesCollection.getName();
 
-        Map<String, Integer> messageIdAlertIdMap = AlertMessageListProvider.getInstance().getMessageIdAlertIdMap();
-
-        Integer alertId = messageIdAlertIdMap.get(messageId);
+        Integer alertId = AlertMessageListProvider.getInstance().getAlertId(messageId);
 
         if (alertId != null) {
 

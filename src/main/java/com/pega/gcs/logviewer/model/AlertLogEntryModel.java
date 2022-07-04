@@ -131,10 +131,12 @@ public class AlertLogEntryModel extends LogEntryModel {
                         alertMessageThresholdKPI, this, locale);
 
                 alertMessageReportModelMap.put(alertId, alertMessageReportModel);
+
             } catch (Exception e) {
-                Map<Integer, AlertMessage> alertMessageMap = AlertMessageListProvider.getInstance()
-                        .getAlertMessageMap();
-                String alertMessageId = alertMessageMap.get(alertId).getMessageID();
+
+                AlertMessage alertMessage = AlertMessageListProvider.getInstance().getAlertMessage(alertId);
+                String alertMessageId = (alertMessage != null) ? alertMessage.getMessageID() : null;
+
                 LOG.error("Error building alert report model for Id: " + alertId + " Alert Id: " + alertMessageId, e);
             }
         }
@@ -167,10 +169,7 @@ public class AlertLogEntryModel extends LogEntryModel {
             Integer alertId = alertLogEntry.getAlertId();
             double observedKPI = alertLogEntry.getObservedKPI();
 
-            Map<Integer, AlertMessage> alertMessageMap = AlertMessageListProvider.getInstance().getAlertMessageMap();
-
-            // alertMessage should not be null as AlertLogParser should have added unidentified AlertIds
-            AlertMessage alertMessage = alertMessageMap.get(alertId);
+            AlertMessage alertMessage = AlertMessageListProvider.getInstance().getAlertMessage(alertId);
 
             String messageId = alertMessage.getMessageID();
             boolean isCritical = Severity.CRITICAL.equals(alertMessage.getSeverity());

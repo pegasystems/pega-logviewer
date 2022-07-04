@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
@@ -39,14 +38,12 @@ public class AlertMessageReportModelFactory {
         return _INSTANCE;
     }
 
-    public AlertMessageReportModel getAlertMessageReportModel(int alertId, long thresholdKPI,
+    public AlertMessageReportModel getAlertMessageReportModel(Integer alertId, long thresholdKPI,
             AlertLogEntryModel alertLogEntryModel, Locale locale) {
 
         AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
 
-        Map<Integer, AlertMessage> alertMessageMap = alertMessageListProvider.getAlertMessageMap();
-
-        AlertMessage alertMessage = alertMessageMap.get(alertId);
+        AlertMessage alertMessage = alertMessageListProvider.getAlertMessage(alertId);
 
         return getAlertMessageReportModel(alertMessage, thresholdKPI, alertLogEntryModel, locale);
 
@@ -99,8 +96,6 @@ public class AlertMessageReportModelFactory {
 
         AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
 
-        Map<Integer, AlertMessage> alertMessageMap = alertMessageListProvider.getAlertMessageMap();
-
         AlertMessageReportModelFactory alertMessageReportModelFactory = AlertMessageReportModelFactory.getInstance();
 
         List<String> messageIdList = new ArrayList<>(AlertMessageListProvider.getInstance().getMessageIdSet());
@@ -108,13 +103,13 @@ public class AlertMessageReportModelFactory {
 
         List<String> unImplementedList = new ArrayList<>();
 
-        for (AlertMessage alertMessage : alertMessageMap.values()) {
+        for (String messageId : alertMessageListProvider.getMessageIdSet()) {
+
+            AlertMessage alertMessage = alertMessageListProvider.getAlertMessage(messageId);
 
             AlertMessageReportModel alertMessageReportModel;
             alertMessageReportModel = alertMessageReportModelFactory.getAlertMessageReportModel(alertMessage, 0, null,
                     Locale.getDefault());
-
-            String messageId = alertMessage.getMessageID();
 
             if (alertMessageReportModel != null) {
                 LOG.info("Report Model for message id: " + messageId + " " + alertMessageReportModel.toString());

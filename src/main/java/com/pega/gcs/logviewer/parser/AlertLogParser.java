@@ -16,7 +16,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,7 +27,6 @@ import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.PALStatisticName;
-import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 import com.pega.gcs.logviewer.model.alert.AlertMessageListProvider;
 
 public class AlertLogParser extends LogParser {
@@ -270,20 +268,7 @@ public class AlertLogParser extends LogParser {
 
                 AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
 
-                Map<String, Integer> messageIdAlertIdMap = alertMessageListProvider.getMessageIdAlertIdMap();
-
-                Integer alertId = messageIdAlertIdMap.get(messageIdStr);
-
-                if (alertId == null) {
-                    // get an arbitrary id.
-                    alertId = alertMessageListProvider.getNextAdhocAlertId();
-
-                    AlertMessage alertMessage = new AlertMessage();
-                    alertMessage.setId(alertId);
-                    alertMessage.setMessageID(messageIdStr);
-                    alertMessageListProvider.addNewAlertMessage(alertMessage);
-
-                }
+                Integer alertId = alertMessageListProvider.getAlertId(messageIdStr);
 
                 String observedKPIStr = fields[observedKPIIndex];
                 long observedKPI = Long.parseLong(observedKPIStr);
