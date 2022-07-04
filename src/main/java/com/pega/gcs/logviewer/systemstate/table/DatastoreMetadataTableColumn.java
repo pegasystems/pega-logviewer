@@ -18,6 +18,7 @@ public class DatastoreMetadataTableColumn extends DefaultTableColumn {
     public static final DatastoreMetadataTableColumn DBTYPE             = new DatastoreMetadataTableColumn("Db Type"               , 200, SwingConstants.CENTER);
     public static final DatastoreMetadataTableColumn SCHEMANAME         = new DatastoreMetadataTableColumn("Schema Name"           , 200, SwingConstants.CENTER);
     public static final DatastoreMetadataTableColumn SCHEMASIZE         = new DatastoreMetadataTableColumn("Schema Size"           , 200, SwingConstants.CENTER);
+    public static final DatastoreMetadataTableColumn TABLECOUNT         = new DatastoreMetadataTableColumn("Table Count"           , 100, SwingConstants.CENTER);
     // CHECKSTYLE:ON
     // @formatter:on
 
@@ -40,6 +41,7 @@ public class DatastoreMetadataTableColumn extends DefaultTableColumn {
         columnList.add(DATABASESIZEONDISK);
         columnList.add(SCHEMANAME);
         columnList.add(SCHEMASIZE);
+        columnList.add(TABLECOUNT);
 
         return columnList;
     }

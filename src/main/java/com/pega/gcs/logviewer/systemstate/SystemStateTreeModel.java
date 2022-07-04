@@ -11,6 +11,7 @@ import javax.swing.tree.DefaultTreeModel;
 
 import com.pega.gcs.fringecommon.guiutilities.Message;
 import com.pega.gcs.fringecommon.guiutilities.ModalProgressMonitor;
+import com.pega.gcs.fringecommon.guiutilities.RecentFile;
 import com.pega.gcs.fringecommon.guiutilities.search.SearchData;
 import com.pega.gcs.fringecommon.guiutilities.search.SearchModel;
 import com.pega.gcs.logviewer.systemstate.model.ClusterState;
@@ -22,6 +23,8 @@ import com.pega.gcs.logviewer.systemstate.model.SystemState;
 public class SystemStateTreeModel extends DefaultTreeModel {
 
     private static final long serialVersionUID = 5558755763791993018L;
+
+    private RecentFile recentFile;
 
     private SystemState systemState;
 
@@ -38,13 +41,19 @@ public class SystemStateTreeModel extends DefaultTreeModel {
 
         super(new DefaultMutableTreeNode(SystemState.SYSTEMSTATE_ROOT_NODE_NAME));
 
+        recentFile = null;
+
         systemState = null;
 
         systemStateTreeNodeMap = new HashMap<>();
 
         propertyChangeSupport = new PropertyChangeSupport(this);
 
-        resetModel(systemState);
+        resetModel(systemState, null);
+    }
+
+    public RecentFile getRecentFile() {
+        return recentFile;
     }
 
     public SystemState getSystemState() {
@@ -77,7 +86,9 @@ public class SystemStateTreeModel extends DefaultTreeModel {
         propertyChangeSupport.firePropertyChange("message", null, message);
     }
 
-    public void resetModel(SystemState systemState) {
+    public void resetModel(SystemState systemState, RecentFile recentFile) {
+
+        this.recentFile = recentFile;
 
         systemStateTreeNodeMap.clear();
 

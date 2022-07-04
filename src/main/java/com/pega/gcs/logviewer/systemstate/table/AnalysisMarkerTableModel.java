@@ -21,6 +21,8 @@ public class AnalysisMarkerTableModel extends AbstractDataTableModel<AnalysisMar
 
     public AnalysisMarkerTableModel(List<AnalysisMarker> analysisMarkerList) {
 
+        super(null);
+
         columnList = AnalysisMarkerTableColumn.getColumnList();
 
         dataMap = new HashMap<>();

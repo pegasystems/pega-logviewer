@@ -163,6 +163,8 @@ public class ChartAndLegendPanel extends JPanel implements ListSelectionListener
             combinedDomainXYPlot = new CombinedDomainXYPlot(domainAxis);
             combinedDomainXYPlot.setGap(5.0);
             combinedDomainXYPlot.setOrientation(PlotOrientation.VERTICAL);
+            combinedDomainXYPlot.setDomainPannable(true);
+
         }
 
         return combinedDomainXYPlot;

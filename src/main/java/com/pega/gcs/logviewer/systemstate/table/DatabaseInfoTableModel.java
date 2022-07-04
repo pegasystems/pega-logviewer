@@ -20,6 +20,8 @@ public class DatabaseInfoTableModel extends AbstractDataTableModel<Database, Dat
 
     public DatabaseInfoTableModel(DatabaseInfo databaseInfo) {
 
+        super(null);
+
         columnList = DatabaseInfoTableColumn.getColumnList();
 
         dataMap = new HashMap<>();

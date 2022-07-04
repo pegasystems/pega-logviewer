@@ -19,6 +19,8 @@ public class IndexInfoTableModel extends AbstractDataTableModel<IndexInfo, Index
 
     public IndexInfoTableModel(TreeSet<IndexInfo> indexeInfoSet) {
 
+        super(null);
+
         columnList = IndexInfoTableColumn.getColumnList();
 
         dataMap = new HashMap<>();

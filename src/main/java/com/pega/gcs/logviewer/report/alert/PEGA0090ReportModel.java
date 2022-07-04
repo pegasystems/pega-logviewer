@@ -41,7 +41,7 @@ public class PEGA0090ReportModel extends AlertMessageReportModel {
         pattern = Pattern.compile(regex);
 
         // A partition was lost: com.hazelcast.partition.PartitionLostEvent{partitionId=6, lostBackupCount=0, eventSource=[10.0.20.5]:5701}
-        String regex82 = "A partition was lost: com.hazelcast.partition.PartitionLostEvent\\{(.*)\\}";
+        String regex82 = "A partition was lost:.*\\{(.*)\\}";
         pattern82 = Pattern.compile(regex82);
 
     }

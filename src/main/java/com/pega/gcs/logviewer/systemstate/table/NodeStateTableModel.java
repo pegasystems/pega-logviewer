@@ -31,6 +31,8 @@ public class NodeStateTableModel extends AbstractDataTableModel<NodeState, NodeS
 
     public NodeStateTableModel(SystemState systemState) {
 
+        super(null);
+
         columnList = NodeStateTableColumn.getColumnList();
 
         dataMap = new HashMap<>();

@@ -9,16 +9,12 @@ import java.awt.Insets;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
 import javax.swing.JTextField;
 
 import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
-import com.pega.gcs.fringecommon.guiutilities.datatable.DataTable;
+import com.pega.gcs.fringecommon.guiutilities.datatable.DataTablePanel;
 import com.pega.gcs.logviewer.systemstate.model.Link;
-import com.pega.gcs.logviewer.systemstate.model.RequestorPool;
 import com.pega.gcs.logviewer.systemstate.model.RequestorsResult;
-import com.pega.gcs.logviewer.systemstate.table.RequestorPoolTableColumn;
 import com.pega.gcs.logviewer.systemstate.table.RequestorPoolTableModel;
 
 public class RequestorResultPanel extends JPanel {
@@ -52,14 +48,11 @@ public class RequestorResultPanel extends JPanel {
         RequestorPoolTableModel requestorPoolTableModel;
         requestorPoolTableModel = new RequestorPoolTableModel(requestorsResult);
 
-        DataTable<RequestorPool, RequestorPoolTableColumn> requestorPoolTable;
-        requestorPoolTable = new DataTable<>(requestorPoolTableModel, JTable.AUTO_RESIZE_OFF);
-
-        JScrollPane scrollPane = new JScrollPane(requestorPoolTable);
-        scrollPane.setPreferredSize(requestorPoolTable.getPreferredSize());
+        DataTablePanel requestorPoolTablePanel = new DataTablePanel(requestorPoolTableModel, false, "RequestorPool",
+                this);
 
         add(linksPanel, gbc1);
-        add(scrollPane, gbc2);
+        add(requestorPoolTablePanel, gbc2);
     }
 
     private JPanel getLinksJPanel(RequestorsResult requestorsResult) {

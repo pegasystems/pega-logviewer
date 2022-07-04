@@ -101,7 +101,7 @@ public class AlertLogEntry extends LogEntry {
 
     @Override
     public String toString() {
-        return getKey() + " " + alertId;
+        return getKey().getLineNo() + " " + alertId;
     }
 
 }

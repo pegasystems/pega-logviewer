@@ -17,8 +17,13 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 
 import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
+import com.pega.gcs.fringecommon.guiutilities.RecentFile;
+import com.pega.gcs.fringecommon.guiutilities.datatable.DataTablePanel;
+import com.pega.gcs.logviewer.systemstate.model.ClusterState;
 import com.pega.gcs.logviewer.systemstate.model.ClusterStatus;
 import com.pega.gcs.logviewer.systemstate.model.SearchState;
+import com.pega.gcs.logviewer.systemstate.table.DSSInfoTableModel;
+import com.pega.gcs.logviewer.systemstate.table.FTSSettingsTableModel;
 
 public class SearchStatePanel extends JPanel {
 
@@ -26,7 +31,7 @@ public class SearchStatePanel extends JPanel {
 
     private JTabbedPane searchStateTabbedPane;
 
-    public SearchStatePanel(SearchState searchState) {
+    public SearchStatePanel(SearchState searchState, RecentFile recentFile) {
 
         setLayout(new GridBagLayout());
 
@@ -67,10 +72,13 @@ public class SearchStatePanel extends JPanel {
         tabLabelText = "Queue Information";
         GUIUtilities.addTab(searchStateTabbedPane, queueInformationContainerPanel, tabLabelText, labelDim);
 
-        JPanel ftsSettingsPanel;
-        ftsSettingsPanel = new FTSSettingsPanel(searchState.getCleanedFTSSettings().getFullSettings());
+        FTSSettingsTableModel ftsSettingsTableModel = new FTSSettingsTableModel(
+                searchState.getCleanedFTSSettings().getFullSettings(), recentFile);
+        DataTablePanel ftsSettingsDataTablePanel = new DataTablePanel(ftsSettingsTableModel, true, "FTS Settings",
+                this);
+
         tabLabelText = "FTS Settings";
-        GUIUtilities.addTab(searchStateTabbedPane, ftsSettingsPanel, tabLabelText, labelDim);
+        GUIUtilities.addTab(searchStateTabbedPane, ftsSettingsDataTablePanel, tabLabelText, labelDim);
 
         JPanel cleanedFTSSettingsPanel;
         cleanedFTSSettingsPanel = new CleanedFTSSettingsPanel(searchState.getCleanedFTSSettings());

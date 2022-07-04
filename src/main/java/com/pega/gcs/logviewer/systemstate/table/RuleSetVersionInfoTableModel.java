@@ -21,6 +21,8 @@ public class RuleSetVersionInfoTableModel
 
     public RuleSetVersionInfoTableModel(RuleSetVersionInfo ruleSetVersionInfo) {
 
+        super(null);
+
         columnList = RuleSetVersionInfoTableColumn.getColumnList();
 
         dataMap = new HashMap<>();

@@ -53,6 +53,15 @@ public class LogViewerTest {
         systemStateFile = new File("SystemState.json");
         isSystemStateFile = LogViewer.isSystemStateFile(systemStateFile);
         org.junit.jupiter.api.Assertions.assertTrue(isSystemStateFile);
+
+        systemStateFile = new File("SystemState_Cluster_20220512T050000.000 GMT.zip");
+        isSystemStateFile = LogViewer.isSystemStateFile(systemStateFile);
+        org.junit.jupiter.api.Assertions.assertTrue(isSystemStateFile);
+
+        systemStateFile = new File("Dev_SystemState_Cluster_20220512T050000.000 GMT.zip");
+        isSystemStateFile = LogViewer.isSystemStateFile(systemStateFile);
+        org.junit.jupiter.api.Assertions.assertTrue(isSystemStateFile);
+
     }
 
 }

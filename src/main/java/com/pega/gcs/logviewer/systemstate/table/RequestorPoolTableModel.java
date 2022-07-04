@@ -20,6 +20,8 @@ public class RequestorPoolTableModel extends AbstractDataTableModel<RequestorPoo
 
     public RequestorPoolTableModel(RequestorsResult requestorsResult) {
 
+        super(null);
+
         columnList = RequestorPoolTableColumn.getColumnList();
 
         dataMap = new HashMap<>();

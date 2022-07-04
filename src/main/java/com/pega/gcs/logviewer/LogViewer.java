@@ -88,6 +88,7 @@ public class LogViewer extends BaseFrame {
 
     public static final String PREF_CATALOG_BOOKMARK = "catalog_bookmark";
 
+    // System State
     private static final String SYSTEM_STATE_FILE_CHOOSER_FILTER_DESC = "System State JSON files";
 
     private static final String[] SYSTEM_STATE_FILE_CHOOSER_FILTER_EXT = { "json", "zip", "" };
@@ -96,7 +97,17 @@ public class LogViewer extends BaseFrame {
 
     // SystemState_60b1741a47967d78c6ee8c392d0397b6_20190501T092240.420 GMT.json
     // SystemState_cluster.json
-    private static final String SYSTEM_STATE_FILE_NAME_REGEX = "SystemState(.*?)(_.*?)?";
+    private static final String SYSTEM_STATE_FILE_NAME_REGEX = ".*?SystemState.*?(_.*?)?";
+
+    // Life Cycle Events
+    private static final String LIFECYCLEEVENTS_FILE_CHOOSER_FILTER_DESC = "Life Cycle Events files";
+
+    private static final String[] LIFECYCLEEVENTS_FILE_CHOOSER_FILTER_EXT = { "xlsx", "" };
+
+    private static final String LIFECYCLEEVENTS_FILE_CHOOSER_DIALOG_TITLE = "Select Life Cycle Events Excel file";
+
+    // Get_events_for_run_2021-01-19_18-35-50.xlsx
+    private static final String LIFECYCLEEVENTS_FILE_NAME_REGEX = "Get_events_for_run_(.*?)";
 
     private String appName;
 
@@ -235,6 +246,39 @@ public class LogViewer extends BaseFrame {
 
     }
 
+    public static boolean isLifeCycleEventsFile(File lifeCycleEventsFile) {
+
+        boolean isLifeCycleEventsFile = false;
+
+        String ext = FileUtilities.getExtension(lifeCycleEventsFile);
+
+        for (String fileExt : LIFECYCLEEVENTS_FILE_CHOOSER_FILTER_EXT) {
+
+            if (fileExt.equalsIgnoreCase(ext)) {
+                isLifeCycleEventsFile = true;
+                break;
+            }
+        }
+
+        if (isLifeCycleEventsFile) {
+
+            String filename = FileUtilities.getNameWithoutExtension(lifeCycleEventsFile);
+
+            Pattern fileNamePattern = Pattern.compile(LIFECYCLEEVENTS_FILE_NAME_REGEX, Pattern.CASE_INSENSITIVE);
+
+            Matcher fileNameMatcher = fileNamePattern.matcher(filename);
+
+            if (fileNameMatcher.matches()) {
+                isLifeCycleEventsFile = true;
+            } else {
+                isLifeCycleEventsFile = false;
+            }
+        }
+
+        return isLifeCycleEventsFile;
+
+    }
+
     public static FileFilter getSystemScanFileFilter() {
 
         FileFilter systemScanFileFilter = new FileFilter() {
@@ -285,6 +329,32 @@ public class LogViewer extends BaseFrame {
         };
 
         return systemStateFileFilter;
+    }
+
+    public static FileFilter getLifeCycleEventsFileFilter() {
+
+        FileFilter lifeCycleEventsFileFilter = new FileFilter() {
+
+            @Override
+            public String getDescription() {
+                return LIFECYCLEEVENTS_FILE_CHOOSER_FILTER_DESC;
+            }
+
+            @Override
+            public boolean accept(File file) {
+
+                boolean retVal = true;
+
+                // pass through directories
+                if (file.isFile()) {
+                    retVal = isLifeCycleEventsFile(file);
+                }
+
+                return retVal;
+            }
+        };
+
+        return lifeCycleEventsFileFilter;
     }
 
     /*
@@ -364,6 +434,7 @@ public class LogViewer extends BaseFrame {
         JMenuItem loadPegaLogFileMenuItem = getLoadPegaLogFileMenuItem();
         JMenuItem loadHotfixInventoryFileMenuItem = getLoadHotfixInventoryFileMenuItem();
         JMenuItem loadSystemStateFileMenuItem = getLoadSystemStateFileMenuItem();
+        JMenuItem loadLifeCycleEventsFileMenuItem = getLoadLifeCycleEventsFileMenuItem();
         JMenuItem socketReceiverLogFileMenuItem = getSocketReceiverLogFileMenuItem();
         RecentFileJMenu recentFileJMenu = getRecentFileJMenu();
         JMenuItem clearRecentMenuItem = getClearRecentMenuItem();
@@ -373,6 +444,7 @@ public class LogViewer extends BaseFrame {
         fileJMenu.add(loadPegaLogFileMenuItem);
         fileJMenu.add(loadHotfixInventoryFileMenuItem);
         fileJMenu.add(loadSystemStateFileMenuItem);
+        fileJMenu.add(loadLifeCycleEventsFileMenuItem);
         fileJMenu.add(socketReceiverLogFileMenuItem);
         fileJMenu.add(recentFileJMenu);
         fileJMenu.add(clearRecentMenuItem);
@@ -595,6 +667,38 @@ public class LogViewer extends BaseFrame {
         });
 
         return loadSystemStateFileMenuItem;
+    }
+
+    private JMenuItem getLoadLifeCycleEventsFileMenuItem() {
+
+        JMenuItem loadLifeCycleEventsFileMenuItem = new JMenuItem("Load Life Cycle Events File");
+
+        loadLifeCycleEventsFileMenuItem.setMnemonic(KeyEvent.VK_K);
+        loadLifeCycleEventsFileMenuItem.setToolTipText("Load Dataflow Life Cycle Events Excel File");
+
+        ImageIcon ii = FileUtilities.getImageIcon(getClass(), "open.png");
+
+        loadLifeCycleEventsFileMenuItem.setIcon(ii);
+
+        loadLifeCycleEventsFileMenuItem.addActionListener(new ActionListener() {
+
+            @Override
+            public void actionPerformed(ActionEvent event) {
+
+                File selectedFile = getSelectedFile();
+
+                FileFilter fileFilter = getLifeCycleEventsFileFilter();
+
+                File file = openFileChooser(LogViewer.this, LogViewer.class, LIFECYCLEEVENTS_FILE_CHOOSER_DIALOG_TITLE,
+                        fileFilter, selectedFile);
+
+                if (file != null) {
+                    loadLifeCycleEventsFile(file);
+                }
+            }
+        });
+
+        return loadLifeCycleEventsFileMenuItem;
     }
 
     private RecentFileJMenu getRecentFileJMenu() {
@@ -998,6 +1102,26 @@ public class LogViewer extends BaseFrame {
 
             JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile),
                     "Error loading System State file: ", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    protected void loadLifeCycleEventsFile(File file) {
+
+        this.selectedFile = file;
+
+        LogTabbedPane logTabbedPane = getLogTabbedPane();
+
+        try {
+
+            logTabbedPane.loadLifeCycleEventsFile(selectedFile);
+
+            saveOpenFileList();
+
+        } catch (Exception e) {
+            LOG.error("Error loading Life Cycle Events file: " + selectedFile, e);
+
+            JOptionPane.showMessageDialog(this, (e.getMessage() + " " + selectedFile),
+                    "Error loading Life Cycle Events file: ", JOptionPane.ERROR_MESSAGE);
         }
     }
 

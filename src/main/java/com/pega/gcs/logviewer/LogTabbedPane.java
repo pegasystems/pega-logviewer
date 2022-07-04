@@ -32,6 +32,7 @@ import javax.swing.border.Border;
 import com.pega.gcs.fringecommon.guiutilities.ButtonTabComponent;
 import com.pega.gcs.fringecommon.guiutilities.RecentFileContainer;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.logviewer.dataflow.lifecycleevent.LifeCycleEventMainPanel;
 import com.pega.gcs.logviewer.hotfixscan.HotfixScanMainPanel;
 import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
@@ -217,6 +218,8 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
             loadSystemScanFile(selectedFile);
         } else if (LogViewer.isSystemStateFile(selectedFile)) {
             loadSystemStateFile(selectedFile);
+        } else if (LogViewer.isLifeCycleEventsFile(selectedFile)) {
+            loadLifeCycleEventsFile(selectedFile);
         } else {
             loadLogFile(selectedFile);
         }
@@ -328,6 +331,28 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
             String path = systemStateFile.getPath();
 
             addTab(tabTitle, path, systemStateMainPanel);
+        }
+
+    }
+
+    public void loadLifeCycleEventsFile(final File lifeCycleEventsFile) throws Exception {
+
+        Integer index = fileTabIndexMap.get(lifeCycleEventsFile.getPath());
+
+        if (index != null) {
+
+            setSelectedIndex(index);
+
+        } else {
+
+            JPanel lifeCycleEventMainPanel = new LifeCycleEventMainPanel(lifeCycleEventsFile, recentFileContainer,
+                    logViewerSetting);
+
+            String tabTitle = lifeCycleEventsFile.getName();
+
+            String path = lifeCycleEventsFile.getPath();
+
+            addTab(tabTitle, path, lifeCycleEventMainPanel);
         }
 
     }

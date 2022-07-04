@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.SwingConstants;
 
 import com.pega.gcs.fringecommon.guiutilities.DefaultTableColumn;
+import com.pega.gcs.fringecommon.guiutilities.RecentFile;
 import com.pega.gcs.fringecommon.guiutilities.datatable.AbstractDataTableModel;
 import com.pega.gcs.logviewer.systemstate.model.CsvData;
 import com.pega.gcs.logviewer.systemstate.model.FTSSettings;
@@ -29,7 +30,9 @@ public class FTSSettingsTableModel extends AbstractDataTableModel<CsvData, Defau
 
     private DefaultTableColumn valueTableColumn;
 
-    public FTSSettingsTableModel(FTSSettings ftsSettings) {
+    public FTSSettingsTableModel(FTSSettings ftsSettings, RecentFile recentFile) {
+
+        super(recentFile);
 
         columnList = new ArrayList<>();
 

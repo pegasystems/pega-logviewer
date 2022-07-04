@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.pega.gcs.fringecommon.guiutilities.RecentFile;
 import com.pega.gcs.fringecommon.guiutilities.datatable.AbstractDataTableModel;
 import com.pega.gcs.logviewer.systemstate.model.DSSInfo;
 import com.pega.gcs.logviewer.systemstate.model.Setting;
@@ -18,7 +19,9 @@ public class DSSInfoTableModel extends AbstractDataTableModel<Setting, DSSInfoTa
 
     private List<DSSInfoTableColumn> columnList;
 
-    public DSSInfoTableModel(DSSInfo dassInfo) {
+    public DSSInfoTableModel(DSSInfo dassInfo, RecentFile recentFile) {
+
+        super(recentFile);
 
         columnList = DSSInfoTableColumn.getColumnList();
 

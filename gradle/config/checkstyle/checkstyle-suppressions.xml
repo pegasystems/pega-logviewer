@@ -19,4 +19,8 @@
 		files="model[\\/]measure[\\/]Log4JMeasurePatternList\.java" />
 	<suppress checks=".*"
 		files="model[\\/]measure[\\/]ObjectFactory\.java" />
+	<suppress checks="AbbreviationAsWordInName"
+		files="report[\\/]alert[\\/]EVENTReportModel\.java" />
+	<suppress checks="AbbreviationAsWordInName"
+		files="report[\\/]alert[\\/]EVENTReportModelTest\.java" />
 </suppressions>

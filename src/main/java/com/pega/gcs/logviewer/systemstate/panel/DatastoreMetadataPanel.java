@@ -10,6 +10,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
 import com.pega.gcs.fringecommon.guiutilities.datatable.DataTable;
+import com.pega.gcs.fringecommon.guiutilities.datatable.DataTablePanel;
 import com.pega.gcs.logviewer.systemstate.SystemStateUtil;
 import com.pega.gcs.logviewer.systemstate.model.DatastoreMetadata;
 import com.pega.gcs.logviewer.systemstate.model.DatastoreNodeMetadata;
@@ -45,16 +46,11 @@ public class DatastoreMetadataPanel extends JPanel {
         JPanel titlePanel = SystemStateUtil.getTitlePanel(datastoreMetadata);
 
         DatastoreMetadataTableModel datastoreMetadataTableModel = new DatastoreMetadataTableModel(datastoreMetadata);
-
-        DataTable<DatastoreNodeMetadata, DatastoreMetadataTableColumn> datastoreMetadataTable;
-        datastoreMetadataTable = new DataTable<>(datastoreMetadataTableModel, JTable.AUTO_RESIZE_OFF);
-
-        JScrollPane scrollPane = new JScrollPane(datastoreMetadataTable);
-
-        scrollPane.setPreferredSize(datastoreMetadataTable.getPreferredSize());
+        DataTablePanel datastoreMetadataTablePanel = new DataTablePanel(datastoreMetadataTableModel, false,
+                "DatastoreMetadata", this);
 
         add(titlePanel, gbc1);
-        add(scrollPane, gbc2);
+        add(datastoreMetadataTablePanel, gbc2);
     }
 
 }

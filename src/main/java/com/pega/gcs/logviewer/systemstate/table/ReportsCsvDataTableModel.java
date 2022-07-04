@@ -26,6 +26,8 @@ public class ReportsCsvDataTableModel extends AbstractDataTableModel<CsvData, De
 
     public ReportsCsvDataTableModel(CsvDataMap csvDataMap) {
 
+        super(null);
+
         columnList = new ArrayList<>();
 
         int prefColumnWidth = 80;

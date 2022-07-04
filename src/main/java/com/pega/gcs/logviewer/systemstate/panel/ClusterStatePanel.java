@@ -10,8 +10,13 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 
 import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
+import com.pega.gcs.fringecommon.guiutilities.RecentFile;
+import com.pega.gcs.fringecommon.guiutilities.datatable.DataTablePanel;
 import com.pega.gcs.logviewer.systemstate.SystemStateUtil;
 import com.pega.gcs.logviewer.systemstate.model.ClusterState;
+import com.pega.gcs.logviewer.systemstate.table.CodeSetVersionInfoTableModel;
+import com.pega.gcs.logviewer.systemstate.table.DSSInfoTableModel;
+import com.pega.gcs.logviewer.systemstate.table.RuleSetVersionInfoTableModel;
 
 public class ClusterStatePanel extends JPanel {
 
@@ -19,7 +24,7 @@ public class ClusterStatePanel extends JPanel {
 
     private JTabbedPane clusterStateTabbedPane;
 
-    public ClusterStatePanel(ClusterState clusterState) {
+    public ClusterStatePanel(ClusterState clusterState, RecentFile recentFile) {
 
         setLayout(new GridBagLayout());
 
@@ -48,20 +53,29 @@ public class ClusterStatePanel extends JPanel {
         add(titlePanel, gbc1);
         add(clusterStateTabbedPane, gbc2);
 
-        JPanel codesetVersionInfoPanel = new CodeSetVersionInfoPanel(clusterState.getCodeSetVersionInfo());
-        JPanel rulesetVersionInfoPanel = new RuleSetVersionInfoPanel(clusterState.getRuleSetVersionInfo());
-        JPanel dassInfoPanel = new DSSInfoPanel(clusterState.getDassInfo());
+        CodeSetVersionInfoTableModel codeSetVersionInfoTableModel;
+        codeSetVersionInfoTableModel = new CodeSetVersionInfoTableModel(clusterState.getCodeSetVersionInfo());
+        DataTablePanel codeSetVersionInfoTablePanel = new DataTablePanel(codeSetVersionInfoTableModel, false,
+                "CodesetInfo", this);
+
+        RuleSetVersionInfoTableModel ruleSetVersionInfoTableModel;
+        ruleSetVersionInfoTableModel = new RuleSetVersionInfoTableModel(clusterState.getRuleSetVersionInfo());
+        DataTablePanel ruleSetVersionInfoTablePanel = new DataTablePanel(ruleSetVersionInfoTableModel, false,
+                "RulesetInfo", this);
+
+        DSSInfoTableModel dassInfoModel = new DSSInfoTableModel(clusterState.getDassInfo(), recentFile);
+        DataTablePanel dassInfoDataTablePanel = new DataTablePanel(dassInfoModel, true, "DASS", this);
 
         Dimension labelDim = new Dimension(200, 26);
 
         String tabLabelText = "Codeset Version Info";
-        GUIUtilities.addTab(clusterStateTabbedPane, codesetVersionInfoPanel, tabLabelText, labelDim);
+        GUIUtilities.addTab(clusterStateTabbedPane, codeSetVersionInfoTablePanel, tabLabelText, labelDim);
 
         tabLabelText = "Ruleset Version Info";
-        GUIUtilities.addTab(clusterStateTabbedPane, rulesetVersionInfoPanel, tabLabelText, labelDim);
+        GUIUtilities.addTab(clusterStateTabbedPane, ruleSetVersionInfoTablePanel, tabLabelText, labelDim);
 
         tabLabelText = "DASS Info";
-        GUIUtilities.addTab(clusterStateTabbedPane, dassInfoPanel, tabLabelText, labelDim);
+        GUIUtilities.addTab(clusterStateTabbedPane, dassInfoDataTablePanel, tabLabelText, labelDim);
 
     }
 

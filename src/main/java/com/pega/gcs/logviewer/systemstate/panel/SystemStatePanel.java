@@ -12,12 +12,15 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 
 import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
+import com.pega.gcs.fringecommon.guiutilities.datatable.DataTablePanel;
 import com.pega.gcs.logviewer.systemstate.SystemStateTreeNavigationController;
 import com.pega.gcs.logviewer.systemstate.SystemStateUtil;
 import com.pega.gcs.logviewer.systemstate.model.AnalysisMarker;
 import com.pega.gcs.logviewer.systemstate.model.AnalysisMarkerListNodeMap;
 import com.pega.gcs.logviewer.systemstate.model.CsvDataMap;
 import com.pega.gcs.logviewer.systemstate.model.SystemState;
+import com.pega.gcs.logviewer.systemstate.table.ReportsCsvDataTableModel;
+import com.pega.gcs.logviewer.systemstate.table.SystemStateErrorTableModel;
 
 public class SystemStatePanel extends JPanel {
 
@@ -65,17 +68,25 @@ public class SystemStatePanel extends JPanel {
 
         for (CsvDataMap csvDataMap : reportCsvDataMapSet) {
 
-            JPanel reportsCsvDataPanel = new ReportsCsvDataPanel(csvDataMap);
             tabLabelText = csvDataMap.getReportCsvName();
-            GUIUtilities.addTab(systemStateTabbedPane, reportsCsvDataPanel, tabLabelText, labelDim);
+
+            ReportsCsvDataTableModel reportsCsvDataTableModel = new ReportsCsvDataTableModel(csvDataMap);
+            DataTablePanel reportsCsvDataTablePanel = new DataTablePanel(reportsCsvDataTableModel, false, tabLabelText,
+                    this);
+
+            GUIUtilities.addTab(systemStateTabbedPane, reportsCsvDataTablePanel, tabLabelText, labelDim);
         }
 
         boolean systemStateError = systemState.getErrorSet() != null;
 
         if (systemStateError) {
-            JPanel systemStateErrorPanel = new SystemStateErrorPanel(systemState);
+
+            SystemStateErrorTableModel systemStateErrorTableModel = new SystemStateErrorTableModel(systemState);
+            DataTablePanel systemStateErrorTablePanel = new DataTablePanel(systemStateErrorTableModel, false,
+                    "SystemStateError", this);
+
             tabLabelText = "Error";
-            GUIUtilities.addTab(systemStateTabbedPane, systemStateErrorPanel, tabLabelText, labelDim);
+            GUIUtilities.addTab(systemStateTabbedPane, systemStateErrorTablePanel, tabLabelText, labelDim);
         }
 
         List<AnalysisMarker> analysisMarkerList = null;

@@ -7,21 +7,15 @@
 
 package com.pega.gcs.logviewer.pegatdp;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.io.Writer;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
@@ -33,23 +27,13 @@ public class PegaThreadDumpParser {
 
     private static final PegaThreadDumpParser _INSTANCE = new PegaThreadDumpParser();
 
-    private static String JSON_PARAM_TD_TIME = "JSON_PARAM_TD_TIME";
-    private static String JSON_PARAM_TD_LINE = "JSON_PARAM_TD_LINE";
-    private static String JSON_PARAM_TD_FILE = "JSON_PARAM_TD_FILE";
-
     private boolean initialised;
-
-    // private static Class<?> threadDumpParserFactoryClass;
-    // private static Class<?> threadDumpParserClass;
-    // private static Class<? extends Enum> dumpFormatEnum;
 
     private static Class<?> pegaThreadDumpParserClass;
 
     private static Class<?> threadDumpClass;
 
-    private static Class<?> commandLineClientClass;
-
-    private static Class<?> reportTemplateClass;
+    private static Class<?> htmlReportProducerFactoryProviderClass;
 
     private String version;
 
@@ -63,13 +47,6 @@ public class PegaThreadDumpParser {
             Properties props = System.getProperties();
             props.setProperty("tdp.home", pwd);
 
-            // threadDumpParserFactoryClass =
-            // Class.forName("com.pega.gcs.logs.threaddumpparser.ThreadDumpParserFactory");
-            // threadDumpParserClass =
-            // Class.forName("com.pega.gcs.logs.threaddumpparser.ThreadDumpParser");
-            // dumpFormatEnum = (Class<? extends Enum>)
-            // Class.forName("com.pega.gcs.logs.threaddumpparser.ThreadDumpParser$DumpFormat");
-
             PluginClassloader pluginClassloader = PluginClassloader.getInstance();
 
             URLClassLoader urlClassLoader = pluginClassloader.getUrlClassLoader();
@@ -77,18 +54,15 @@ public class PegaThreadDumpParser {
             pegaThreadDumpParserClass = Class.forName("com.pega.gcs.logs.threaddumpparser.PegaThreadDumpParser", true,
                     urlClassLoader);
             threadDumpClass = Class.forName("com.pega.gcs.logs.threaddumpparser.ThreadDump", true, urlClassLoader);
-            commandLineClientClass = Class.forName("com.pega.gcs.logs.threaddumpparser.cli.CommandLineClient", true,
-                    urlClassLoader);
-            reportTemplateClass = Class.forName("com.pega.gcs.logs.threaddumpparser.report.ReportTemplate", true,
-                    urlClassLoader);
 
-            String version = pegaThreadDumpParserClass.getPackage().getImplementationVersion();
+            htmlReportProducerFactoryProviderClass = Class.forName(
+                    "com.pega.gcs.logs.threaddumpparser.cli.HTMLReportProducerFactoryProvider", true, urlClassLoader);
+
+            version = pegaThreadDumpParserClass.getPackage().getImplementationVersion();
 
             LOG.info("Using Thread dump Parser version: " + version);
 
             initialised = true;
-            // } catch (ClassNotFoundException cnfe) {
-            // LOG.info(cnfe.getMessage());
 
         } catch (Exception e) {
             LOG.error("Error initialising PegaThreadDumpParser", e);
@@ -102,6 +76,10 @@ public class PegaThreadDumpParser {
 
     public boolean isInitialised() {
         return initialised;
+    }
+
+    public String getVersion() {
+        return version;
     }
 
     public Object getThreadDumpObject(String threadDumpText) {
@@ -131,34 +109,37 @@ public class PegaThreadDumpParser {
         return threadDump;
     }
 
-    public String getHtmlReport(Object threadDump, String filename, String line, String time) {
-
+    public String getHtmlReport(Object threadDump) {
         String htmlReport = null;
 
         if (isInitialised()) {
-
             try {
 
-                Field templateField = commandLineClientClass.getDeclaredField("m_Template");
-                templateField.setAccessible(true);
+                try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
-                Object commandLineClient = commandLineClientClass.getDeclaredConstructor().newInstance();
+                    Constructor<?> htmlReportProducerFactoryProviderConstructor = htmlReportProducerFactoryProviderClass
+                            .getConstructor();
+                    Object htmlReportProducerFactoryProvider = htmlReportProducerFactoryProviderConstructor
+                            .newInstance();
+                    Method providerMethod = htmlReportProducerFactoryProviderClass.getMethod("provide");
 
-                Object template = templateField.get(commandLineClient);
+                    Object htmlReportProducerFactory = providerMethod.invoke(htmlReportProducerFactoryProvider);
 
-                HashMap<String, String> params = new HashMap<>();
-                params.put(JSON_PARAM_TD_FILE, filename);
-                params.put(JSON_PARAM_TD_LINE, line);
-                params.put(JSON_PARAM_TD_TIME, time);
+                    Method getHtmlReportProducerMethod = htmlReportProducerFactory.getClass()
+                            .getMethod("getHTMLReportProducer");
 
-                StringWriter sw = new StringWriter();
+                    Object htmlReportProducer = getHtmlReportProducerMethod.invoke(htmlReportProducerFactory);
 
-                // get the html report
-                Method generateReportMethod = threadDumpClass.getDeclaredMethod("generateReport", Map.class,
-                        reportTemplateClass, Writer.class);
-                generateReportMethod.invoke(threadDump, params, template, sw);
+                    Method produceMethod = htmlReportProducer.getClass().getDeclaredMethod("produce", threadDumpClass,
+                            OutputStream.class);
+                    produceMethod.setAccessible(true);
 
-                htmlReport = sw.toString();
+                    // get the html report
+                    produceMethod.invoke(htmlReportProducer, threadDump, baos);
+
+                    htmlReport = baos.toString();
+                }
+
             } catch (InvocationTargetException ite) {
                 LOG.error("InvocationTargetException Error getting html report", ite.getTargetException());
             } catch (Exception e) {

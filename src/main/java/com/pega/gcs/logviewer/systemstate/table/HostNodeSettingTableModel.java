@@ -19,6 +19,8 @@ public class HostNodeSettingTableModel extends AbstractDataTableModel<HostNodeSe
 
     public HostNodeSettingTableModel(TreeSet<HostNodeSetting> searchIndexHostNodeSettingSet) {
 
+        super(null);
+
         columnList = HostNodeSettingTableColumn.getColumnList();
 
         dataMap = new HashMap<>();

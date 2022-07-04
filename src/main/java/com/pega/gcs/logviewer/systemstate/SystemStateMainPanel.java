@@ -81,11 +81,12 @@ public class SystemStateMainPanel extends JPanel {
                 StringBuilder messageB = null;
 
                 String filePath = recentFile.getPath();
+
                 try {
 
                     SystemState systemState = get();
 
-                    systemStateTreeModel.resetModel(systemState);
+                    systemStateTreeModel.resetModel(systemState, recentFile);
 
                     messageB = new StringBuilder();
 

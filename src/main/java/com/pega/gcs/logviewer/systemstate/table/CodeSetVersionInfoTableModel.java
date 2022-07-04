@@ -21,6 +21,8 @@ public class CodeSetVersionInfoTableModel
 
     public CodeSetVersionInfoTableModel(CodeSetVersionInfo codeSetVersionInfo) {
 
+        super(null);
+
         columnList = CodeSetVersionInfoTableColumn.getColumnList();
 
         dataMap = new HashMap<>();

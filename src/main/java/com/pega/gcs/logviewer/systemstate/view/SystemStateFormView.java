@@ -28,6 +28,7 @@ import javax.swing.tree.TreeSelectionModel;
 
 import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
 import com.pega.gcs.fringecommon.guiutilities.Message;
+import com.pega.gcs.fringecommon.guiutilities.RecentFile;
 import com.pega.gcs.fringecommon.guiutilities.search.SearchPanel;
 import com.pega.gcs.logviewer.systemstate.SystemStateTree;
 import com.pega.gcs.logviewer.systemstate.SystemStateTreeModel;
@@ -240,6 +241,8 @@ public class SystemStateFormView extends JPanel {
 
     private void switchStatePanel(SystemStateTreeModel systemStateTreeModel, Object userObject) {
 
+        RecentFile recentFile = systemStateTreeModel.getRecentFile();
+
         JPanel stateCardPanel = getStateCardPanel();
 
         HashMap<String, JComponent> statePanelMap = getStatePanelMap();
@@ -273,7 +276,7 @@ public class SystemStateFormView extends JPanel {
 
             if (statePanel == null) {
 
-                statePanel = new ClusterStatePanel(clusterState);
+                statePanel = new ClusterStatePanel(clusterState, recentFile);
 
                 statePanelMap.put(state, statePanel);
                 stateCardPanel.add(state, statePanel);
@@ -289,7 +292,7 @@ public class SystemStateFormView extends JPanel {
 
             if (statePanel == null) {
 
-                statePanel = new SearchStatePanel(searchState);
+                statePanel = new SearchStatePanel(searchState, recentFile);
 
                 statePanelMap.put(state, statePanel);
                 stateCardPanel.add(state, statePanel);

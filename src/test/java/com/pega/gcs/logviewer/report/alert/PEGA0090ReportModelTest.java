@@ -46,4 +46,24 @@ public class PEGA0090ReportModelTest {
         org.junit.jupiter.api.Assertions.assertEquals(
                 "partitionId=16, lostBackupCount=0, eventSource=[10.0.21.253]:5701", alertMessageReportEntryKey);
     }
+
+    @Test
+    public void testGetAlertMessageReportEntryKeyString3() {
+
+        String dataText = "A partition was lost: com.pega.hazelcast.internal.partition.PartitionLostEventImpl{partitionId=50, lostBackupCou"
+                + "nt=0, eventSource=[198.18.138.20]:5701}";
+
+        LOG.info("dataText: " + dataText);
+
+        PEGA0090ReportModel pega0090ReportModel = new PEGA0090ReportModel(null, 0, null, null);
+
+        String alertMessageReportEntryKey;
+        alertMessageReportEntryKey = pega0090ReportModel.getAlertMessageReportEntryKey(dataText);
+
+        LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "partitionId=50, lostBackupCount=0, eventSource=[198.18.138.20]:5701", alertMessageReportEntryKey);
+    }
+
 }

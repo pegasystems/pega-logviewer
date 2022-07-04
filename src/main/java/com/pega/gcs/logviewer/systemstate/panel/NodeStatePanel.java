@@ -18,11 +18,14 @@ import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 
 import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
+import com.pega.gcs.fringecommon.guiutilities.datatable.DataTablePanel;
 import com.pega.gcs.logviewer.systemstate.model.AnalysisMarker;
 import com.pega.gcs.logviewer.systemstate.model.CsvDataMap;
 import com.pega.gcs.logviewer.systemstate.model.JVMInfo;
 import com.pega.gcs.logviewer.systemstate.model.NodeState;
 import com.pega.gcs.logviewer.systemstate.model.RequestorsResult;
+import com.pega.gcs.logviewer.systemstate.table.DatabaseInfoTableModel;
+import com.pega.gcs.logviewer.systemstate.table.ReportsCsvDataTableModel;
 
 public class NodeStatePanel extends JPanel {
 
@@ -60,7 +63,9 @@ public class NodeStatePanel extends JPanel {
 
         JPanel jvmInfoPanel = new JVMInfoPanel(nodeState.getJvmInfo());
         JPanel osInfoPanel = new OSInfoPanel(nodeState.getOsInfo());
-        JPanel databaseInfoJPanel = new DatabaseInfoPanel(nodeState.getDatabaseInfo());
+
+        DatabaseInfoTableModel databaseInfoTableModel = new DatabaseInfoTableModel(nodeState.getDatabaseInfo());
+        DataTablePanel databaseInfoTablePanel = new DataTablePanel(databaseInfoTableModel, false, "DatabaseInfo", this);
         JPanel prLoggingPanel = new PRLoggingPanel(nodeState.getPrLogging());
         JPanel prConfigPanel = new PRConfigPanel(nodeState.getPrConfig());
 
@@ -76,7 +81,7 @@ public class NodeStatePanel extends JPanel {
         GUIUtilities.addTab(nodeInfoTabbedPane, osInfoPanel, tabLabelText, labelDim);
 
         tabLabelText = "Database Info";
-        GUIUtilities.addTab(nodeInfoTabbedPane, databaseInfoJPanel, tabLabelText, labelDim);
+        GUIUtilities.addTab(nodeInfoTabbedPane, databaseInfoTablePanel, tabLabelText, labelDim);
 
         tabLabelText = "PRLogging";
         GUIUtilities.addTab(nodeInfoTabbedPane, prLoggingPanel, tabLabelText, labelDim);
@@ -95,9 +100,14 @@ public class NodeStatePanel extends JPanel {
         CsvDataMap databaseClassReport = nodeState.getDatabaseClassReport();
 
         if (databaseClassReport != null) {
-            JPanel reportsCsvDataPanel = new ReportsCsvDataPanel(databaseClassReport);
+
             tabLabelText = databaseClassReport.getReportCsvName();
-            GUIUtilities.addTab(nodeInfoTabbedPane, reportsCsvDataPanel, tabLabelText, labelDim);
+
+            ReportsCsvDataTableModel reportsCsvDataTableModel = new ReportsCsvDataTableModel(databaseClassReport);
+            DataTablePanel reportsCsvDataTablePanel = new DataTablePanel(reportsCsvDataTableModel, false, tabLabelText,
+                    this);
+
+            GUIUtilities.addTab(nodeInfoTabbedPane, reportsCsvDataTablePanel, tabLabelText, labelDim);
         }
 
         tabLabelText = "Analysis Markers";

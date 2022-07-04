@@ -83,7 +83,7 @@ public class LogNavigationDialog extends JFrame {
 
         setPreferredSize(new Dimension(1280, 800));
 
-        setTitle(modelName + " - Log Entry Details [" + logEntry.getKey() + "]");
+        setTitle(modelName + " - Log Entry Details [" + logEntry.getKey().getLineNo() + "]");
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
 

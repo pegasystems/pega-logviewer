@@ -242,7 +242,7 @@ public class LogTableMouseListener extends MouseAdapter {
 
                     LogEntry logEntry = (LogEntry) logTableModel.getValueAt(selectedRowList.get(0), 0);
 
-                    String postfix = logEntry.getKey().toString();
+                    String postfix = String.valueOf(logEntry.getKey().getLineNo());
 
                     String filePath = logTableModel.getFilePath();
                     File logFile = new File(filePath);

@@ -20,6 +20,8 @@ public class SystemStateErrorTableModel extends AbstractDataTableModel<SystemSta
 
     public SystemStateErrorTableModel(SystemState systemState) {
 
+        super(null);
+
         columnList = SystemStateErrorTableColumn.getColumnList();
 
         dataMap = new HashMap<>();

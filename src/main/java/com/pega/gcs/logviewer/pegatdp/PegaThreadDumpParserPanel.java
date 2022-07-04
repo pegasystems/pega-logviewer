@@ -58,8 +58,6 @@ import com.pega.gcs.logviewer.LogTableModel;
 import com.pega.gcs.logviewer.ThreadDumpRequestorLockTableMouseListener;
 import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
 import com.pega.gcs.logviewer.model.Log4jLogThreadDumpEntry;
-import com.pega.gcs.logviewer.model.LogEntryKey;
-import com.pega.gcs.logviewer.model.LogEntryModel;
 
 public class PegaThreadDumpParserPanel extends JPanel {
 
@@ -83,8 +81,6 @@ public class PegaThreadDumpParserPanel extends JPanel {
 
     private ClickableFilePathPanel reportClickableFilePathPanel;
 
-    private PegaThreadDumpParser pegaThreadDumpParser;
-
     private Object ptdpThreadDump;
 
     // passing the text separately as it is already uncompressed in the caller.
@@ -105,7 +101,7 @@ public class PegaThreadDumpParserPanel extends JPanel {
         String text = "Full Java thread dump with locks info";
         int java7ThreadDumpIndex = logEntryText.indexOf(text);
 
-        pegaThreadDumpParser = PegaThreadDumpParser.getInstance();
+        PegaThreadDumpParser pegaThreadDumpParser = PegaThreadDumpParser.getInstance();
 
         if ((v7ThreadDump) && (java7ThreadDumpIndex != -1)) {
 
@@ -224,7 +220,17 @@ public class PegaThreadDumpParserPanel extends JPanel {
         gbc1.anchor = GridBagConstraints.NORTHWEST;
         gbc1.insets = new Insets(5, 2, 5, 2);
 
-        JLabel copyrightLabel = new JLabel("by 'Pega 7 Thread Dump Parser'");
+        PegaThreadDumpParser pegaThreadDumpParser = PegaThreadDumpParser.getInstance();
+
+        StringBuilder labelSB = new StringBuilder();
+        labelSB.append("'Pega Thread Dump Parser'");
+
+        if (pegaThreadDumpParser.isInitialised()) {
+            labelSB.append(" ");
+            labelSB.append(pegaThreadDumpParser.getVersion());
+        }
+
+        JLabel copyrightLabel = new JLabel(labelSB.toString());
         copyrightLabel.setHorizontalAlignment(SwingConstants.CENTER);
         copyrightJPanel.add(copyrightLabel, gbc1);
 
@@ -393,6 +399,8 @@ public class PegaThreadDumpParserPanel extends JPanel {
         if (ptdpThreadDump != null) {
             JTabbedPane tabbedPane = new JTabbedPane();
 
+            PegaThreadDumpParser pegaThreadDumpParser = PegaThreadDumpParser.getInstance();
+
             List<FindingAdapter> findingAdapterList = pegaThreadDumpParser.getFindingAdapterList(ptdpThreadDump);
 
             int tabCounter = 0;
@@ -485,14 +493,11 @@ public class PegaThreadDumpParserPanel extends JPanel {
             if (returnValue == JOptionPane.YES_OPTION) {
 
                 String filename = logTableModel.getModelName();
-                LogEntryModel lem = logTableModel.getLogEntryModel();
 
-                LogEntryKey logEntryKey = log4jLogThreadDumpEntry.getKey();
+                // String reportHtml = pegaThreadDumpParser.getHtmlReport(ptdpThreadDump, filename, line, time);
+                PegaThreadDumpParser pegaThreadDumpParser = PegaThreadDumpParser.getInstance();
 
-                String line = Integer.toString(logEntryKey.getLineNo());
-                String time = lem.getLogEntryTimeDisplayString(logEntryKey);
-
-                String reportHtml = pegaThreadDumpParser.getHtmlReport(ptdpThreadDump, filename, line, time);
+                String reportHtml = pegaThreadDumpParser.getHtmlReport(ptdpThreadDump);
 
                 try {
                     FileUtils.writeStringToFile(exportFile, reportHtml, logTableModel.getCharset());
@@ -516,7 +521,7 @@ public class PegaThreadDumpParserPanel extends JPanel {
         StringBuilder sb = new StringBuilder();
         sb.append(fileName);
         sb.append("-");
-        sb.append(log4jLogThreadDumpEntry.getKey());
+        sb.append(log4jLogThreadDumpEntry.getKey().getLineNo());
         sb.append(".html");
 
         String defaultReportFileName = sb.toString();

@@ -151,6 +151,9 @@ public class PEGA0075ReportModel extends AlertMessageReportModel {
             }
         }
 
+        alertMessageReportEntryKey = (alertMessageReportEntryKey != null) ? alertMessageReportEntryKey.trim()
+                : alertMessageReportEntryKey;
+
         return alertMessageReportEntryKey;
 
     }

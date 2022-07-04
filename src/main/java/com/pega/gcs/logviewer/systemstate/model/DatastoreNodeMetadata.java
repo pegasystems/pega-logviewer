@@ -18,6 +18,9 @@ public class DatastoreNodeMetadata extends IndexEntry implements Comparable<Data
     @JsonProperty("schemaMetadata")
     private SchemaMetadata schemaMetadata;
 
+    @JsonProperty("tableCount")
+    private Integer tableCount;
+
     public DatastoreNodeMetadata() {
 
     }
@@ -36,6 +39,10 @@ public class DatastoreNodeMetadata extends IndexEntry implements Comparable<Data
 
     public SchemaMetadata getSchemaMetadata() {
         return schemaMetadata;
+    }
+
+    public Integer getTableCount() {
+        return tableCount;
     }
 
     @Override

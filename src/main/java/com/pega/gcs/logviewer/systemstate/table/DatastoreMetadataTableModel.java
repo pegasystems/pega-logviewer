@@ -22,6 +22,8 @@ public class DatastoreMetadataTableModel
 
     public DatastoreMetadataTableModel(DatastoreMetadata datastoreMetadata) {
 
+        super(null);
+
         columnList = DatastoreMetadataTableColumn.getColumnList();
 
         dataMap = new HashMap<>();
@@ -68,6 +70,9 @@ public class DatastoreMetadataTableModel
         } else if (dataTableColumn.equals(DatastoreMetadataTableColumn.SCHEMASIZE)) {
             SchemaMetadata schemaMetadata = data.getSchemaMetadata();
             columndata = (schemaMetadata != null) ? schemaMetadata.getSchemaSize() : null;
+        } else if (dataTableColumn.equals(DatastoreMetadataTableColumn.TABLECOUNT)) {
+            Integer tableCount = data.getTableCount();
+            columndata = (tableCount != null) ? tableCount.toString() : null;
         }
 
         return columndata;

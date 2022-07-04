@@ -34,6 +34,8 @@ public class PEGA0073ReportModel extends AlertMessageReportModel {
 
     private Pattern errorPattern;
 
+    private Pattern staleThreadPattern;
+
     public PEGA0073ReportModel(AlertMessage alertMessage, long thresholdKPI, AlertLogEntryModel alertLogEntryModel,
             Locale locale) {
 
@@ -47,6 +49,9 @@ public class PEGA0073ReportModel extends AlertMessageReportModel {
 
         regex = "At \\[(.*)\\] run \\[(.*)\\] with data flow \\[(.*)\\] encountered an error on stage \\[(.*)\\]";
         errorPattern = Pattern.compile(regex);
+
+        regex = ".*Stale thread detected: Thread\\[(.*?)\\]<CR>.*";
+        staleThreadPattern = Pattern.compile(regex);
     }
 
     @Override
@@ -104,8 +109,15 @@ public class PEGA0073ReportModel extends AlertMessageReportModel {
 
                 if (matches) {
                     alertMessageReportEntryKey = errorPatternMatcher.group(2).trim();
-                }
+                } else {
 
+                    Matcher staleThreadPatternMatcher = staleThreadPattern.matcher(dataText);
+                    matches = staleThreadPatternMatcher.find();
+
+                    if (matches) {
+                        alertMessageReportEntryKey = staleThreadPatternMatcher.group(1).trim();
+                    }
+                }
             }
         }
 

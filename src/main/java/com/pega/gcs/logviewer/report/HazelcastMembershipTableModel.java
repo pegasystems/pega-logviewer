@@ -20,6 +20,8 @@ public class HazelcastMembershipTableModel
 
     public HazelcastMembershipTableModel(List<HazelcastMemberInfo> hazelcastMemberInfoList) {
 
+        super(null);
+
         columnList = HazelcastMembershipTableColumn.getColumnList();
 
         dataMap = new HashMap<>();
