@@ -72,15 +72,13 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
 
-        List<Integer> alertMessageKeyList = getFtmEntryKeyList();
+        List<Integer> alertIdList = getFtmEntryKeyList();
 
-        Integer key = alertMessageKeyList.get(rowIndex);
+        Integer alertId = alertIdList.get(rowIndex);
 
         AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
 
-        Map<Integer, AlertMessage> alertMessageMap = alertMessageListProvider.getAlertMessageMap();
-
-        AlertMessage alertMessage = alertMessageMap.get(key);
+        AlertMessage alertMessage = alertMessageListProvider.getAlertMessage(alertId);
 
         String value = getColumnValue(alertMessage, columnIndex);
 
@@ -264,23 +262,18 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
 
     private void initialise() {
 
-        List<Integer> alertMessageKeyList = getFtmEntryKeyList();
+        List<Integer> alertIdList = getFtmEntryKeyList();
 
         AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
 
-        Map<Integer, AlertMessage> alertMessageMap = alertMessageListProvider.getAlertMessageMap();
+        for (String messageId : alertMessageListProvider.getMessageIdSet()) {
 
-        if (alertMessageMap != null) {
+            AlertMessage alertMessage = alertMessageListProvider.getAlertMessage(messageId);
+            Integer alertId = alertMessage.getId();
 
-            for (Map.Entry<Integer, AlertMessage> entry : alertMessageMap.entrySet()) {
+            alertIdList.add(alertId);
 
-                Integer alertMessageKey = entry.getKey();
-                AlertMessage alertMessage = entry.getValue();
-
-                alertMessageKeyList.add(alertMessageKey);
-
-                updateColumnFilterMap(alertMessageKey, alertMessage);
-            }
+            updateColumnFilterMap(alertId, alertMessage);
         }
 
         updateKeyIndexMap();

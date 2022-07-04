@@ -18,7 +18,6 @@ import java.awt.Insets;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
@@ -279,12 +278,11 @@ public class AlertLogEntryPanel extends JPanel {
             }
         }
 
-        AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
-        Map<Integer, AlertMessage> alertMessageMap = alertMessageListProvider.getAlertMessageMap();
-
         Integer alertId = alertLogEntry.getAlertId();
 
-        AlertMessage alertMessage = alertMessageMap.get(alertId);
+        AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
+
+        AlertMessage alertMessage = alertMessageListProvider.getAlertMessage(alertId);
 
         if (alertMessage != null) {
 
