@@ -16,6 +16,8 @@ public class Log4jPatternManager {
 
     private Set<Log4jPattern> defaultClusterLog4jPatternSet;
 
+    private Set<Log4jPattern> defaultDataflowLog4jPatternSet;
+
     private Log4jPattern socketRecieverLog4jPattern;
 
     private Log4jPatternManager() {
@@ -23,6 +25,8 @@ public class Log4jPatternManager {
         defaultRulesLog4jPatternSet = new TreeSet<Log4jPattern>();
 
         defaultClusterLog4jPatternSet = new TreeSet<Log4jPattern>();
+
+        defaultDataflowLog4jPatternSet = new TreeSet<Log4jPattern>();
 
         LogPatternFactory logPatternFactory = LogPatternFactory.getInstance();
 
@@ -113,6 +117,20 @@ public class Log4jPatternManager {
         log4jPattern = logPatternFactory.getLog4jPattern(name, patStr, false);
         defaultClusterLog4jPatternSet.add(log4jPattern);
 
+        // DATAFLOW Log Pattern
+
+        // Cloud Watch logs - 8.6.x - DATAFLOW
+        name = "CW Logs 8.6.x - DATAFLOW";
+        patStr = "${CW_LOG} %d (%30.30c{3}) %-5p - %m%n";
+        log4jPattern = logPatternFactory.getDataflowLog4jPattern(name, patStr, true);
+        defaultDataflowLog4jPatternSet.add(log4jPattern);
+
+        // 8.6.x - DATAFLOW
+        name = "8.6.x - DATAFLOW";
+        patStr = "%d (%30.30c{3}) %-5p - %m%n";
+        log4jPattern = logPatternFactory.getDataflowLog4jPattern(name, patStr, false);
+        defaultDataflowLog4jPatternSet.add(log4jPattern);
+
         // SOCKET RECIEVER
         name = "7.x - SOCKET_RECIEVER";
         patStr = "%d [%20.20t] [%20.20X{tenantid}] [%20.20X{app}] (%30.30c{3}) %-5p %X{stack} %X{userid} - %m%n";
@@ -134,6 +152,10 @@ public class Log4jPatternManager {
 
     public Set<Log4jPattern> getDefaultClusterLog4jPatternSet() {
         return defaultClusterLog4jPatternSet;
+    }
+
+    public Set<Log4jPattern> getDefaultDataflowLog4jPatternSet() {
+        return defaultDataflowLog4jPatternSet;
     }
 
     public Log4jPattern getSocketRecieverLog4jPattern() {

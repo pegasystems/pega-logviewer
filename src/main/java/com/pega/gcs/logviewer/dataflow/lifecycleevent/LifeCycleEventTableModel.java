@@ -38,6 +38,7 @@ import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.DateTimeUtilities;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.LifeCycleEventMessage;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.ProcessingThreadLifecycleMessage;
+import com.pega.gcs.logviewer.model.LogEntryColumn;
 
 public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey> {
 
@@ -45,7 +46,9 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
 
     private static final Log4j2Helper LOG = new Log4j2Helper(LifeCycleEventTableModel.class);
 
-    private List<LifeCycleEventColumn> lifeCycleEventColumnList;
+    private List<LogEntryColumn> lifeCycleEventColumnList;
+
+    private Map<Integer, LogEntryColumn> lifeCycleEventColumnIndexMap;
 
     private List<LifeCycleEventKey> lifeCycleEventkeyList;
 
@@ -84,7 +87,20 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
         super(recentFile);
         this.searchData = searchData;
 
-        lifeCycleEventColumnList = LifeCycleEventColumn.getLifeCycleEventColumnList();
+        lifeCycleEventColumnList = new ArrayList<>();
+
+        lifeCycleEventColumnIndexMap = new HashMap<>();
+
+        int columnIndex = 0;
+
+        for (LogEntryColumn lifeCycleEventColumn : LogEntryColumn.getLifeCycleEventColumnList()) {
+
+            lifeCycleEventColumnList.add(lifeCycleEventColumn);
+
+            lifeCycleEventColumnIndexMap.put(columnIndex, lifeCycleEventColumn);
+
+            columnIndex++;
+        }
 
         this.lowerDomainRange = -1;
         this.upperDomainRange = -1;
@@ -101,8 +117,12 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
         return displayDateFormat;
     }
 
-    private List<LifeCycleEventColumn> getLifeCycleEventColumnList() {
+    private List<LogEntryColumn> getLifeCycleEventColumnList() {
         return lifeCycleEventColumnList;
+    }
+
+    private Map<Integer, LogEntryColumn> getLifeCycleEventColumnIndexMap() {
+        return lifeCycleEventColumnIndexMap;
     }
 
     private Map<LifeCycleEventKey, LifeCycleEventMessage> getLifeCycleEventMap() {
@@ -358,12 +378,12 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
         partitionProcessingThreadLceKeyMap = getPartitionProcessingThreadLceKeyMap();
         partitionProcessingThreadLceKeyMap.clear();
 
-        List<LifeCycleEventColumn> lifeCycleEventColumnList;
+        List<LogEntryColumn> lifeCycleEventColumnList;
         lifeCycleEventColumnList = getLifeCycleEventColumnList();
 
         for (int columnIndex = 0; columnIndex < lifeCycleEventColumnList.size(); columnIndex++) {
 
-            LifeCycleEventColumn lifeCycleEventColumn = lifeCycleEventColumnList.get(columnIndex);
+            LogEntryColumn lifeCycleEventColumn = lifeCycleEventColumnList.get(columnIndex);
 
             // preventing unnecessary buildup of filter map
             if (lifeCycleEventColumn.isFilterable()) {
@@ -439,8 +459,7 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
 
         if (lifeCycleEventMessage != null) {
 
-            LifeCycleEventColumn lifeCycleEventColumn;
-            lifeCycleEventColumn = LifeCycleEventColumn.values()[columnIndex];
+            LogEntryColumn lifeCycleEventColumn = getColumn(columnIndex);
 
             columnValue = lifeCycleEventMessage.getColumnValueForLifeCycleEventColumn(lifeCycleEventColumn);
 
@@ -459,9 +478,9 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
 
             TableColumn tableColumn = new TableColumn(i);
 
-            LifeCycleEventColumn traceTableModelColumn = getColumn(i);
+            LogEntryColumn traceTableModelColumn = getColumn(i);
 
-            String text = traceTableModelColumn.getName();
+            String text = traceTableModelColumn.getColumnId();
             int horizontalAlignment = traceTableModelColumn.getHorizontalAlignment();
             int colWidth = traceTableModelColumn.getPrefColumnWidth();
 
@@ -484,11 +503,12 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
         return tableColumnModel;
     }
 
-    public LifeCycleEventColumn getColumn(int column) {
+    private LogEntryColumn getColumn(int column) {
 
-        List<LifeCycleEventColumn> lifeCycleEventColumnList = getLifeCycleEventColumnList();
+        Map<Integer, LogEntryColumn> lifeCycleEventColumnIndexMap;
+        lifeCycleEventColumnIndexMap = getLifeCycleEventColumnIndexMap();
 
-        LifeCycleEventColumn lifeCycleEventColumn = lifeCycleEventColumnList.get(column);
+        LogEntryColumn lifeCycleEventColumn = lifeCycleEventColumnIndexMap.get(column);
 
         return lifeCycleEventColumn;
     }
@@ -596,7 +616,7 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
 
                 int columnIndex = filterColumn.getIndex();
 
-                LifeCycleEventColumn lifeCycleEventColumn = getColumn(columnIndex);
+                LogEntryColumn lifeCycleEventColumn = getColumn(columnIndex);
 
                 List<CheckBoxMenuItemPopupEntry<LifeCycleEventKey>> columnFilterEntryList;
                 columnFilterEntryList = columnFilterMap.get(filterColumn);

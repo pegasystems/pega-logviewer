@@ -68,7 +68,6 @@ public class PEGA0086ReportModel extends AlertMessageReportModel {
 
     @Override
     public String getAlertMessageReportEntryKey(String dataText) {
-
         String alertMessageReportEntryKey = null;
 
         Map<String, String> parameterPageMap = getAlertLogEntryDataValueMap(dataText);
@@ -86,13 +85,9 @@ public class PEGA0086ReportModel extends AlertMessageReportModel {
     @Override
     public String getAlertMessageReportEntryKey(ArrayList<String> logEntryValueList) {
 
-        String alertMessageReportEntryKey = null;
+        String alertMessageReportEntryKey;
 
-        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
-
-        List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
-
-        int parameterPageIndex = logEntryColumnList.indexOf(LogEntryColumn.PARAMETERPAGEDATA.getColumnId());
+        int parameterPageIndex = getParameterPageDataLogEntryColumnIndex();
 
         String parameterPage = logEntryValueList.get(parameterPageIndex);
 

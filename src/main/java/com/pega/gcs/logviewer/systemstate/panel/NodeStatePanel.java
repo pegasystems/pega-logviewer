@@ -72,7 +72,7 @@ public class NodeStatePanel extends JPanel {
         JPanel analysisMarkerPanel = new AnalysisMarkerPanel(null, analysisMarkerList);
 
         Dimension labelDim = new Dimension(150, 26);
-        String tabLabelText = null;
+        String tabLabelText;
 
         tabLabelText = "JVM Info";
         GUIUtilities.addTab(nodeInfoTabbedPane, jvmInfoPanel, tabLabelText, labelDim);

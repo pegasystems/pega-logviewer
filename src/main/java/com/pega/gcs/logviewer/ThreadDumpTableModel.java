@@ -166,11 +166,6 @@ public class ThreadDumpTableModel extends FilterTableModel<String> {
         return value;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getColumnValue(java. lang.Object, int)
-     */
     @Override
     public String getColumnValue(Object valueAtObject, int columnIndex) {
 
@@ -269,11 +264,6 @@ public class ThreadDumpTableModel extends FilterTableModel<String> {
         return threadDumpThreadInfo;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getTableColumnModel( )
-     */
     @Override
     public TableColumnModel getTableColumnModel() {
 
@@ -284,7 +274,7 @@ public class ThreadDumpTableModel extends FilterTableModel<String> {
 
         for (ThreadDumpColumn threadDumpColumn : threadDumpColumnList) {
 
-            TableCellRenderer tcr = null;
+            TableCellRenderer tcr;
 
             DefaultTableCellRenderer dtcr = getDefaultTableCellRenderer();
             dtcr.setHorizontalAlignment(threadDumpColumn.getHorizontalAlignment());
@@ -310,12 +300,6 @@ public class ThreadDumpTableModel extends FilterTableModel<String> {
 
             private static final long serialVersionUID = 1504347306097747771L;
 
-            /*
-             * (non-Javadoc)
-             * 
-             * @see javax.swing.table.DefaultTableCellRenderer# getTableCellRendererComponent(javax.swing.JTable, java.lang.Object, boolean,
-             * boolean, int, int)
-             */
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
                     boolean hasFocus, int row, int column) {

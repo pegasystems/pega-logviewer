@@ -125,19 +125,4 @@ public final class SystemStateUtil {
 
         return titlePanel;
     }
-
-    public static void main(String[] args) {
-
-        try {
-
-            File ssJsonFile = new File("C:\\_DOWNLOADS\\SystemState_Cluster_20191205T060121.000 GMT.json");
-
-            SystemStateUtil.getSystemState(ssJsonFile);
-
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 }

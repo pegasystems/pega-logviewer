@@ -94,39 +94,35 @@ public class PRConfig implements Comparable<PRConfig> {
         return compare;
     }
 
-    public void postProcess() {
+    public void postProcess() throws DocumentException {
 
-        try {
+        settingList = new ArrayList<>();
 
-            settingList = new ArrayList<>();
+        if (xmlContent != null) {
 
-            if (xmlContent != null) {
+            SAXReader saxReader = new SAXReader();
 
-                SAXReader saxReader = new SAXReader();
+            StringReader stringReader = new StringReader(xmlContent);
 
-                StringReader stringReader = new StringReader(xmlContent);
+            Document doc = saxReader.read(stringReader);
 
-                Document doc = saxReader.read(stringReader);
+            Element pegarulesElement = doc.getRootElement();
 
-                Element pegarulesElement = doc.getRootElement();
+            @SuppressWarnings("unchecked")
+            Iterator<Element> elemIt = pegarulesElement.elementIterator();
 
-                @SuppressWarnings("unchecked")
-                Iterator<Element> elemIt = pegarulesElement.elementIterator();
+            while (elemIt.hasNext()) {
 
-                while (elemIt.hasNext()) {
+                Element envElem = elemIt.next();
 
-                    Element envElem = elemIt.next();
+                String settingName = envElem.attributeValue("name");
+                String settingValue = envElem.attributeValue("value");
 
-                    String settingName = envElem.attributeValue("name");
-                    String settingValue = envElem.attributeValue("value");
+                KeyValuePair<String, String> settingPair = new KeyValuePair<>(settingName, settingValue);
 
-                    KeyValuePair<String, String> settingPair = new KeyValuePair<>(settingName, settingValue);
-
-                    settingList.add(settingPair);
-                }
+                settingList.add(settingPair);
             }
-        } catch (DocumentException e) {
-            e.printStackTrace();
         }
+
     }
 }

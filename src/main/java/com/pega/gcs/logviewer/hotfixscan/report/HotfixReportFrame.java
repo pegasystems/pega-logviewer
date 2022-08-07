@@ -132,8 +132,8 @@ public class HotfixReportFrame extends JFrame implements TableModelListener {
         // Possible overridden hotfixes
         // Possible Issue specific "not-Installed" hotfixes
 
-        String tabText = null;
-        String description = null;
+        String tabText;
+        String description;
 
         List<ProductInfo> productInfoList = scanResult.getProductInfoList();
 

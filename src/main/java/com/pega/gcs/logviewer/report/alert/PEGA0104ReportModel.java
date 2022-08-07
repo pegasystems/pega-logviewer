@@ -13,15 +13,12 @@ import java.util.Locale;
 
 import javax.swing.SwingConstants;
 
-import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 
 public class PEGA0104ReportModel extends AlertMessageReportModel {
 
     private static final long serialVersionUID = -8889727175209305065L;
-
-    private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0104ReportModel.class);
 
     private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
 
@@ -65,7 +62,6 @@ public class PEGA0104ReportModel extends AlertMessageReportModel {
 
     @Override
     public String getAlertMessageReportEntryKey(String dataText) {
-
         String alertMessageReportEntryKey = null;
 
         return alertMessageReportEntryKey;

@@ -46,7 +46,7 @@ public class LifeCycleEventKey implements Comparable<LifeCycleEventKey>, Seriali
     @Override
     public int compareTo(LifeCycleEventKey other) {
 
-        int compare = 0;
+        int compare;
 
         long thisTimestamp = getTimestamp();
         long otherTimestamp = other.getTimestamp();

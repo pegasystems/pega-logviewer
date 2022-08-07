@@ -67,7 +67,7 @@ public class HotfixRecordEntry implements Comparable<HotfixRecordEntry> {
 
     public boolean isCatalogSearchFound(int columnIndex) {
 
-        boolean searchFound = false;
+        boolean searchFound;
 
         searchFound = isSearchFoundInner(columnIndex, catalogSearchList);
 
@@ -85,7 +85,7 @@ public class HotfixRecordEntry implements Comparable<HotfixRecordEntry> {
 
     public boolean isSearchFound(int columnIndex) {
 
-        boolean searchFound = false;
+        boolean searchFound;
 
         searchFound = isSearchFoundInner(columnIndex, searchList);
 
@@ -196,7 +196,7 @@ public class HotfixRecordEntry implements Comparable<HotfixRecordEntry> {
 
     public String getHotfixRecordEntryData(int columnIndex) {
 
-        String hotfixRecordEntryDataString = null;
+        String hotfixRecordEntryDataString;
 
         List<String> recordDataList = getRecordDataList();
 

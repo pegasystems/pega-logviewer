@@ -31,4 +31,25 @@ public class PEGA0099ReportModelTest {
                 alertMessageReportEntryKey);
     }
 
+    @Test
+    public void testGetAlertMessageReportEntryKeyString2() {
+
+        String dataText = "Job Scheduler ReassignToTransfer activity PegaCA-Work:CACTIReassignToTransferor execution failed on node util-i-"
+                + "0fe31cc8201c83db8. Error message: Job Scheduler [ReassignToTransfer] activity [CACTIReassignToTransferor] execution mark"
+                + "ed as failed with message [Attempting to access a rule with a bad defined-on class: Trying to open rule \"CACTICALLTRANS"
+                + "FERITEMS\" of class \"Rule-Obj-Report-Definition\", but no defined-on class (pyClassName) was specified. ]. Exception me"
+                + "ssage [-].";
+
+        LOG.info("dataText: " + dataText);
+
+        PEGA0099ReportModel pega0099ReportModel = new PEGA0099ReportModel(null, 0, null, null);
+
+        String alertMessageReportEntryKey;
+        alertMessageReportEntryKey = pega0099ReportModel.getAlertMessageReportEntryKey(dataText);
+
+        LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
+
+        org.junit.jupiter.api.Assertions.assertEquals("ReassignToTransfer [PegaCA-Work:CACTIReassignToTransferor]",
+                alertMessageReportEntryKey);
+    }
 }

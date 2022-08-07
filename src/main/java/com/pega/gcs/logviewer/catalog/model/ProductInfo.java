@@ -53,21 +53,11 @@ public class ProductInfo implements Comparable<ProductInfo> {
         this.searchFound = searchFound;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.lang.Object#hashCode()
-     */
     @Override
     public int hashCode() {
         return Objects.hash(productName, productVersion);
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
     @Override
     public boolean equals(Object obj) {
 
@@ -100,7 +90,7 @@ public class ProductInfo implements Comparable<ProductInfo> {
     @Override
     public int compareTo(ProductInfo other) {
 
-        int compareValue = 0;
+        int compareValue;
 
         String thisProductName = getProductName();
         String otherProductName = other.getProductName();

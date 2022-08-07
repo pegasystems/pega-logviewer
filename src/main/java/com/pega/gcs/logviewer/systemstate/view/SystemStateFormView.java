@@ -1,3 +1,9 @@
+/*******************************************************************************
+ * Copyright (c) 2022 Pegasystems Inc. All rights reserved.
+ *
+ * Contributors:
+ *     Manu Varghese
+ *******************************************************************************/
 
 package com.pega.gcs.logviewer.systemstate.view;
 
@@ -29,7 +35,6 @@ import javax.swing.tree.TreeSelectionModel;
 import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
 import com.pega.gcs.fringecommon.guiutilities.Message;
 import com.pega.gcs.fringecommon.guiutilities.RecentFile;
-import com.pega.gcs.fringecommon.guiutilities.search.SearchPanel;
 import com.pega.gcs.logviewer.systemstate.SystemStateTree;
 import com.pega.gcs.logviewer.systemstate.SystemStateTreeModel;
 import com.pega.gcs.logviewer.systemstate.SystemStateTreeNavigationController;
@@ -62,7 +67,7 @@ public class SystemStateFormView extends JPanel {
 
     private HashMap<String, JComponent> statePanelMap;
 
-    private SearchPanel<String> searchPanel;
+    // private SearchPanel<String> searchPanel;
 
     public SystemStateFormView(SystemStateTreeModel systemStateTreeModel,
             SystemStateTreeNavigationController systemStateTreeNavigationController) {
@@ -72,7 +77,7 @@ public class SystemStateFormView extends JPanel {
 
         this.statePanelMap = new HashMap<>();
 
-        searchPanel = new SearchPanel<>(null, systemStateTreeModel.getSearchModel());
+        // searchPanel = new SearchPanel<>(null, systemStateTreeModel.getSearchModel());
 
         setLayout(new BorderLayout());
 

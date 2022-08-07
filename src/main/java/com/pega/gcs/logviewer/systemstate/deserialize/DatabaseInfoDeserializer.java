@@ -23,7 +23,7 @@ public class DatabaseInfoDeserializer extends JsonDeserializer<DatabaseInfo> {
     public DatabaseInfo deserialize(JsonParser jsonParser, DeserializationContext ctxt)
             throws IOException, JsonProcessingException {
 
-        DatabaseInfo databaseInfo = null;
+        DatabaseInfo databaseInfo;
 
         ObjectCodec objectCodec = jsonParser.getCodec();
 

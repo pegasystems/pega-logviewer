@@ -203,8 +203,8 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 
         int tabIndex = 0;
 
-        for (String key : fileTabIndexMap.keySet()) {
-            fileTabIndexMap.put(key, tabIndex);
+        for (Map.Entry<String, Integer> entry : fileTabIndexMap.entrySet()) {
+            entry.setValue(tabIndex);
             tabIndex++;
         }
 

@@ -381,8 +381,7 @@ public class Log4jLogEntryModel extends LogEntryModel {
             if ((!sysdateEntry) && (!log4jLogExceptionEntry) && (!log4jLogRequestorLockEntry)
                     && (!log4jLogThreadDumpEntry) && (!log4jLogSystemStartEntry)) {
 
-                List<String> logEntryColumnList = getLogEntryColumnList();
-                int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
+                int messageIndex = getLogEntryColumnIndex(LogEntryColumn.MESSAGE);
 
                 DateFormat modelDateFormat = getModelDateFormat();
                 TimeZone timezone = modelDateFormat.getTimeZone();

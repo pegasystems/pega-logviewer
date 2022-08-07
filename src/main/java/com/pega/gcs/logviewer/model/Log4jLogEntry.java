@@ -105,12 +105,12 @@ public class Log4jLogEntry extends LogEntry {
     }
 
     @Override
-    public JPanel getDetailsJPanel(LogTableModel logTableModel) {
+    public JPanel getDetailsPanel(LogTableModel logTableModel) {
 
-        JPanel detailsJPanel = null;
+        JPanel detailsPanel;
 
-        detailsJPanel = new LogEntryPanel(getLogEntryText(), logTableModel.getCharset());
+        detailsPanel = new LogEntryPanel(getLogEntryText(), logTableModel.getCharset());
 
-        return detailsJPanel;
+        return detailsPanel;
     }
 }

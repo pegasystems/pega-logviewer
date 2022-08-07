@@ -63,7 +63,6 @@ public class PEGA0125ReportModel extends AlertMessageReportModel {
 
     @Override
     public String getAlertMessageReportEntryKey(String dataText) {
-
         String alertMessageReportEntryKey = null;
 
         return alertMessageReportEntryKey;

@@ -221,6 +221,7 @@ public class HotfixScanTaskV7 extends AbstractHotfixScanTask {
         }
     }
 
+    @SuppressWarnings("unused")
     private void processHotfixInfoCSV(Reader reader) throws Exception {
 
         CSVParser csvParser = CSVFormat.DEFAULT.parse(reader);

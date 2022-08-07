@@ -793,11 +793,11 @@ public class PegaThreadDumpParserPanel extends JPanel {
         Insets insets = new Insets(5, 5, 5, 5);
         Dimension preferredSize = new Dimension(150, 20);
 
-        String name = null;
-        String value = null;
-        JPanel nameJPanel = null;
-        JPanel valueJPanel = null;
-        WeightPanel weightJPanel = null;
+        String name;
+        String value;
+        JPanel namePanel;
+        JPanel valuePanel;
+        WeightPanel weightPanel;
 
         // //ID
         // String name = "Id";
@@ -818,57 +818,57 @@ public class PegaThreadDumpParserPanel extends JPanel {
         name = "Name";
         value = findingAdapter.getName();
 
-        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-        valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
-        weightJPanel = new WeightPanel(nameJPanel, 0);
-        findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        namePanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valuePanel = getLabelValueJPanel(value, insets, preferredSize);
+        weightPanel = new WeightPanel(namePanel, 0);
+        findingAdapterJPanelMap.put(weightPanel, valuePanel);
 
         // Severity
         name = "Severity";
         Enum<?> severity = findingAdapter.getSeverity();
         value = severity != null ? String.valueOf(severity) : null;
 
-        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-        valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
-        weightJPanel = new WeightPanel(nameJPanel, 0);
-        findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        namePanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valuePanel = getLabelValueJPanel(value, insets, preferredSize);
+        weightPanel = new WeightPanel(namePanel, 0);
+        findingAdapterJPanelMap.put(weightPanel, valuePanel);
 
         // Category
         name = "Category";
         value = findingAdapter.getCategory();
 
-        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-        valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
-        weightJPanel = new WeightPanel(nameJPanel, 0);
-        findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        namePanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valuePanel = getLabelValueJPanel(value, insets, preferredSize);
+        weightPanel = new WeightPanel(namePanel, 0);
+        findingAdapterJPanelMap.put(weightPanel, valuePanel);
 
         // Symptoms
         name = "Symptoms";
         String[] symptoms = findingAdapter.getSymptoms();
         value = symptoms != null ? Arrays.toString(symptoms) : null;
 
-        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-        valueJPanel = getLabelValueJPanel(value, insets, preferredSize);
-        weightJPanel = new WeightPanel(nameJPanel, 0);
-        findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        namePanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valuePanel = getLabelValueJPanel(value, insets, preferredSize);
+        weightPanel = new WeightPanel(namePanel, 0);
+        findingAdapterJPanelMap.put(weightPanel, valuePanel);
 
         // Apply To
         name = "Apply To";
         Map<String, String> applyToMap = findingAdapter.getApplyTo();
 
-        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-        valueJPanel = getApplyToJPanel(applyToMap, new Insets(0, 0, 0, 0));
-        weightJPanel = new WeightPanel(nameJPanel, 1);
-        findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        namePanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valuePanel = getApplyToJPanel(applyToMap, new Insets(0, 0, 0, 0));
+        weightPanel = new WeightPanel(namePanel, 1);
+        findingAdapterJPanelMap.put(weightPanel, valuePanel);
 
         // Description
         name = "Description";
         value = findingAdapter.getDescription();
 
-        nameJPanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
-        valueJPanel = getTextAreaValueJPanel(value, new Insets(0, 0, 0, 0));
-        weightJPanel = new WeightPanel(nameJPanel, 0.5);
-        findingAdapterJPanelMap.put(weightJPanel, valueJPanel);
+        namePanel = getNameJPanel(name, SwingConstants.LEFT, insets, preferredSize);
+        valuePanel = getTextAreaValueJPanel(value, new Insets(0, 0, 0, 0));
+        weightPanel = new WeightPanel(namePanel, 0.5);
+        findingAdapterJPanelMap.put(weightPanel, valuePanel);
 
         return findingAdapterJPanelMap;
     }
@@ -903,7 +903,7 @@ public class PegaThreadDumpParserPanel extends JPanel {
         JTabbedPane tabbedPane = new JTabbedPane();
 
         int tabCounter = 0;
-        Component component = null;
+        Component component;
 
         // Wait-For Graph
         component = graphFindingAdapter.getWaitForGraphComponent();

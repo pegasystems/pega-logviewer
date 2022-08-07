@@ -313,7 +313,7 @@ public class LogNavigationDialog extends JFrame {
 
         LogTableModel ltm = (LogTableModel) logTable.getModel();
 
-        JPanel logEntryPanel = currentLogEntry.getDetailsJPanel(ltm);
+        JPanel logEntryPanel = currentLogEntry.getDetailsPanel(ltm);
 
         LogEntryKey logEntryKey = currentLogEntry.getKey();
 

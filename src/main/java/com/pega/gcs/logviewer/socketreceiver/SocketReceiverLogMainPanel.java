@@ -271,11 +271,6 @@ public class SocketReceiverLogMainPanel extends JPanel {
 
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.JComponent#removeNotify()
-     */
     @Override
     public void removeNotify() {
         super.removeNotify();
@@ -289,6 +284,7 @@ public class SocketReceiverLogMainPanel extends JPanel {
         clearJDialogList();
     }
 
+    @SuppressWarnings("unused")
     private LogViewerSetting getLogViewerSetting() {
         return logViewerSetting;
     }
@@ -1070,11 +1066,6 @@ public class SocketReceiverLogMainPanel extends JPanel {
 
             socketReceiverLogTask = new SocketReceiverLogTask(port, logTableModel, progressBar, progressText) {
 
-                /*
-                 * (non-Javadoc)
-                 * 
-                 * @see javax.swing.SwingWorker#done()
-                 */
                 @Override
                 protected void done() {
 

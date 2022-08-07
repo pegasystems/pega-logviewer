@@ -102,7 +102,7 @@ public class AlertBoxAndWhiskerStatisticsJPanel extends JPanel {
         gbc1.anchor = GridBagConstraints.NORTHWEST;
         gbc1.insets = new Insets(5, 5, 5, 5);
 
-        JComponent valueComponent = null;
+        JComponent valueComponent;
 
         JTextField valueJTextField = new JTextField(value);
         valueJTextField.setEditable(false);

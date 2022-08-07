@@ -10,7 +10,6 @@ package com.pega.gcs.logviewer.report.alert;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
@@ -98,12 +97,9 @@ public class AlertMessageReportModelFactory {
 
         AlertMessageReportModelFactory alertMessageReportModelFactory = AlertMessageReportModelFactory.getInstance();
 
-        List<String> messageIdList = new ArrayList<>(AlertMessageListProvider.getInstance().getMessageIdSet());
-        Collections.sort(messageIdList);
-
         List<String> unImplementedList = new ArrayList<>();
 
-        for (String messageId : alertMessageListProvider.getMessageIdSet()) {
+        for (String messageId : alertMessageListProvider.getMessageIdList()) {
 
             AlertMessage alertMessage = alertMessageListProvider.getAlertMessage(messageId);
 

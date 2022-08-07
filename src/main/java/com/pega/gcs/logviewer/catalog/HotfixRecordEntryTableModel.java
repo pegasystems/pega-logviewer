@@ -61,11 +61,6 @@ public class HotfixRecordEntryTableModel extends FilterTableModel<Integer> {
 
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.table.TableModel#getColumnCount()
-     */
     @Override
     public int getColumnCount() {
 
@@ -74,11 +69,6 @@ public class HotfixRecordEntryTableModel extends FilterTableModel<Integer> {
         return visibleColumnList.size();
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.table.TableModel#getValueAt(int, int)
-     */
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
 
@@ -90,11 +80,6 @@ public class HotfixRecordEntryTableModel extends FilterTableModel<Integer> {
 
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getColumnValue(java. lang.Object, int)
-     */
     @Override
     public String getColumnValue(Object valueAtObject, int columnIndex) {
 
@@ -114,11 +99,6 @@ public class HotfixRecordEntryTableModel extends FilterTableModel<Integer> {
         return columnValue;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getTableColumnModel( )
-     */
     @Override
     public TableColumnModel getTableColumnModel() {
 
@@ -150,43 +130,22 @@ public class HotfixRecordEntryTableModel extends FilterTableModel<Integer> {
         return tableColumnModel;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#getModelColumnIndex( int)
-     */
     @Override
     protected int getModelColumnIndex(int column) {
         return column;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#search(java.lang. Comparable, java.lang.Object)
-     */
     @Override
     protected boolean search(Integer key, Object searchStrObj) {
         return false;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#getNavigationRowIndex (java.util.List, int, boolean, boolean,
-     * boolean, boolean)
-     */
     @Override
     protected FilterTableModelNavigation<Integer> getNavigationRowIndex(List<Integer> resultList,
             int currSelectedRowIndex, boolean forward, boolean first, boolean last, boolean wrap) {
         return null;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#getFtmEntryKeyList()
-     */
     @Override
     public List<Integer> getFtmEntryKeyList() {
 
@@ -207,11 +166,6 @@ public class HotfixRecordEntryTableModel extends FilterTableModel<Integer> {
         return keyIndexMap;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#resetModel()
-     */
     @Override
     public void resetModel() {
 
@@ -272,11 +226,6 @@ public class HotfixRecordEntryTableModel extends FilterTableModel<Integer> {
         }
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#getEventForKey(java. lang.Comparable)
-     */
     @Override
     public HotfixRecordEntry getEventForKey(Integer key) {
 
@@ -289,31 +238,16 @@ public class HotfixRecordEntryTableModel extends FilterTableModel<Integer> {
         return hotfixRecordEntry;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#getTreeNodeForKey( java.lang.Comparable)
-     */
     @Override
     public AbstractTreeTableNode getTreeNodeForKey(Integer key) {
         return null;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#clearSearchResults( boolean)
-     */
     @Override
     public void clearSearchResults(boolean clearResults) {
 
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#getSearchModel()
-     */
     @Override
     public SearchModel<Integer> getSearchModel() {
         return null;

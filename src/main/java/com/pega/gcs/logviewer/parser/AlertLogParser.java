@@ -35,7 +35,7 @@ public class AlertLogParser extends LogParser {
 
     private int alertVersion;
 
-    private ArrayList<String> logEntryColumnList;
+    private List<LogEntryColumn> logEntryColumnList;
 
     private StringBuilder fullLogEntryTextSB;
 
@@ -83,6 +83,8 @@ public class AlertLogParser extends LogParser {
     public void parse(String line) {
 
         String[] fields = null;
+
+        line = getLineFromCloudK(line);
 
         if ((line != null) && (!line.isEmpty()) && (logEntryColumnList == null)) {
 
@@ -156,7 +158,7 @@ public class AlertLogParser extends LogParser {
 
                 LOG.info("logEntryColumnList: " + logEntryColumnList);
 
-                alertLogEntryModel.setLogEntryColumnList(logEntryColumnList);
+                alertLogEntryModel.updateLogEntryColumnList(logEntryColumnList);
             } else {
                 LOG.info("discarding line: " + line);
             }
@@ -196,11 +198,6 @@ public class AlertLogParser extends LogParser {
         alertLogEntryModel.processAlertMessageReportModels();
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.fringe.logviewer.LogParser#getLogEntryModel()
-     */
     @Override
     public LogEntryModel getLogEntryModel() {
         return alertLogEntryModel;
@@ -358,196 +355,196 @@ public class AlertLogParser extends LogParser {
         return palDataValueArray;
     }
 
-    private static ArrayList<String> getAlertColumnListV4() {
+    private static List<LogEntryColumn> getAlertColumnListV4() {
 
-        ArrayList<String> alertColumnList = new ArrayList<String>();
+        List<LogEntryColumn> alertColumnList = new ArrayList<>();
 
-        alertColumnList.add(LogEntryColumn.LINE.getColumnId());
-        alertColumnList.add(LogEntryColumn.TIMESTAMP.getColumnId());
-        alertColumnList.add(LogEntryColumn.VERSION.getColumnId());
-        alertColumnList.add(LogEntryColumn.MESSAGEID.getColumnId());
-        alertColumnList.add(LogEntryColumn.OBSERVEDKPI.getColumnId());
-        alertColumnList.add(LogEntryColumn.THRESHOLDKPI.getColumnId());
-        alertColumnList.add(LogEntryColumn.NODEID.getColumnId());
-        alertColumnList.add(LogEntryColumn.REQUESTORID.getColumnId());
-        alertColumnList.add(LogEntryColumn.USERID.getColumnId());
-        alertColumnList.add(LogEntryColumn.WORKPOOL.getColumnId());
-        alertColumnList.add(LogEntryColumn.ENCODEDRULESET.getColumnId());
-        alertColumnList.add(LogEntryColumn.PERSONALRULESETYN.getColumnId());
-        alertColumnList.add(LogEntryColumn.INTERACTIONNUMBER.getColumnId());
-        alertColumnList.add(LogEntryColumn.ALERTNUMBER.getColumnId());
-        alertColumnList.add(LogEntryColumn.THREAD.getColumnId());
-        alertColumnList.add(LogEntryColumn.LOGGER.getColumnId());
-        alertColumnList.add(LogEntryColumn.STACK.getColumnId());
-        alertColumnList.add(LogEntryColumn.LASTINPUT.getColumnId());
-        alertColumnList.add(LogEntryColumn.FIRSTACTIVITY.getColumnId());
-        alertColumnList.add(LogEntryColumn.LASTSTEP.getColumnId());
-        alertColumnList.add(LogEntryColumn.TRACELIST.getColumnId());
-        alertColumnList.add(LogEntryColumn.PALDATA.getColumnId());
-        alertColumnList.add(LogEntryColumn.MESSAGE.getColumnId());
-
-        return alertColumnList;
-    }
-
-    private static ArrayList<String> getAlertColumnListV5() {
-
-        ArrayList<String> alertColumnList = new ArrayList<String>();
-
-        alertColumnList.add(LogEntryColumn.LINE.getColumnId());
-        alertColumnList.add(LogEntryColumn.TIMESTAMP.getColumnId());
-        alertColumnList.add(LogEntryColumn.VERSION.getColumnId());
-        alertColumnList.add(LogEntryColumn.MESSAGEID.getColumnId());
-        alertColumnList.add(LogEntryColumn.OBSERVEDKPI.getColumnId());
-        alertColumnList.add(LogEntryColumn.THRESHOLDKPI.getColumnId());
-        alertColumnList.add(LogEntryColumn.NODEID.getColumnId());
-        alertColumnList.add(LogEntryColumn.REQUESTORID.getColumnId());
-        alertColumnList.add(LogEntryColumn.USERID.getColumnId());
-        alertColumnList.add(LogEntryColumn.WORKPOOL.getColumnId());
-        alertColumnList.add(LogEntryColumn.ENCODEDRULESET.getColumnId());
-        alertColumnList.add(LogEntryColumn.PERSONALRULESETYN.getColumnId());
-        alertColumnList.add(LogEntryColumn.INTERACTIONNUMBER.getColumnId());
-        alertColumnList.add(LogEntryColumn.ALERTNUMBER.getColumnId());
-        alertColumnList.add(LogEntryColumn.THREAD.getColumnId());
-        alertColumnList.add(LogEntryColumn.LOGGER.getColumnId());
-        alertColumnList.add(LogEntryColumn.STACK.getColumnId());
-        alertColumnList.add(LogEntryColumn.LASTINPUT.getColumnId());
-        alertColumnList.add(LogEntryColumn.FIRSTACTIVITY.getColumnId());
-        alertColumnList.add(LogEntryColumn.LASTSTEP.getColumnId());
-        alertColumnList.add(LogEntryColumn.TRACELIST.getColumnId());
-        alertColumnList.add(LogEntryColumn.PALDATA.getColumnId());
-        alertColumnList.add(LogEntryColumn.PRIMARYPAGECLASS.getColumnId());
-        alertColumnList.add(LogEntryColumn.PRIMARYPAGENAME.getColumnId());
-        alertColumnList.add(LogEntryColumn.STEPPAGECLASS.getColumnId());
-        alertColumnList.add(LogEntryColumn.STEPPAGENAME.getColumnId());
-        alertColumnList.add(LogEntryColumn.PRSTACKTRACE.getColumnId());
-        alertColumnList.add(LogEntryColumn.PARAMETERPAGEDATA.getColumnId());
-        alertColumnList.add(LogEntryColumn.MESSAGE.getColumnId());
+        alertColumnList.add(LogEntryColumn.LINE);
+        alertColumnList.add(LogEntryColumn.TIMESTAMP);
+        alertColumnList.add(LogEntryColumn.VERSION);
+        alertColumnList.add(LogEntryColumn.MESSAGEID);
+        alertColumnList.add(LogEntryColumn.OBSERVEDKPI);
+        alertColumnList.add(LogEntryColumn.THRESHOLDKPI);
+        alertColumnList.add(LogEntryColumn.NODEID);
+        alertColumnList.add(LogEntryColumn.REQUESTORID);
+        alertColumnList.add(LogEntryColumn.USERID);
+        alertColumnList.add(LogEntryColumn.WORKPOOL);
+        alertColumnList.add(LogEntryColumn.ENCODEDRULESET);
+        alertColumnList.add(LogEntryColumn.PERSONALRULESETYN);
+        alertColumnList.add(LogEntryColumn.INTERACTIONNUMBER);
+        alertColumnList.add(LogEntryColumn.ALERTNUMBER);
+        alertColumnList.add(LogEntryColumn.THREAD);
+        alertColumnList.add(LogEntryColumn.LOGGER);
+        alertColumnList.add(LogEntryColumn.STACK);
+        alertColumnList.add(LogEntryColumn.LASTINPUT);
+        alertColumnList.add(LogEntryColumn.FIRSTACTIVITY);
+        alertColumnList.add(LogEntryColumn.LASTSTEP);
+        alertColumnList.add(LogEntryColumn.TRACELIST);
+        alertColumnList.add(LogEntryColumn.PALDATA);
+        alertColumnList.add(LogEntryColumn.MESSAGE);
 
         return alertColumnList;
     }
 
-    private static ArrayList<String> getAlertColumnListV6() {
+    private static List<LogEntryColumn> getAlertColumnListV5() {
 
-        ArrayList<String> alertColumnList = new ArrayList<String>();
+        List<LogEntryColumn> alertColumnList = new ArrayList<>();
 
-        alertColumnList.add(LogEntryColumn.LINE.getColumnId());
-        alertColumnList.add(LogEntryColumn.TIMESTAMP.getColumnId());
-        alertColumnList.add(LogEntryColumn.VERSION.getColumnId());
-        alertColumnList.add(LogEntryColumn.MESSAGEID.getColumnId());
-        alertColumnList.add(LogEntryColumn.OBSERVEDKPI.getColumnId());
-        alertColumnList.add(LogEntryColumn.THRESHOLDKPI.getColumnId());
-        alertColumnList.add(LogEntryColumn.NODEID.getColumnId());
-        alertColumnList.add(LogEntryColumn.REQUESTORID.getColumnId());
-        alertColumnList.add(LogEntryColumn.USERID.getColumnId());
-        alertColumnList.add(LogEntryColumn.WORKPOOL.getColumnId());
-        alertColumnList.add(LogEntryColumn.RULEAPPNAMEANDVERSION.getColumnId());
-        alertColumnList.add(LogEntryColumn.ENCODEDRULESET.getColumnId());
-        alertColumnList.add(LogEntryColumn.PERSONALRULESETYN.getColumnId());
-        alertColumnList.add(LogEntryColumn.INTERACTIONNUMBER.getColumnId());
-        alertColumnList.add(LogEntryColumn.ALERTNUMBER.getColumnId());
-        alertColumnList.add(LogEntryColumn.THREAD.getColumnId());
-        alertColumnList.add(LogEntryColumn.PEGATHREAD.getColumnId());
-        alertColumnList.add(LogEntryColumn.LOGGER.getColumnId());
-        alertColumnList.add(LogEntryColumn.STACK.getColumnId());
-        alertColumnList.add(LogEntryColumn.LASTINPUT.getColumnId());
-        alertColumnList.add(LogEntryColumn.FIRSTACTIVITY.getColumnId());
-        alertColumnList.add(LogEntryColumn.LASTSTEP.getColumnId());
-        alertColumnList.add(LogEntryColumn.TRACELIST.getColumnId());
-        alertColumnList.add(LogEntryColumn.PALDATA.getColumnId());
-        alertColumnList.add(LogEntryColumn.PRIMARYPAGECLASS.getColumnId());
-        alertColumnList.add(LogEntryColumn.PRIMARYPAGENAME.getColumnId());
-        alertColumnList.add(LogEntryColumn.STEPPAGECLASS.getColumnId());
-        alertColumnList.add(LogEntryColumn.STEPPAGENAME.getColumnId());
-        alertColumnList.add(LogEntryColumn.PRSTACKTRACE.getColumnId());
-        alertColumnList.add(LogEntryColumn.PARAMETERPAGEDATA.getColumnId());
-        alertColumnList.add(LogEntryColumn.MESSAGE.getColumnId());
+        alertColumnList.add(LogEntryColumn.LINE);
+        alertColumnList.add(LogEntryColumn.TIMESTAMP);
+        alertColumnList.add(LogEntryColumn.VERSION);
+        alertColumnList.add(LogEntryColumn.MESSAGEID);
+        alertColumnList.add(LogEntryColumn.OBSERVEDKPI);
+        alertColumnList.add(LogEntryColumn.THRESHOLDKPI);
+        alertColumnList.add(LogEntryColumn.NODEID);
+        alertColumnList.add(LogEntryColumn.REQUESTORID);
+        alertColumnList.add(LogEntryColumn.USERID);
+        alertColumnList.add(LogEntryColumn.WORKPOOL);
+        alertColumnList.add(LogEntryColumn.ENCODEDRULESET);
+        alertColumnList.add(LogEntryColumn.PERSONALRULESETYN);
+        alertColumnList.add(LogEntryColumn.INTERACTIONNUMBER);
+        alertColumnList.add(LogEntryColumn.ALERTNUMBER);
+        alertColumnList.add(LogEntryColumn.THREAD);
+        alertColumnList.add(LogEntryColumn.LOGGER);
+        alertColumnList.add(LogEntryColumn.STACK);
+        alertColumnList.add(LogEntryColumn.LASTINPUT);
+        alertColumnList.add(LogEntryColumn.FIRSTACTIVITY);
+        alertColumnList.add(LogEntryColumn.LASTSTEP);
+        alertColumnList.add(LogEntryColumn.TRACELIST);
+        alertColumnList.add(LogEntryColumn.PALDATA);
+        alertColumnList.add(LogEntryColumn.PRIMARYPAGECLASS);
+        alertColumnList.add(LogEntryColumn.PRIMARYPAGENAME);
+        alertColumnList.add(LogEntryColumn.STEPPAGECLASS);
+        alertColumnList.add(LogEntryColumn.STEPPAGENAME);
+        alertColumnList.add(LogEntryColumn.PRSTACKTRACE);
+        alertColumnList.add(LogEntryColumn.PARAMETERPAGEDATA);
+        alertColumnList.add(LogEntryColumn.MESSAGE);
 
         return alertColumnList;
     }
 
-    private static ArrayList<String> getAlertColumnListV7() {
+    private static List<LogEntryColumn> getAlertColumnListV6() {
 
-        ArrayList<String> alertColumnList = new ArrayList<String>();
+        List<LogEntryColumn> alertColumnList = new ArrayList<>();
 
-        alertColumnList.add(LogEntryColumn.LINE.getColumnId());
-        alertColumnList.add(LogEntryColumn.TIMESTAMP.getColumnId());
-        alertColumnList.add(LogEntryColumn.VERSION.getColumnId());
-        alertColumnList.add(LogEntryColumn.MESSAGEID.getColumnId());
-        alertColumnList.add(LogEntryColumn.OBSERVEDKPI.getColumnId());
-        alertColumnList.add(LogEntryColumn.THRESHOLDKPI.getColumnId());
-        alertColumnList.add(LogEntryColumn.NODEID.getColumnId());
-        alertColumnList.add(LogEntryColumn.TENANTID.getColumnId());
-        alertColumnList.add(LogEntryColumn.TENANTIDHASH.getColumnId());
-        alertColumnList.add(LogEntryColumn.REQUESTORID.getColumnId());
-        alertColumnList.add(LogEntryColumn.USERID.getColumnId());
-        alertColumnList.add(LogEntryColumn.WORKPOOL.getColumnId());
-        alertColumnList.add(LogEntryColumn.RULEAPPNAMEANDVERSION.getColumnId());
-        alertColumnList.add(LogEntryColumn.ENCODEDRULESET.getColumnId());
-        alertColumnList.add(LogEntryColumn.PERSONALRULESETYN.getColumnId());
-        alertColumnList.add(LogEntryColumn.INTERACTIONNUMBER.getColumnId());
-        alertColumnList.add(LogEntryColumn.ALERTNUMBER.getColumnId());
-        alertColumnList.add(LogEntryColumn.THREAD.getColumnId());
-        alertColumnList.add(LogEntryColumn.PEGATHREAD.getColumnId());
-        alertColumnList.add(LogEntryColumn.LOGGER.getColumnId());
-        alertColumnList.add(LogEntryColumn.STACK.getColumnId());
-        alertColumnList.add(LogEntryColumn.LASTINPUT.getColumnId());
-        alertColumnList.add(LogEntryColumn.FIRSTACTIVITY.getColumnId());
-        alertColumnList.add(LogEntryColumn.LASTSTEP.getColumnId());
-        alertColumnList.add(LogEntryColumn.TRACELIST.getColumnId());
-        alertColumnList.add(LogEntryColumn.PALDATA.getColumnId());
-        alertColumnList.add(LogEntryColumn.PRIMARYPAGECLASS.getColumnId());
-        alertColumnList.add(LogEntryColumn.PRIMARYPAGENAME.getColumnId());
-        alertColumnList.add(LogEntryColumn.STEPPAGECLASS.getColumnId());
-        alertColumnList.add(LogEntryColumn.STEPPAGENAME.getColumnId());
-        alertColumnList.add(LogEntryColumn.PRSTACKTRACE.getColumnId());
-        alertColumnList.add(LogEntryColumn.PARAMETERPAGEDATA.getColumnId());
-        alertColumnList.add(LogEntryColumn.MESSAGE.getColumnId());
+        alertColumnList.add(LogEntryColumn.LINE);
+        alertColumnList.add(LogEntryColumn.TIMESTAMP);
+        alertColumnList.add(LogEntryColumn.VERSION);
+        alertColumnList.add(LogEntryColumn.MESSAGEID);
+        alertColumnList.add(LogEntryColumn.OBSERVEDKPI);
+        alertColumnList.add(LogEntryColumn.THRESHOLDKPI);
+        alertColumnList.add(LogEntryColumn.NODEID);
+        alertColumnList.add(LogEntryColumn.REQUESTORID);
+        alertColumnList.add(LogEntryColumn.USERID);
+        alertColumnList.add(LogEntryColumn.WORKPOOL);
+        alertColumnList.add(LogEntryColumn.RULEAPPNAMEANDVERSION);
+        alertColumnList.add(LogEntryColumn.ENCODEDRULESET);
+        alertColumnList.add(LogEntryColumn.PERSONALRULESETYN);
+        alertColumnList.add(LogEntryColumn.INTERACTIONNUMBER);
+        alertColumnList.add(LogEntryColumn.ALERTNUMBER);
+        alertColumnList.add(LogEntryColumn.THREAD);
+        alertColumnList.add(LogEntryColumn.PEGATHREAD);
+        alertColumnList.add(LogEntryColumn.LOGGER);
+        alertColumnList.add(LogEntryColumn.STACK);
+        alertColumnList.add(LogEntryColumn.LASTINPUT);
+        alertColumnList.add(LogEntryColumn.FIRSTACTIVITY);
+        alertColumnList.add(LogEntryColumn.LASTSTEP);
+        alertColumnList.add(LogEntryColumn.TRACELIST);
+        alertColumnList.add(LogEntryColumn.PALDATA);
+        alertColumnList.add(LogEntryColumn.PRIMARYPAGECLASS);
+        alertColumnList.add(LogEntryColumn.PRIMARYPAGENAME);
+        alertColumnList.add(LogEntryColumn.STEPPAGECLASS);
+        alertColumnList.add(LogEntryColumn.STEPPAGENAME);
+        alertColumnList.add(LogEntryColumn.PRSTACKTRACE);
+        alertColumnList.add(LogEntryColumn.PARAMETERPAGEDATA);
+        alertColumnList.add(LogEntryColumn.MESSAGE);
 
         return alertColumnList;
     }
 
-    private static ArrayList<String> getAlertColumnListV8() {
+    private static List<LogEntryColumn> getAlertColumnListV7() {
 
-        ArrayList<String> alertColumnList = new ArrayList<String>();
+        List<LogEntryColumn> alertColumnList = new ArrayList<>();
 
-        alertColumnList.add(LogEntryColumn.LINE.getColumnId());
-        alertColumnList.add(LogEntryColumn.TIMESTAMP.getColumnId());
-        alertColumnList.add(LogEntryColumn.VERSION.getColumnId());
-        alertColumnList.add(LogEntryColumn.MESSAGEID.getColumnId());
-        alertColumnList.add(LogEntryColumn.OBSERVEDKPI.getColumnId());
-        alertColumnList.add(LogEntryColumn.THRESHOLDKPI.getColumnId());
-        alertColumnList.add(LogEntryColumn.NODEID.getColumnId());
-        alertColumnList.add(LogEntryColumn.TENANTID.getColumnId());
-        alertColumnList.add(LogEntryColumn.TENANTIDHASH.getColumnId());
-        alertColumnList.add(LogEntryColumn.REQUESTORID.getColumnId());
-        alertColumnList.add(LogEntryColumn.USERID.getColumnId());
-        alertColumnList.add(LogEntryColumn.WORKPOOL.getColumnId());
-        alertColumnList.add(LogEntryColumn.RULEAPPNAMEANDVERSION.getColumnId());
-        alertColumnList.add(LogEntryColumn.ENCODEDRULESET.getColumnId());
-        alertColumnList.add(LogEntryColumn.PERSONALRULESETYN.getColumnId());
-        alertColumnList.add(LogEntryColumn.INTERACTIONNUMBER.getColumnId());
-        alertColumnList.add(LogEntryColumn.CORRELATIONID.getColumnId());
-        alertColumnList.add(LogEntryColumn.ALERTNUMBER.getColumnId());
-        alertColumnList.add(LogEntryColumn.THREAD.getColumnId());
-        alertColumnList.add(LogEntryColumn.PEGATHREAD.getColumnId());
-        alertColumnList.add(LogEntryColumn.LOGGER.getColumnId());
-        alertColumnList.add(LogEntryColumn.STACK.getColumnId());
-        alertColumnList.add(LogEntryColumn.LASTINPUT.getColumnId());
-        alertColumnList.add(LogEntryColumn.FIRSTACTIVITY.getColumnId());
-        alertColumnList.add(LogEntryColumn.LASTSTEP.getColumnId());
-        alertColumnList.add(LogEntryColumn.CLIENTPAGELOADID.getColumnId());
-        alertColumnList.add(LogEntryColumn.ISSTATELESSAPP.getColumnId());
-        alertColumnList.add(LogEntryColumn.CLIENTREQUESTID.getColumnId());
-        alertColumnList.add(LogEntryColumn.FUTURE3.getColumnId());
-        alertColumnList.add(LogEntryColumn.TRACELIST.getColumnId());
-        alertColumnList.add(LogEntryColumn.PALDATA.getColumnId());
-        alertColumnList.add(LogEntryColumn.PRIMARYPAGECLASS.getColumnId());
-        alertColumnList.add(LogEntryColumn.PRIMARYPAGENAME.getColumnId());
-        alertColumnList.add(LogEntryColumn.STEPPAGECLASS.getColumnId());
-        alertColumnList.add(LogEntryColumn.STEPPAGENAME.getColumnId());
-        alertColumnList.add(LogEntryColumn.PRSTACKTRACE.getColumnId());
-        alertColumnList.add(LogEntryColumn.PARAMETERPAGEDATA.getColumnId());
-        alertColumnList.add(LogEntryColumn.MESSAGE.getColumnId());
+        alertColumnList.add(LogEntryColumn.LINE);
+        alertColumnList.add(LogEntryColumn.TIMESTAMP);
+        alertColumnList.add(LogEntryColumn.VERSION);
+        alertColumnList.add(LogEntryColumn.MESSAGEID);
+        alertColumnList.add(LogEntryColumn.OBSERVEDKPI);
+        alertColumnList.add(LogEntryColumn.THRESHOLDKPI);
+        alertColumnList.add(LogEntryColumn.NODEID);
+        alertColumnList.add(LogEntryColumn.TENANTID);
+        alertColumnList.add(LogEntryColumn.TENANTIDHASH);
+        alertColumnList.add(LogEntryColumn.REQUESTORID);
+        alertColumnList.add(LogEntryColumn.USERID);
+        alertColumnList.add(LogEntryColumn.WORKPOOL);
+        alertColumnList.add(LogEntryColumn.RULEAPPNAMEANDVERSION);
+        alertColumnList.add(LogEntryColumn.ENCODEDRULESET);
+        alertColumnList.add(LogEntryColumn.PERSONALRULESETYN);
+        alertColumnList.add(LogEntryColumn.INTERACTIONNUMBER);
+        alertColumnList.add(LogEntryColumn.ALERTNUMBER);
+        alertColumnList.add(LogEntryColumn.THREAD);
+        alertColumnList.add(LogEntryColumn.PEGATHREAD);
+        alertColumnList.add(LogEntryColumn.LOGGER);
+        alertColumnList.add(LogEntryColumn.STACK);
+        alertColumnList.add(LogEntryColumn.LASTINPUT);
+        alertColumnList.add(LogEntryColumn.FIRSTACTIVITY);
+        alertColumnList.add(LogEntryColumn.LASTSTEP);
+        alertColumnList.add(LogEntryColumn.TRACELIST);
+        alertColumnList.add(LogEntryColumn.PALDATA);
+        alertColumnList.add(LogEntryColumn.PRIMARYPAGECLASS);
+        alertColumnList.add(LogEntryColumn.PRIMARYPAGENAME);
+        alertColumnList.add(LogEntryColumn.STEPPAGECLASS);
+        alertColumnList.add(LogEntryColumn.STEPPAGENAME);
+        alertColumnList.add(LogEntryColumn.PRSTACKTRACE);
+        alertColumnList.add(LogEntryColumn.PARAMETERPAGEDATA);
+        alertColumnList.add(LogEntryColumn.MESSAGE);
+
+        return alertColumnList;
+    }
+
+    private static List<LogEntryColumn> getAlertColumnListV8() {
+
+        List<LogEntryColumn> alertColumnList = new ArrayList<>();
+
+        alertColumnList.add(LogEntryColumn.LINE);
+        alertColumnList.add(LogEntryColumn.TIMESTAMP);
+        alertColumnList.add(LogEntryColumn.VERSION);
+        alertColumnList.add(LogEntryColumn.MESSAGEID);
+        alertColumnList.add(LogEntryColumn.OBSERVEDKPI);
+        alertColumnList.add(LogEntryColumn.THRESHOLDKPI);
+        alertColumnList.add(LogEntryColumn.NODEID);
+        alertColumnList.add(LogEntryColumn.TENANTID);
+        alertColumnList.add(LogEntryColumn.TENANTIDHASH);
+        alertColumnList.add(LogEntryColumn.REQUESTORID);
+        alertColumnList.add(LogEntryColumn.USERID);
+        alertColumnList.add(LogEntryColumn.WORKPOOL);
+        alertColumnList.add(LogEntryColumn.RULEAPPNAMEANDVERSION);
+        alertColumnList.add(LogEntryColumn.ENCODEDRULESET);
+        alertColumnList.add(LogEntryColumn.PERSONALRULESETYN);
+        alertColumnList.add(LogEntryColumn.INTERACTIONNUMBER);
+        alertColumnList.add(LogEntryColumn.CORRELATIONID);
+        alertColumnList.add(LogEntryColumn.ALERTNUMBER);
+        alertColumnList.add(LogEntryColumn.THREAD);
+        alertColumnList.add(LogEntryColumn.PEGATHREAD);
+        alertColumnList.add(LogEntryColumn.LOGGER);
+        alertColumnList.add(LogEntryColumn.STACK);
+        alertColumnList.add(LogEntryColumn.LASTINPUT);
+        alertColumnList.add(LogEntryColumn.FIRSTACTIVITY);
+        alertColumnList.add(LogEntryColumn.LASTSTEP);
+        alertColumnList.add(LogEntryColumn.CLIENTPAGELOADID);
+        alertColumnList.add(LogEntryColumn.ISSTATELESSAPP);
+        alertColumnList.add(LogEntryColumn.CLIENTREQUESTID);
+        alertColumnList.add(LogEntryColumn.FUTURE3);
+        alertColumnList.add(LogEntryColumn.TRACELIST);
+        alertColumnList.add(LogEntryColumn.PALDATA);
+        alertColumnList.add(LogEntryColumn.PRIMARYPAGECLASS);
+        alertColumnList.add(LogEntryColumn.PRIMARYPAGENAME);
+        alertColumnList.add(LogEntryColumn.STEPPAGECLASS);
+        alertColumnList.add(LogEntryColumn.STEPPAGENAME);
+        alertColumnList.add(LogEntryColumn.PRSTACKTRACE);
+        alertColumnList.add(LogEntryColumn.PARAMETERPAGEDATA);
+        alertColumnList.add(LogEntryColumn.MESSAGE);
 
         return alertColumnList;
     }

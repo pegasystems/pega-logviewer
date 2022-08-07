@@ -69,13 +69,9 @@ public class PEGA0001ReportModel extends AlertMessageReportModel {
     @Override
     public String getAlertMessageReportEntryKey(ArrayList<String> logEntryValueList) {
 
-        String alertMessageReportEntryKey = null;
+        String alertMessageReportEntryKey;
 
-        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
-
-        List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
-
-        int firstActivityIndex = logEntryColumnList.indexOf(LogEntryColumn.FIRSTACTIVITY.getColumnId());
+        int firstActivityIndex = getFirstActivityLogEntryColumnIndex();
 
         alertMessageReportEntryKey = logEntryValueList.get(firstActivityIndex).trim();
 

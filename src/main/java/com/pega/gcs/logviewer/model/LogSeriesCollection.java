@@ -57,6 +57,7 @@ public class LogSeriesCollection implements Comparable<LogSeriesCollection> {
         return getName().compareTo(other.getName());
     }
 
+    @SuppressWarnings("unused")
     private ValueAxis getNewDomainAxis(DateFormat displayDateFormat, Locale locale) {
 
         TimeZone displayTimeZone = displayDateFormat.getTimeZone();

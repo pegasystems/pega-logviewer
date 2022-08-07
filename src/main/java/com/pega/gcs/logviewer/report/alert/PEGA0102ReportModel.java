@@ -28,18 +28,23 @@ public class PEGA0102ReportModel extends AlertMessageReportModel {
 
     private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
 
-    private Pattern pattern;
+    private Pattern patternExec;
+
+    private Pattern patternReg;
 
     public PEGA0102ReportModel(AlertMessage alertMessage, long thresholdKPI, AlertLogEntryModel alertLogEntryModel,
             Locale locale) {
 
         super(alertMessage, thresholdKPI, alertLogEntryModel, locale);
 
-        // "Job Scheduler \""+config.getName()+"\" activity \""+config.getAssociatedClass()+":"+config.getActivityName()+"\" execution
-        // failed in node %s which will cause delayed Queue Processor use cases to stop processing"
-        String regex = "Job Scheduler \"(.*?)\" activity \"(.*?)\" execution failed in node";
+        String regexExec = "Job Scheduler (.*?) activity (.*?) execution failed";
 
-        pattern = Pattern.compile(regex);
+        patternExec = Pattern.compile(regexExec);
+
+        String regexReg = "(?:Job Scheduler)?(.*?) registration failed";
+
+        patternReg = Pattern.compile(regexReg);
+
     }
 
     @Override
@@ -76,15 +81,17 @@ public class PEGA0102ReportModel extends AlertMessageReportModel {
 
     @Override
     public String getAlertMessageReportEntryKey(String dataText) {
-
         String alertMessageReportEntryKey = null;
 
-        Matcher patternMatcher = pattern.matcher(dataText);
+        Matcher patternMatcher = patternExec.matcher(dataText);
         boolean matches = patternMatcher.find();
 
         if (matches) {
-            String jobScheduler = patternMatcher.group(1).trim();
-            String activityName = patternMatcher.group(2).trim();
+            String jobScheduler = patternMatcher.group(1);
+            String activityName = patternMatcher.group(2);
+
+            jobScheduler = jobScheduler.replaceAll("\"", "");
+            activityName = activityName.replaceAll("\"", "");
 
             StringBuilder sb = new StringBuilder();
             sb.append(jobScheduler);
@@ -93,6 +100,14 @@ public class PEGA0102ReportModel extends AlertMessageReportModel {
             sb.append("]");
 
             alertMessageReportEntryKey = sb.toString();
+        } else {
+
+            patternMatcher = patternReg.matcher(dataText);
+            matches = patternMatcher.find();
+
+            if (matches) {
+                alertMessageReportEntryKey = patternMatcher.group(1).trim();
+            }
         }
 
         return alertMessageReportEntryKey;
@@ -102,13 +117,9 @@ public class PEGA0102ReportModel extends AlertMessageReportModel {
     @Override
     public String getAlertMessageReportEntryKey(ArrayList<String> logEntryValueList) {
 
-        String alertMessageReportEntryKey = null;
+        String alertMessageReportEntryKey;
 
-        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
-
-        List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
-
-        int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
+        int messageIndex = getMessageLogEntryColumnIndex();
         String message = logEntryValueList.get(messageIndex);
 
         alertMessageReportEntryKey = getAlertMessageReportEntryKey(message);

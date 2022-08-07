@@ -45,13 +45,13 @@ public class Log4jLogThreadDumpEntry extends Log4jLogEntry {
     }
 
     @Override
-    public JPanel getDetailsJPanel(LogTableModel logTableModel) {
+    public JPanel getDetailsPanel(LogTableModel logTableModel) {
 
-        JPanel detailsJPanel = null;
+        JPanel detailsPanel;
         AtomicInteger threadDumpSelectedTab = new AtomicInteger(0);
-        detailsJPanel = new ThreadDumpPanel(this, logTableModel, threadDumpSelectedTab);
+        detailsPanel = new ThreadDumpPanel(this, logTableModel, threadDumpSelectedTab);
 
-        return detailsJPanel;
+        return detailsPanel;
     }
 
     public Object getPtdpThreadDump() {

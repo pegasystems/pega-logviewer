@@ -83,7 +83,7 @@ public class NodeState implements NodeObject, Comparable<NodeState> {
 
     public boolean hasError() {
 
-        boolean error = false;
+        boolean error;
 
         PRLogging prLogging = getPrLogging();
         PRConfig prConfig = getPrConfig();

@@ -11,6 +11,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.dom4j.DocumentException;
+
 import com.pega.gcs.fringecommon.log4j2.AbstractLog4j2Helper;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.KeyValuePair;
@@ -221,7 +223,11 @@ public class SystemState implements NodeObject {
         }
 
         if (prConfig != null) {
-            prConfig.postProcess();
+            try {
+                prConfig.postProcess();
+            } catch (DocumentException e) {
+                LOG.error("Error parsing prconfig data" + nodeId);
+            }
         }
 
         if (jvmInfo != null) {

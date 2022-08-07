@@ -107,9 +107,9 @@ public class LogTableMouseListener extends MouseAdapter {
 
                 final JPopupMenu popupMenu = new JPopupMenu();
 
-                RightClickMenuItem copyLogEntryMenuItem = null;
-                RightClickMenuItem exportLogEntryLogMenuItem = null;
-                RightClickMenuItem addBookmarkMenuItem = null;
+                RightClickMenuItem copyLogEntryMenuItem;
+                RightClickMenuItem exportLogEntryLogMenuItem;
+                RightClickMenuItem addBookmarkMenuItem;
                 RightClickMenuItem openBookmarkMenuItem = null;
                 RightClickMenuItem deleteBookmarkMenuItem = null;
 

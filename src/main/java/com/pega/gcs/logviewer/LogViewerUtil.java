@@ -156,8 +156,6 @@ public class LogViewerUtil {
 
         TimeSeriesCollection timeSeriesCollection = new TimeSeriesCollection(modelTimeZone);
 
-        Color color = Color.BLACK;
-
         int timeSeriesIndex = 0;
 
         // currently only one data set present in the series list,
@@ -169,7 +167,7 @@ public class LogViewerUtil {
             LogTimeSeries logTimeSeries = (LogTimeSeries) logSeries;
 
             TimeSeries timeSeries = logTimeSeries.getTimeSeries();
-            color = logTimeSeries.getColor();
+            Color color = logTimeSeries.getColor();
 
             timeSeriesCollection.addSeries(timeSeries);
 
@@ -268,7 +266,7 @@ public class LogViewerUtil {
 
         TimeSeriesCollection timeSeriesCollection = new TimeSeriesCollection(modelTimeZone);
 
-        Color color = Color.BLACK;
+        Color color;
 
         // currently only one data set present in the series list,
         BoxAndWhiskerItem boxAndWhiskerItem = null;
@@ -402,8 +400,8 @@ public class LogViewerUtil {
         TimeZone timeZone = modelDateFormat.getTimeZone();
 
         TimeSeries ts = new TimeSeries("Log Time Series");
-        RegularTimePeriod rtp = null;
-        TimeSeriesDataItem tsdi = null;
+        RegularTimePeriod rtp;
+        TimeSeriesDataItem tsdi;
 
         // add lower range
         rtp = new Millisecond(lowerDomainDate, timeZone, locale);

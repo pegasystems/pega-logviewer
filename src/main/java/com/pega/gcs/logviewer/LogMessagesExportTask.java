@@ -50,11 +50,6 @@ public class LogMessagesExportTask extends SwingWorker<List<LogEntryKey>, Intege
         this.delimiter = delimiter;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.SwingWorker#doInBackground()
-     */
     @Override
     protected List<LogEntryKey> doInBackground() throws Exception {
 

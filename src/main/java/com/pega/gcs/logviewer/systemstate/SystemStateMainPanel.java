@@ -52,11 +52,6 @@ public class SystemStateMainPanel extends JPanel {
 
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.JComponent#removeNotify()
-     */
     @Override
     public void removeNotify() {
         super.removeNotify();

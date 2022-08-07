@@ -38,11 +38,6 @@ public class HotfixSearchTask extends SwingWorker<List<HotfixEntryKey>, Progress
         this.searchStrObj = searchStrObj;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.SwingWorker#doInBackground()
-     */
     @Override
     protected List<HotfixEntryKey> doInBackground() throws Exception {
 
@@ -186,11 +181,6 @@ public class HotfixSearchTask extends SwingWorker<List<HotfixEntryKey>, Progress
         return searchResultList;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.SwingWorker#process(java.util.List)
-     */
     @Override
     protected void process(List<ProgressTaskInfo> chunks) {
         if ((isDone()) || (isCancelled()) || (chunks == null) || (chunks.size() == 0)) {

@@ -339,11 +339,6 @@ public class ChartAndLegendPanel extends JPanel implements ListSelectionListener
         return legendCompositeJPanel;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.JComponent#setVisible(boolean)
-     */
     @Override
     public void setVisible(boolean visible) {
 

@@ -84,7 +84,6 @@ public class PEGA0074ReportModel extends AlertMessageReportModel {
 
     @Override
     public String getAlertMessageReportEntryKey(String dataText) {
-
         String alertMessageReportEntryKey = null;
 
         for (Pattern pattern : patternList) {
@@ -104,13 +103,9 @@ public class PEGA0074ReportModel extends AlertMessageReportModel {
     @Override
     public String getAlertMessageReportEntryKey(ArrayList<String> logEntryValueList) {
 
-        String alertMessageReportEntryKey = null;
+        String alertMessageReportEntryKey;
 
-        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
-
-        List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
-
-        int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
+        int messageIndex = getMessageLogEntryColumnIndex();
         String message = logEntryValueList.get(messageIndex);
 
         alertMessageReportEntryKey = getAlertMessageReportEntryKey(message);

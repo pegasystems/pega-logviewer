@@ -1305,7 +1305,7 @@
 		<Id>82</Id>
 		<MessageID>PEGA0082</MessageID>
 		<Category>Performance</Category>
-		<Subcategory/>
+		<Subcategory>DSM Data Flow Started / Resumed</Subcategory>
 		<Title>DSM Data Flow Started / Resumed</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0082-alert-dataflow-started-or-dataflow-resumed</PegaUrl>
@@ -1322,7 +1322,7 @@
 		<Id>83</Id>
 		<MessageID>PEGA0083</MessageID>
 		<Category>Performance</Category>
-		<Subcategory/>
+		<Subcategory>DSM Data Flow Completed / Paused / Stopped</Subcategory>
 		<Title>DSM Data Flow Completed / Paused / Stopped</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0083-alert-dataflow-completed-dataflow-paused-or-dataflow-stopped</PegaUrl>
@@ -1562,7 +1562,7 @@
 		<Title>Job scheduler failed to register for the next run</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0098-alert-job-scheduler-failed-register-next-run</PegaUrl>
-		<Description/>
+		<Description>The PEGA0098 alert is generated when a job scheduler fails to register for the next run. The job scheduler might fail to register for the next run when the rule configuration is invalid, the job scheduler is unable to schedule the job, or the rule cannot be opened because of a database exception.</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#993f00</ChartColor>
@@ -1575,7 +1575,7 @@
 		<Title>Job scheduler failed to complete successfully</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0099-alert-job-scheduler-failed-complete-succesfully</PegaUrl>
-		<Description/>
+		<Description>The PEGA0099 alert is generated when a job scheduler fails to complete its run successfully.</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#4c005c</ChartColor>
@@ -1588,7 +1588,7 @@
 		<Title>Queue processor failed to register</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0100-alert-queue-processor-failed-register</PegaUrl>
-		<Description/>
+		<Description>The PEGA0100 alert is generated when a queue processor fails to register. The queue processor might fail because of an invalid configuration, unavailability of a stream node, or a database exception.</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#4c005c</ChartColor>
@@ -1601,7 +1601,7 @@
 		<Title>Queue processor failed due to a missing or failed Stream node</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0101-alert-queue-processor-failed-due-missing-or-failed-stream-node</PegaUrl>
-		<Description/>
+		<Description>The PEGA0101 alert is generated when a queue processor fails because of a missing or failed stream node. The stream node is not available in the cluster.</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#191919</ChartColor>
@@ -1614,7 +1614,7 @@
 		<Title>Queue Processor delayed/scheduled message processing failed</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0102-alert-queue-processor-delayedscheduled-message-processing-failed</PegaUrl>
-		<Description/>
+		<Description>The PEGA102 alert is generated when the data flow or job scheduler responsible for processing delayed messages fails to move those messages from the database to the stream service.</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#005c31</ChartColor>
@@ -1627,7 +1627,7 @@
 		<Title>Queue processor data flow has failed</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0103-alert-queue-processor-data-flow-has-failed</PegaUrl>
-		<Description/>
+		<Description>The PEGA0103 alert is generated when a queue processor moves to a failed state and the attempt to recover is unsuccessful.</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#2bce48</ChartColor>
@@ -1640,7 +1640,7 @@
 		<Title>Background tasks have exceeded a threshold time when attempting to acquire a thread from a pool or executor</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0104-alert-background-tasks-have-exceeded-threshold-time-when-attempting-acquire-thread-pool-or</PegaUrl>
-		<Description/>
+		<Description>The PEGA0104 alert is generated when some background tasks have exceeded a threshold time during an attempt to acquire a thread from the agent’s thread pool executor. The alert might occur consecutively every 120 seconds. If the alert recurs every 120 seconds, the thread pool size is insufficient or the number of background processing tasks is unexpectedly high. This might prevent agents from running according to the schedule or the background tasks might take longer to resolve than the acceptable time.</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#ffc099</ChartColor>
@@ -1653,7 +1653,7 @@
 		<Title>The number of interaction history summary predictors used by the adaptive model exceeds the threshold</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0105-alert-number-interaction-history-summary-predictors-used-adaptive-model-exceeds-threshold</PegaUrl>
-		<Description/>
+		<Description>The PEGA0105 alert is generated when the number of predictors that are automatically created for an adaptive model from an Interaction History summary is greater than the allowed maximum value.</Description>
 		<DssEnableConfig>"DSM Alerts"</DssEnableConfig>
 		<DssEnabled>true</DssEnabled>
 		<DssThresholdConfig>alerts/IHPredictorsThreshold</DssThresholdConfig>
@@ -1670,7 +1670,7 @@
 		<Title>Conflicting queries in the PostgreSQL database system</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0106-conflicting-queries-postgresql-database-system</PegaUrl>
-		<Description/>
+		<Description>The PEGA0106 alert is generated when multiple conflicting queries cause a blockage in the PostgreSQL database system.</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#94ebb5</ChartColor>
@@ -1683,9 +1683,13 @@
 		<Title>Client page load time for offline-enabled applications</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0107-alert-client-page-load-time-offline-enabled-applications</PegaUrl>
-		<Description/>
+		<Description>The PEGA0107 alert is generated when the total elapsed time from when the user clicks to when the screen has finished being rendered exceeds the configured threshold (in milliseconds).</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
-		<DssValueType>STATE</DssValueType>
+		<DssEnabled>true</DssEnabled>
+		<DssThresholdConfig>prconfig/alerts/browser/clientpageloadtimethreshold/warnofflinems/default</DssThresholdConfig>
+		<DssValueType>TIME</DssValueType>
+		<DssValueUnit>MILLISECOND</DssValueUnit>
+		<DssDefaultValue>4000</DssDefaultValue>
 		<ChartColor>#8f7c00</ChartColor>
 	</AlertMessage>
 	<AlertMessage>
@@ -1709,9 +1713,13 @@
 		<Title>Total stream request time has exceeded the threshold of N ms</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0109-alert-total-stream-request-time-has-exceeded-threshold-n-ms</PegaUrl>
-		<Description/>
+		<Description>The PEGA0109 alert is triggered when writing to a Stream REST endpoint exceeds the configured total request time threshold. </Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
-		<DssValueType>STATE</DssValueType>
+		<DssEnabled>true</DssEnabled>
+		<DssThresholdConfig>alerts/stream/ingestionTime/threshold</DssThresholdConfig>
+		<DssValueType>TIME</DssValueType>
+		<DssValueUnit>MILLISECOND</DssValueUnit>
+		<DssDefaultValue>1000</DssDefaultValue>
 		<ChartColor>#c20088</ChartColor>
 	</AlertMessage>
 	<AlertMessage>
@@ -1722,9 +1730,13 @@
 		<Title>Large data page not configured for efficient synchronization</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0110-alert-large-data-page-not-configured-efficient-synchronization</PegaUrl>
-		<Description/>
+		<Description>The PEGA0110 alert is generated when the size of a data page that you use in search configuration is bigger than the configured threshold.</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
-		<DssValueType>STATE</DssValueType>
+		<DssEnabled>true</DssEnabled>
+		<DssThresholdConfig>alerts/mobile/PRPCClientStore/largeDataPageSizeThreshold</DssThresholdConfig>
+		<DssValueType>SIZE</DssValueType>
+		<DssValueUnit>KILOBYTE</DssValueUnit>
+		<DssDefaultValue>512</DssDefaultValue>
 		<ChartColor>#003380</ChartColor>
 	</AlertMessage>
 	<AlertMessage>
@@ -1934,7 +1946,7 @@
 		<Id>125</Id>
 		<MessageID>PEGA0125</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Subcategory>Stability</Subcategory>
 		<Title>Service registry heartbeat failed</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0125-alert-service-registry-heartbeat-failed</PegaUrl>
@@ -1947,7 +1959,7 @@
 		<Id>126</Id>
 		<MessageID>PEGA0126</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Subcategory>Stability</Subcategory>
 		<Title>Service registry is entering safe mode</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0126-alert-service-registry-entering-safe-mode</PegaUrl>
@@ -1960,7 +1972,7 @@
 		<Id>127</Id>
 		<MessageID>PEGA0127</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Subcategory>Stability</Subcategory>
 		<Title>Service registry recovered from safe mode</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0127-alert-service-registry-recovered-safe-mode</PegaUrl>
@@ -1986,7 +1998,7 @@
 		<Id>129</Id>
 		<MessageID>PEGA0129</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Subcategory>Tracer file size</Subcategory>
 		<Title>Tracer file limit reached</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0129-alert-tracer-file-limit-reached</PegaUrl>
@@ -2003,7 +2015,7 @@
 		<Id>130</Id>
 		<MessageID>PEGA0130</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Subcategory>Job Scheduler Time</Subcategory>
 		<Title>Current Job Scheduler run is taking too long</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0130-alert-current-job-scheduler-run-taking-too-long</PegaUrl>
@@ -2020,7 +2032,7 @@
 		<Id>131</Id>
 		<MessageID>PEGA0131</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Subcategory>Stability</Subcategory>
 		<Title>Detected slow data flow component</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0131-alert-detected-slow-data-flow-component</PegaUrl>
@@ -2033,10 +2045,10 @@
 		<Id>132</Id>
 		<MessageID>PEGA0132</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Subcategory>Remote case types time-out</Subcategory>
 		<Title>Time-out threshold exceeded for remote case type requests</Title>
 		<Severity>NORMAL</Severity>
-		<PegaUrl/>
+		<PegaUrl>https://docs.pega.com/pega0132-alert-time-out-threshold-exceeded-remote-case-type-requests</PegaUrl>
 		<Description>The PEGA0132 alert notifies you that a remote request exceeds the client time-out threshold while processing the request. The threshold is 2 seconds. The alert might occur when the consumer system exceeds the threshold when responding to the request, or when fetching a client instance from the client connection pool exceeds the threshold value</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
 		<DssValueType>STATE</DssValueType>
@@ -2046,7 +2058,7 @@
 		<Id>133</Id>
 		<MessageID>PEGA0133</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Subcategory>Requestor Limit</Subcategory>
 		<Title>Allocated memory threshold reached</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0133-alert-allocated-memory-threshold-reached</PegaUrl>
@@ -2059,7 +2071,7 @@
 		<Id>134</Id>
 		<MessageID>PEGA0134</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Subcategory>Queue Processor Schedule</Subcategory>
 		<Title>Too many items in ready-to-process state</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0134-too-many-items-ready-process-state</PegaUrl>
@@ -2073,12 +2085,13 @@
 		<Id>135</Id>
 		<MessageID>PEGA0135</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
-		<Title/>
+		<Subcategory>File Listener</Subcategory>
+		<Title>Local file path used as source location on a cloud system</Title>
 		<Severity>NORMAL</Severity>
-		<PegaUrl/>
-		<Description/>
+		<PegaUrl>https://docs.pega.com/pega0135-local-file-path-used-source-location-cloud-system</PegaUrl>
+		<Description>On a Pega Cloud® system, using a local file path in the source location for a file listener is an incorrect configuration</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
+		<DssEnabled>true</DssEnabled>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#8f7c00</ChartColor>
 	</AlertMessage>
@@ -2086,12 +2099,13 @@
 		<Id>136</Id>
 		<MessageID>PEGA0136</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
-		<Title/>
+		<Subcategory>File Listener</Subcategory>
+		<Title>Goofys-enabled path used as source location on a cloud system</Title>
 		<Severity>NORMAL</Severity>
-		<PegaUrl/>
-		<Description/>
+		<PegaUrl>https://docs.pega.com/pega0136-goofys-enabled-path-used-source-location-cloud-system</PegaUrl>
+		<Description>On a Pega Cloud® system, using a Goofys-enabled path in the source location is not a recommended practice</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
+		<DssEnabled>true</DssEnabled>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#9dcc00</ChartColor>
 	</AlertMessage>
@@ -2099,7 +2113,7 @@
 		<Id>137</Id>
 		<MessageID>PEGA0137</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Subcategory>Queue Processor Schedule</Subcategory>
 		<Title>Ready-to-process items not picked by queue processor</Title>
 		<Severity>NORMAL</Severity>
 		<PegaUrl>https://docs.pega.com/pega0137-ready-process-items-not-picked-queue-processor</PegaUrl>
@@ -2114,12 +2128,13 @@
 		<Id>138</Id>
 		<MessageID>PEGA0138</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
-		<Title/>
+		<Subcategory>Simulations</Subcategory>
+		<Title>Simulation run [SimID] not fully optimized</Title>
 		<Severity>NORMAL</Severity>
-		<PegaUrl/>
-		<Description/>
+		<PegaUrl>https://docs.pega.com/pega0138-alert-simulation-run-simid-not-fully-optimized</PegaUrl>
+		<Description>Triggers the PEGA0138 alert when a simulation test that you run in the Business Operations Environment (BOE) of your Pega Customer Decision Hub™ system is not optimized because the strategy components include configuration patterns that are incompatible with optimization</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
+		<DssEnabled>true</DssEnabled>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#003380</ChartColor>
 	</AlertMessage>
@@ -2127,12 +2142,13 @@
 		<Id>139</Id>
 		<MessageID>PEGA0139</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
-		<Title/>
+		<Subcategory>Email Listener</Subcategory>
+		<Title>Email account is throttled</Title>
 		<Severity>NORMAL</Severity>
-		<PegaUrl/>
-		<Description/>
+		<PegaUrl>https://docs.pega.com/pega0139-email-account-throttled</PegaUrl>
+		<Description>This alert indicates that an email provider is throttling one of your email accounts.</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
+		<DssEnabled>true</DssEnabled>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#ffa405</ChartColor>
 	</AlertMessage>
@@ -2140,12 +2156,13 @@
 		<Id>140</Id>
 		<MessageID>PEGA0140</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
-		<Title/>
+		<Subcategory>Email Listener</Subcategory>
+		<Title>Listener failed to process an email in the last recovery attempt</Title>
 		<Severity>NORMAL</Severity>
-		<PegaUrl/>
-		<Description/>
+		<PegaUrl>https://docs.pega.com/pega0140-listener-failed-process-email-last-recovery-attempt</PegaUrl>
+		<Description>The number of times that the email listener attempts to process an email, before the listener logs an error message.</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
+		<DssEnabled>true</DssEnabled>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#ffa8bb</ChartColor>
 	</AlertMessage>
@@ -2153,12 +2170,13 @@
 		<Id>141</Id>
 		<MessageID>PEGA0141</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
-		<Title/>
+		<Subcategory>Email Listener</Subcategory>
+		<Title>Email expunge failed during message post-processing</Title>
 		<Severity>NORMAL</Severity>
-		<PegaUrl/>
-		<Description/>
+		<PegaUrl>https://docs.pega.com/pega0141-email-expunge-failed-during-message-post-processing</PegaUrl>
+		<Description>Generates this alert when the email listener attempts to delete multiple email messages from the Inbox and move them to the Deleted items folder, but that folder is full</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
+		<DssEnabled>true</DssEnabled>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#426600</ChartColor>
 	</AlertMessage>
@@ -2166,18 +2184,33 @@
 		<Id>142</Id>
 		<MessageID>PEGA0142</MessageID>
 		<Category>Performance</Category>
-		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
-		<Title/>
+		<Subcategory>Email Listener</Subcategory>
+		<Title>Email status not updated for more than two hours</Title>
 		<Severity>NORMAL</Severity>
-		<PegaUrl/>
-		<Description/>
+		<PegaUrl>https://docs.pega.com/pega0142-email-status-not-updated-more-two-hours</PegaUrl>
+		<Description>This alert indicates that multiple email messages exceeded the processing time threshold.</Description>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
+		<DssEnabled>true</DssEnabled>
 		<DssValueType>STATE</DssValueType>
 		<ChartColor>#32c8f2</ChartColor>
 	</AlertMessage>
 	<AlertMessage>
 		<Id>143</Id>
 		<MessageID>PEGA0143</MessageID>
+		<Category>Performance</Category>
+		<Subcategory>Email Listener</Subcategory>
+		<Title>Log-Service-Email errors exceed the record limit</Title>
+		<Severity>NORMAL</Severity>
+		<PegaUrl>https://docs.pega.com/pega0143-log-service-email-errors-exceed-record-limit</PegaUrl>
+		<Description>This alert indicates a critical issue in which multiple failures to process email messages might have a significant business impact.</Description>
+		<DssEnableConfig>PERMANENT</DssEnableConfig>
+		<DssEnabled>true</DssEnabled>
+		<DssValueType>STATE</DssValueType>
+		<ChartColor>#00998f</ChartColor>
+	</AlertMessage>
+	<AlertMessage>
+		<Id>144</Id>
+		<MessageID>PEGA0144</MessageID>
 		<Category>Performance</Category>
 		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
 		<Title/>
@@ -2186,7 +2219,46 @@
 		<Description/>
 		<DssEnableConfig>PERMANENT</DssEnableConfig>
 		<DssValueType>STATE</DssValueType>
-		<ChartColor>#00998f</ChartColor>
+		<ChartColor>#0075dc</ChartColor>
+	</AlertMessage>
+	<AlertMessage>
+		<Id>145</Id>
+		<MessageID>PEGA0145</MessageID>
+		<Category>Performance</Category>
+		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Title/>
+		<Severity>NORMAL</Severity>
+		<PegaUrl/>
+		<Description/>
+		<DssEnableConfig>PERMANENT</DssEnableConfig>
+		<DssValueType>STATE</DssValueType>
+		<ChartColor>#740aff</ChartColor>
+	</AlertMessage>
+	<AlertMessage>
+		<Id>146</Id>
+		<MessageID>PEGA0146</MessageID>
+		<Category>Performance</Category>
+		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Title/>
+		<Severity>NORMAL</Severity>
+		<PegaUrl/>
+		<Description/>
+		<DssEnableConfig>PERMANENT</DssEnableConfig>
+		<DssValueType>STATE</DssValueType>
+		<ChartColor>#993f00</ChartColor>
+	</AlertMessage>
+	<AlertMessage>
+		<Id>147</Id>
+		<MessageID>PEGA0147</MessageID>
+		<Category>Performance</Category>
+		<Subcategory>Performance Alerts and Rule Warnings</Subcategory>
+		<Title/>
+		<Severity>NORMAL</Severity>
+		<PegaUrl/>
+		<Description/>
+		<DssEnableConfig>PERMANENT</DssEnableConfig>
+		<DssValueType>STATE</DssValueType>
+		<ChartColor>#c00000</ChartColor>
 	</AlertMessage>
 	<AlertMessage>
 		<Id>201</Id>
@@ -2444,16 +2516,22 @@
 		<Severity>NORMAL</Severity>
 		<PegaUrl/>
 		<Description/>
+		<DssEnableConfig>PERMANENT</DssEnableConfig>
+		<DssValueType>STATE</DssValueType>
+		<ChartColor>#0075dc</ChartColor>
 	</AlertMessage>
 	<AlertMessage>
 		<Id>221</Id>
 		<MessageID>SECU0021</MessageID>
 		<Category>Security</Category>
 		<Subcategory>Server and Workstation Security</Subcategory>
-		<Title/>
+		<Title>Expired Certificate</Title>
 		<Severity>NORMAL</Severity>
-		<PegaUrl/>
-		<Description/>
+		<PegaUrl>https://docs.pega.com/secu0021-alert-expired-certificate</PegaUrl>
+		<Description>The system generates security alert SECU0021 when an attempt has been made to import an expired certificate into the platform truststore.</Description>
+		<DssEnableConfig>PERMANENT</DssEnableConfig>
+		<DssValueType>STATE</DssValueType>
+		<ChartColor>#740aff</ChartColor>
 	</AlertMessage>
 	<AlertMessage>
 		<Id>301</Id>

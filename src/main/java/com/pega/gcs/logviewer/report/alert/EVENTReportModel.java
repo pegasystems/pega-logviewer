@@ -67,11 +67,10 @@ public class EVENTReportModel extends AlertMessageReportModel {
 
     @Override
     public String getAlertMessageReportEntryKey(String dataText) {
-
         String alertMessageReportEntryKey = null;
 
         if (dataText != null) {
-            String[] eventDataArray = dataText.split("\\|");
+            String[] eventDataArray = dataText.split("\\|", 0);
 
             if (eventDataArray.length > 2) {
 
@@ -92,13 +91,9 @@ public class EVENTReportModel extends AlertMessageReportModel {
     @Override
     public String getAlertMessageReportEntryKey(ArrayList<String> logEntryValueList) {
 
-        String alertMessageReportEntryKey = null;
+        String alertMessageReportEntryKey;
 
-        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
-
-        List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
-
-        int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
+        int messageIndex = getMessageLogEntryColumnIndex();
         String message = logEntryValueList.get(messageIndex);
 
         alertMessageReportEntryKey = getAlertMessageReportEntryKey(message);

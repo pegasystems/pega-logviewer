@@ -133,7 +133,7 @@ public class HotfixColumn extends DefaultTableColumn {
      * 
      * @see <code>CatalogManager.getHotfixEntryDataList</code>
      * 
-     * @return
+     * @return list of columns
      */
     public static List<HotfixColumn> getCatalogHotfixColumnList() {
 

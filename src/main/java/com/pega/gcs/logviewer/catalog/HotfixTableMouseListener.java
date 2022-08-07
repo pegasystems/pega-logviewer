@@ -90,11 +90,11 @@ public class HotfixTableMouseListener extends MouseAdapter {
 
                 final JPopupMenu popupMenu = new JPopupMenu();
 
-                RightClickMenuItem copyHfixDetailsMenuItem = null;
-                RightClickMenuItem copyHfixIdMenuItem = null;
-                RightClickMenuItem copyHfixIdDescMenuItem = null;
-                RightClickMenuItem copyHfixIdListMenuItem = null;
-                RightClickMenuItem copyHfixIdDescListMenuItem = null;
+                RightClickMenuItem copyHfixDetailsMenuItem;
+                RightClickMenuItem copyHfixIdMenuItem;
+                RightClickMenuItem copyHfixIdDescMenuItem;
+                RightClickMenuItem copyHfixIdListMenuItem;
+                RightClickMenuItem copyHfixIdDescListMenuItem;
 
                 copyHfixDetailsMenuItem = getCopyHfixDetailsMenuItem(popupMenu, selectedRowList, hotfixTableModel);
 

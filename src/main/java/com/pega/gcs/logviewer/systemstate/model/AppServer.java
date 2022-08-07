@@ -14,9 +14,9 @@ public enum AppServer {
     // CHECKSTYLE:ON
     // @formatter:on
 
-    private String displayName;
+    private final String displayName;
 
-    private String jvmOption;
+    private final String jvmOption;
 
     private AppServer(String displayName, String jvmOption) {
         this.displayName = displayName;

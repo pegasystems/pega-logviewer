@@ -35,9 +35,7 @@ public class PEGA0099ReportModel extends AlertMessageReportModel {
 
         super(alertMessage, thresholdKPI, alertLogEntryModel, locale);
 
-        // "Job Scheduler \""+config.getName()+"\" activity \""+config.getAssociatedClass()+":"+config.getActivityName()+"\" execution
-        // failed in node %s with error msg: %s"
-        String regex = "Job Scheduler \"(.*?)\" activity \"(.*?)\" execution failed in node";
+        String regex = "Job Scheduler (.*?) activity (.*?) execution failed";
 
         pattern = Pattern.compile(regex);
     }
@@ -76,15 +74,17 @@ public class PEGA0099ReportModel extends AlertMessageReportModel {
 
     @Override
     public String getAlertMessageReportEntryKey(String dataText) {
-
         String alertMessageReportEntryKey = null;
 
         Matcher patternMatcher = pattern.matcher(dataText);
         boolean matches = patternMatcher.find();
 
         if (matches) {
-            String jobScheduler = patternMatcher.group(1).trim();
-            String activityName = patternMatcher.group(2).trim();
+            String jobScheduler = patternMatcher.group(1);
+            String activityName = patternMatcher.group(2);
+
+            jobScheduler = jobScheduler.replaceAll("\"", "");
+            activityName = activityName.replaceAll("\"", "");
 
             StringBuilder sb = new StringBuilder();
             sb.append(jobScheduler);
@@ -102,13 +102,9 @@ public class PEGA0099ReportModel extends AlertMessageReportModel {
     @Override
     public String getAlertMessageReportEntryKey(ArrayList<String> logEntryValueList) {
 
-        String alertMessageReportEntryKey = null;
+        String alertMessageReportEntryKey;
 
-        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
-
-        List<String> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
-
-        int messageIndex = logEntryColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
+        int messageIndex = getMessageLogEntryColumnIndex();
         String message = logEntryValueList.get(messageIndex);
 
         alertMessageReportEntryKey = getAlertMessageReportEntryKey(message);

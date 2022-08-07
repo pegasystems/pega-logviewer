@@ -207,7 +207,7 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
                         readCounter++;
 
                         int startidx = 0;
-                        int index = -1;
+                        int index;
 
                         // copy the balance byte array
                         int balanceByteArrayLength = balanceByteArray.length;
@@ -249,7 +249,7 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
 
                                 totalLineCount.incrementAndGet();
 
-                                // adding intelligent parsing. accumulate 100 lines and attempt to get a parser for these lines.
+                                // adding intelligent parsing. accumulate 200 lines and attempt to get a parser for these lines.
                                 // in case of alert file, there is no log pattern and we need to parse the file anyways to get the column list
 
                                 if ((!isCancelled()) && (logParser == null)) {
@@ -557,7 +557,7 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
     private LogParser getLogParser(String fileName, List<String> readLineList, Charset charset, Locale locale,
             TimeZone displayTimezone) {
 
-        LogParser aiLogParser = null;
+        LogParser aiLogParser;
 
         aiLogParser = LogParser.getLogParser(fileName, readLineList, charset, locale, displayTimezone);
 

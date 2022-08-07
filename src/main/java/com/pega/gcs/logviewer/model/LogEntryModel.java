@@ -41,7 +41,7 @@ public abstract class LogEntryModel {
 
     private DateFormat displayDateFormat;
 
-    private ArrayList<String> logEntryColumnList;
+    private ArrayList<LogEntryColumn> logEntryColumnList;
 
     private List<LogEntryKey> logEntryKeyList;
 
@@ -99,6 +99,8 @@ public abstract class LogEntryModel {
         this.upperDomainRange = -1;
         this.rebuildLogTimeSeriesCollectionSet = false;
 
+        logEntryColumnList = new ArrayList<>();
+
         displayDateFormat = new SimpleDateFormat(DateTimeUtilities.DATEFORMAT_ISO8601);
 
         if (displayTimezone == null) {
@@ -150,20 +152,13 @@ public abstract class LogEntryModel {
         setRebuildLogTimeSeriesCollectionSet(true);
     }
 
-    public ArrayList<String> getLogEntryColumnList() {
-
-        if (logEntryColumnList == null) {
-            logEntryColumnList = new ArrayList<String>();
-        }
-
+    public List<LogEntryColumn> getLogEntryColumnList() {
         return logEntryColumnList;
     }
 
-    public void setLogEntryColumnList(ArrayList<String> logEntryColumnList) {
-
-        ArrayList<String> leColumnList = getLogEntryColumnList();
-        leColumnList.clear();
-        leColumnList.addAll(logEntryColumnList);
+    public void updateLogEntryColumnList(List<LogEntryColumn> lecList) {
+        logEntryColumnList.clear();
+        logEntryColumnList.addAll(lecList);
         initialiseVisibleFilterableColumnIndexList();
     }
 
@@ -352,43 +347,35 @@ public abstract class LogEntryModel {
         Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<LogEntryKey>>> columnFilterMap = getColumnFilterMap();
         columnFilterMap.clear();
 
-        ArrayList<String> logEntryColumnList = getLogEntryColumnList();
+        List<LogEntryColumn> lecList = getLogEntryColumnList();
 
-        int size = logEntryColumnList.size();
+        int columnIndex = 0;
 
-        for (int columnIndex = 0; columnIndex < size; columnIndex++) {
+        for (LogEntryColumn logEntryColumn : lecList) {
 
-            String column = logEntryColumnList.get(columnIndex);
+            logEntryColumnIndexMap.put(logEntryColumn, columnIndex);
 
-            LogEntryColumn logEntryColumn = null;
-
-            logEntryColumn = LogEntryColumn.getTableColumnById(column);
-
-            if (logEntryColumn != null) {
-
-                logEntryColumnIndexMap.put(logEntryColumn, columnIndex);
-
-                if (logEntryColumn.isVisibleColumn()) {
-                    visibleColumnIndexList.add(columnIndex);
-
-                    // preventing unnecessary buildup of filter map
-                    if (logEntryColumn.isFilterable()) {
-
-                        FilterColumn fc = new FilterColumn(columnIndex);
-
-                        fc.setColumnFilterEnabled(true);
-
-                        columnFilterMap.put(fc, null);
-                    }
-                }
-
-            } else {
-                // unknown column name, default is show it
+            if (logEntryColumn.isVisibleColumn()) {
                 visibleColumnIndexList.add(columnIndex);
+
+                // preventing unnecessary buildup of filter map
+                if (logEntryColumn.isFilterable()) {
+
+                    FilterColumn fc = new FilterColumn(columnIndex);
+
+                    fc.setColumnFilterEnabled(true);
+
+                    columnFilterMap.put(fc, null);
+                }
             }
+
+            if (logEntryColumn.equals(LogEntryColumn.TIMESTAMP)) {
+                timestampColumnIndex = columnIndex;
+            }
+
+            columnIndex++;
         }
 
-        timestampColumnIndex = logEntryColumnIndexMap.get(LogEntryColumn.TIMESTAMP);
     }
 
     private void updateColumnFilterMap(LogEntryKey logEntryKey, ArrayList<String> logEntryValueList) {
@@ -446,23 +433,25 @@ public abstract class LogEntryModel {
         return logEntryMap.get(logEntryKey);
     }
 
-    public String getLogEntryColumn(int columnIndex) {
-        return logEntryColumnList.get(columnIndex);
+    public String getLogEntryColumnName(int columnIndex) {
+
+        List<LogEntryColumn> lecList = getLogEntryColumnList();
+
+        return lecList.get(columnIndex).getColumnId();
+    }
+
+    public int getLogEntryColumnIndex(LogEntryColumn logEntryColumn) {
+
+        Map<LogEntryColumn, Integer> logEntryColumnIndexMap = getLogEntryColumnIndexMap();
+
+        return logEntryColumnIndexMap.get(logEntryColumn);
     }
 
     public String getFormattedLogEntryValue(LogEntry logEntry, LogEntryColumn logEntryColumn) {
 
-        Map<LogEntryColumn, Integer> logEntryColumnIndexMap = getLogEntryColumnIndexMap();
+        int logEntryColumnIndex = getLogEntryColumnIndex(logEntryColumn);
 
-        int columnIndex = -1;
-
-        Integer logEntryColumnIndex = logEntryColumnIndexMap.get(logEntryColumn);
-
-        if (logEntryColumnIndex != null) {
-            columnIndex = logEntryColumnIndex.intValue();
-        }
-
-        return getFormattedLogEntryValue(logEntry, columnIndex);
+        return getFormattedLogEntryValue(logEntry, logEntryColumnIndex);
 
     }
 
@@ -490,7 +479,8 @@ public abstract class LogEntryModel {
 
                     ArrayList<String> logEntryValueList = null;
 
-                    if ((lastQueriedLogEntryKey != logEntryKey) || (lastQueriedLogEntryValueList == null)) {
+                    if ((lastQueriedLogEntryKey == null) || (!lastQueriedLogEntryKey.equals(logEntryKey))
+                            || (lastQueriedLogEntryValueList == null)) {
 
                         logEntryValueList = logEntry.getLogEntryValueList();
 

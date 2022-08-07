@@ -19,10 +19,8 @@ import javax.swing.JTabbedPane;
 import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
 import com.pega.gcs.fringecommon.guiutilities.RecentFile;
 import com.pega.gcs.fringecommon.guiutilities.datatable.DataTablePanel;
-import com.pega.gcs.logviewer.systemstate.model.ClusterState;
 import com.pega.gcs.logviewer.systemstate.model.ClusterStatus;
 import com.pega.gcs.logviewer.systemstate.model.SearchState;
-import com.pega.gcs.logviewer.systemstate.table.DSSInfoTableModel;
 import com.pega.gcs.logviewer.systemstate.table.FTSSettingsTableModel;
 
 public class SearchStatePanel extends JPanel {
@@ -61,7 +59,7 @@ public class SearchStatePanel extends JPanel {
         add(searchStateTabbedPane, gbc2);
 
         Dimension labelDim = new Dimension(150, 26);
-        String tabLabelText = null;
+        String tabLabelText;
 
         JPanel indexesInfoPanel = new IndexesInfoPanel(searchState.getIndexesInfo());
         tabLabelText = "Indexes Info";

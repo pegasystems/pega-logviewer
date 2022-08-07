@@ -115,11 +115,6 @@ public class HotfixTableModel extends FilterTableModel<HotfixEntryKey> {
         return hotfixEntry;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getColumnValue(java. lang.Object, int)
-     */
     @Override
     public String getColumnValue(Object valueAtObject, int columnIndex) {
 
@@ -141,11 +136,6 @@ public class HotfixTableModel extends FilterTableModel<HotfixEntryKey> {
         return columnValue;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getTableColumnModel( )
-     */
     @Override
     public TableColumnModel getTableColumnModel() {
 
@@ -436,11 +426,6 @@ public class HotfixTableModel extends FilterTableModel<HotfixEntryKey> {
                         HotfixSearchTask hotfixScanSearchTask = new HotfixSearchTask(modalProgressMonitor,
                                 HotfixTableModel.this, searchStrObj) {
 
-                            /*
-                             * (non-Javadoc)
-                             * 
-                             * @see javax.swing.SwingWorker#done()
-                             */
                             @Override
                             protected void done() {
 

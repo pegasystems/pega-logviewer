@@ -14,15 +14,11 @@ public abstract class PluginWrapper {
 
     private static final Log4j2Helper LOG = new Log4j2Helper(PluginWrapper.class);
 
-    private final String frameClassName;
-
     private Class<?> frameClass;
 
     private boolean initialised;
 
     public PluginWrapper(String frameClassName) {
-
-        this.frameClassName = frameClassName;
 
         this.initialised = false;
 

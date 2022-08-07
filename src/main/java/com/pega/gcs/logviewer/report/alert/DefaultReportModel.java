@@ -24,8 +24,6 @@ public class DefaultReportModel extends AlertMessageReportModel {
 
     private static final long serialVersionUID = -8889727175209305065L;
 
-    private static final Log4j2Helper LOG = new Log4j2Helper(DefaultReportModel.class);
-
     private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
 
     public DefaultReportModel(AlertMessage alertMessage, long thresholdKPI, AlertLogEntryModel alertLogEntryModel,

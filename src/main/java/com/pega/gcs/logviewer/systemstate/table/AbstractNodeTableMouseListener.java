@@ -1,3 +1,9 @@
+/*******************************************************************************
+ * Copyright (c) 2022 Pegasystems Inc. All rights reserved.
+ *
+ * Contributors:
+ *     Manu Varghese
+ *******************************************************************************/
 
 package com.pega.gcs.logviewer.systemstate.table;
 
@@ -70,7 +76,7 @@ public abstract class AbstractNodeTableMouseListener extends MouseAdapter {
 
                 final JPopupMenu popupMenu = new JPopupMenu();
 
-                RightClickMenuItem copyRightClickMenuItem = null;
+                RightClickMenuItem copyRightClickMenuItem;
                 RightClickMenuItem openNodeRightClickMenuItem = null;
 
                 copyRightClickMenuItem = getCopyEntryRightClickMenuItem(popupMenu, customJTable, selectedRowList);

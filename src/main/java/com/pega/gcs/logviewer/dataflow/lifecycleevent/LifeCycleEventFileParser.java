@@ -12,34 +12,32 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pega.gcs.fringecommon.guiutilities.Message;
 import com.pega.gcs.fringecommon.guiutilities.Message.MessageType;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.IntentChangedMessage;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.LifeCycleEventMessage;
-import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.PartitionStatusTransitionMessage;
-import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.ProcessingThreadLifecycleMessage;
-import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.RunStatusTransitionMessage;
 
 public class LifeCycleEventFileParser {
 
     private static final Log4j2Helper LOG = new Log4j2Helper(LifeCycleEventFileParser.class);
 
-    private ObjectMapper objectMapper;
-
     private LifeCycleEventTableModel lifeCycleEventTableModel;
+
+    private LifeCycleEventMessageParser lifeCycleEventMessageParser;
 
     public LifeCycleEventFileParser(LifeCycleEventTableModel lifeCycleEventTableModel) {
 
         this.lifeCycleEventTableModel = lifeCycleEventTableModel;
 
-        this.objectMapper = new ObjectMapper();
+        this.lifeCycleEventMessageParser = new LifeCycleEventMessageParser();
     }
 
     private LifeCycleEventTableModel getLifeCycleEventTableModel() {
         return lifeCycleEventTableModel;
+    }
+
+    private LifeCycleEventMessageParser getLifeCycleEventMessageParser() {
+        return lifeCycleEventMessageParser;
     }
 
     public int processLifeCycleEventfile(File lifeCycleEventFile) {
@@ -76,7 +74,11 @@ public class LifeCycleEventFileParser {
 
                             String messageJson = eventDetailsCell.getStringCellValue();
 
-                            LifeCycleEventMessage lifeCycleEventMessage = getLifeCycleEventMessage(messageJson);
+                            LifeCycleEventMessageParser lifeCycleEventMessageParser;
+                            lifeCycleEventMessageParser = getLifeCycleEventMessageParser();
+
+                            LifeCycleEventMessage lifeCycleEventMessage;
+                            lifeCycleEventMessage = lifeCycleEventMessageParser.getLifeCycleEventMessage(messageJson);
 
                             if (lifeCycleEventMessage != null) {
 
@@ -157,44 +159,6 @@ public class LifeCycleEventFileParser {
 
     }
 
-    private LifeCycleEventMessage getLifeCycleEventMessage(String messageJson) {
-
-        LifeCycleEventMessage lifeCycleEventMessage = null;
-
-        try {
-            JsonNode jsonNode = objectMapper.readTree(messageJson);
-            JsonNode typeJsonNode = jsonNode.get("type");
-            String messageType = typeJsonNode.asText();
-
-            // messageType = messageType.replaceAll("\\.", "");
-
-            switch (messageType) {
-
-            case ".IntentChangedMessage":
-                lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, IntentChangedMessage.class);
-                break;
-            case ".PartitionStatusTransitionMessage":
-                lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, PartitionStatusTransitionMessage.class);
-                break;
-            case ".ProcessingThreadLifecycleMessage":
-                lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, ProcessingThreadLifecycleMessage.class);
-                break;
-            case ".RunStatusTransitionMessage":
-                lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, RunStatusTransitionMessage.class);
-                break;
-
-            default:
-                LOG.error("Unknown message type: " + messageType);
-                break;
-            }
-
-        } catch (Exception e) {
-            LOG.error("Could not deserialize from json: " + messageJson, e);
-        }
-
-        return lifeCycleEventMessage;
-    }
-
     public void parseFinal() {
 
         // sort entries with timestamp.
@@ -219,22 +183,5 @@ public class LifeCycleEventFileParser {
                 keyIndexMap.put(key, index);
             }
         }
-    }
-
-    public static void main(String[] args) {
-
-        File lceXlsxFile = new File(
-                "C:\\_WORK\\_SR\\INC-143574_Pega_Marketing_Campaign_is_not_running\\Artifacts to Pega Jan 19 20\\Get_events_for_run_2021-01"
-                        + "-19_18-35-50.xlsx");
-        File lceXlsxFile2 = new File(
-                "C:\\_WORK\\_SR\\QNB_FINANSBANK_A.S\\INC-191841_Duplicate_customer_ID_when_campaign_is_run\\Attachments\\Get_events_for_run"
-                        + "_2021-09-16_16-14-13_INC-191760.xlsx");
-
-        LifeCycleEventTableModel lifeCycleEventTableModel;
-        lifeCycleEventTableModel = new LifeCycleEventTableModel(null, null);
-
-        LifeCycleEventFileParser lifeCycleEventFileParser = new LifeCycleEventFileParser(lifeCycleEventTableModel);
-
-        lifeCycleEventFileParser.processLifeCycleEventfile(lceXlsxFile2);
     }
 }

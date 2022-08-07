@@ -86,8 +86,7 @@ public class AlertLogEntryModel extends LogEntryModel {
     protected void postProcess(LogEntry logEntry, ArrayList<String> logEntryValueList, Charset charset, Locale locale) {
 
         if (thresholdKPIIndex == -1) {
-            List<String> logEntryColumnList = getLogEntryColumnList();
-            thresholdKPIIndex = logEntryColumnList.indexOf(LogEntryColumn.THRESHOLDKPI.getColumnId());
+            thresholdKPIIndex = getLogEntryColumnIndex(LogEntryColumn.THRESHOLDKPI);
         }
 
         AlertLogEntry alertLogEntry = (AlertLogEntry) logEntry;
@@ -114,7 +113,7 @@ public class AlertLogEntryModel extends LogEntryModel {
         Map<String, LogSeriesCollection> overallLogTimeSeriesCollectionMap;
         overallLogTimeSeriesCollectionMap = getOverallLogTimeSeriesCollectionMap();
 
-        processLogSeriesCollection(overallLogTimeSeriesCollectionMap, alertLogEntry, logEntryValueList, locale);
+        processLogSeriesCollection(overallLogTimeSeriesCollectionMap, alertLogEntry, locale);
 
         // report models
         Map<Integer, AlertMessageReportModel> alertMessageReportModelMap = getAlertMessageReportModelMap();
@@ -152,7 +151,7 @@ public class AlertLogEntryModel extends LogEntryModel {
     }
 
     private void processLogSeriesCollection(Map<String, LogSeriesCollection> logTimeSeriesCollectionMap,
-            AlertLogEntry alertLogEntry, ArrayList<String> logEntryValueList, Locale locale) {
+            AlertLogEntry alertLogEntry, Locale locale) {
 
         LogEntryKey logEntryKey = alertLogEntry.getKey();
 
@@ -261,7 +260,7 @@ public class AlertLogEntryModel extends LogEntryModel {
 
                 // logEntryTime can be -1 in case of corrupted log file
                 if (logEntryTime != -1) {
-                    processLogSeriesCollection(logTimeSeriesCollectionMap, alertLogEntry, null, locale);
+                    processLogSeriesCollection(logTimeSeriesCollectionMap, alertLogEntry, locale);
                 }
             }
 
@@ -339,7 +338,7 @@ public class AlertLogEntryModel extends LogEntryModel {
 
             AlertLogEntry alertLogEntry = (AlertLogEntry) logEntry;
 
-            processLogSeriesCollection(overallLogTimeSeriesCollectionMap, alertLogEntry, null, locale);
+            processLogSeriesCollection(overallLogTimeSeriesCollectionMap, alertLogEntry, locale);
         }
 
         // Not doing sorting anymore

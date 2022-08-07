@@ -172,11 +172,6 @@ public class HotfixEntry implements Identifiable<HotfixEntryKey>, Comparable<Hot
         return builder.toString();
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.utilities.Identifiable#getKey()
-     */
     @Override
     public HotfixEntryKey getKey() {
         return hotfixEntryKey;

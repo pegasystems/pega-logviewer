@@ -38,11 +38,6 @@ public class LogTableSearchTask extends SwingWorker<List<LogEntryKey>, ProgressT
         this.searchStrObj = searchStrObj;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.SwingWorker#doInBackground()
-     */
     @Override
     protected List<LogEntryKey> doInBackground() throws Exception {
 
@@ -184,11 +179,6 @@ public class LogTableSearchTask extends SwingWorker<List<LogEntryKey>, ProgressT
         return searchResultList;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.SwingWorker#process(java.util.List)
-     */
     @Override
     protected void process(List<ProgressTaskInfo> chunks) {
         if ((isDone()) || (isCancelled()) || (chunks == null) || (chunks.size() == 0)) {

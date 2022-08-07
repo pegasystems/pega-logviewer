@@ -3,7 +3,6 @@ package com.pega.gcs.logviewer.socketreceiver;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.List;
@@ -71,11 +70,6 @@ public class SocketReceiverLogTask extends SwingWorker<LogParser, ReadCounterTas
         return errorCount;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.SwingWorker#doInBackground()
-     */
     @Override
     protected LogParser doInBackground() throws Exception {
 
@@ -125,7 +119,7 @@ public class SocketReceiverLogTask extends SwingWorker<LogParser, ReadCounterTas
                 datagramSocket.receive(datagramPacket);
 
                 // Future: may be collate from multiple nodes?
-                InetAddress senderAddress = datagramPacket.getAddress();
+                // InetAddress senderAddress = datagramPacket.getAddress();
 
                 byteBuffer = datagramPacket.getData();
                 int readLen = datagramPacket.getLength();
@@ -135,9 +129,8 @@ public class SocketReceiverLogTask extends SwingWorker<LogParser, ReadCounterTas
                 readCounter++;
 
                 int startidx = 0;
-                int index = -1;
 
-                index = KnuthMorrisPrattAlgorithm.indexOfWithPatternLength(byteBuffer, newLine, startidx);
+                int index = KnuthMorrisPrattAlgorithm.indexOfWithPatternLength(byteBuffer, newLine, startidx);
 
                 if (index != -1) {
 
@@ -241,11 +234,6 @@ public class SocketReceiverLogTask extends SwingWorker<LogParser, ReadCounterTas
 
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.SwingWorker#process(java.util.List)
-     */
     @Override
     protected void process(List<ReadCounterTaskInfo> chunks) {
 

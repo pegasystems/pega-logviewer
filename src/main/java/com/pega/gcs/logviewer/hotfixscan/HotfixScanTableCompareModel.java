@@ -88,7 +88,7 @@ public class HotfixScanTableCompareModel extends HotfixScanTableModel {
     }
 
     public int getCompareCount() {
-        int compareCount = 0;
+        int compareCount;
 
         compareCount = (compareNavIndexMap != null) ? compareNavIndexMap.size() : 0;
 

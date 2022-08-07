@@ -8,8 +8,8 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.logviewer.dataflow.lifecycleevent.LifeCycleEventColumn;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.LifeCycleEventTableModel;
+import com.pega.gcs.logviewer.model.LogEntryColumn;
 
 public abstract class LifeCycleEventMessage implements Serializable {
 
@@ -78,58 +78,37 @@ public abstract class LifeCycleEventMessage implements Serializable {
         this.searchFound = searchFound;
     }
 
-    public String getColumnValueForLifeCycleEventColumn(LifeCycleEventColumn lifeCycleEventColumn) {
+    public String getColumnValueForLifeCycleEventColumn(LogEntryColumn lifeCycleEventColumn) {
 
         String value = null;
 
-        switch (lifeCycleEventColumn) {
-
-        case MESSAGEID:
+        if (lifeCycleEventColumn.equals(LogEntryColumn.MESSAGEID)) {
             value = getMessageId();
-            break;
-        case TIMESTAMP:
+        } else if (lifeCycleEventColumn.equals(LogEntryColumn.TIMESTAMP)) {
             value = getDisplayTimestamp();
-            break;
-        case EVENT_TYPE:
+        } else if (lifeCycleEventColumn.equals(LogEntryColumn.EVENT_TYPE)) {
             value = getType();
-            break;
-        case SENDER_NODE_ID:
+        } else if (lifeCycleEventColumn.equals(LogEntryColumn.SENDER_NODE_ID)) {
             value = getSenderNodeId();
-            break;
-
-        case RUN_ID:
+        } else if (lifeCycleEventColumn.equals(LogEntryColumn.RUN_ID)) {
             value = getRunId();
-            break;
-        case ORIGINATOR:
+        } else if (lifeCycleEventColumn.equals(LogEntryColumn.ORIGINATOR)) {
             value = getOriginator();
-            break;
-        case REASON:
+        } else if (lifeCycleEventColumn.equals(LogEntryColumn.REASON)) {
             value = getReason();
-            break;
-        case PARTITION_STATUS:
+        } else if (lifeCycleEventColumn.equals(LogEntryColumn.PARTITION_STATUS)) {
             value = getPartitionStatus();
-            break;
-        case PREVIOUS_STATUS:
+        } else if (lifeCycleEventColumn.equals(LogEntryColumn.PREVIOUS_STATUS)) {
             value = getPreviousStatus();
-            break;
-
-        case INTENTION:
+        } else if (lifeCycleEventColumn.equals(LogEntryColumn.INTENTION)) {
             value = getIntention();
-            break;
-        case PARTITIONS:
+        } else if (lifeCycleEventColumn.equals(LogEntryColumn.PARTITIONS)) {
             List<String> partitions = getPartitions();
             value = partitions != null ? partitions.toString() : null;
-            break;
-        case THREAD_NAME:
+        } else if (lifeCycleEventColumn.equals(LogEntryColumn.THREAD_NAME)) {
             value = getThreadName();
-            break;
-        case EVENT:
+        } else if (lifeCycleEventColumn.equals(LogEntryColumn.EVENT)) {
             value = getEvent();
-            break;
-
-        default:
-            break;
-
         }
 
         return value;

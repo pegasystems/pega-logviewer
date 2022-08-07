@@ -29,11 +29,11 @@ public class PegaThreadDumpParser {
 
     private boolean initialised;
 
-    private static Class<?> pegaThreadDumpParserClass;
+    private Class<?> pegaThreadDumpParserClass;
 
-    private static Class<?> threadDumpClass;
+    private Class<?> threadDumpClass;
 
-    private static Class<?> htmlReportProducerFactoryProviderClass;
+    private Class<?> htmlReportProducerFactoryProviderClass;
 
     private String version;
 

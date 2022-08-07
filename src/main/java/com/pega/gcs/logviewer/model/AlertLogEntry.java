@@ -86,13 +86,13 @@ public class AlertLogEntry extends LogEntry {
     }
 
     @Override
-    public JPanel getDetailsJPanel(LogTableModel logTableModel) {
+    public JPanel getDetailsPanel(LogTableModel logTableModel) {
 
-        JPanel detailsJPanel = null;
+        JPanel detailsPanel;
 
-        detailsJPanel = new AlertLogEntryPanel(this, logTableModel.getLogEntryModel(), logTableModel.getCharset());
+        detailsPanel = new AlertLogEntryPanel(this, logTableModel.getLogEntryModel(), logTableModel.getCharset());
 
-        return detailsJPanel;
+        return detailsPanel;
     }
 
     public Number getPALDataValue(int column) {

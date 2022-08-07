@@ -385,9 +385,9 @@ public class HotfixEntryDetailPanel extends JPanel {
 
         String hotfixId;
         String description;
-        String data = null;
-        HotfixColumn hotfixColumn = null;
-        int columnIndex = -1;
+        String data;
+        HotfixColumn hotfixColumn;
+        int columnIndex;
 
         CatalogManagerWrapper catalogManagerWrapper = CatalogManagerWrapper.getInstance();
 

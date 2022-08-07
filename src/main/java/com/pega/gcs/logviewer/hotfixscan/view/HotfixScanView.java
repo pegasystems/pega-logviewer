@@ -74,11 +74,6 @@ public abstract class HotfixScanView extends JPanel implements TableModelListene
         });
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.event.TableModelListener#tableChanged(javax.swing.event. TableModelEvent)
-     */
     @Override
     public void tableChanged(TableModelEvent tableModelEvent) {
         if (tableModelEvent.getType() == TableModelEvent.UPDATE) {

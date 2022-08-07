@@ -35,7 +35,7 @@ public abstract class LogEntry implements Identifiable<LogEntryKey>, Serializabl
 
     public abstract Color getBackgroundColor();
 
-    public abstract JPanel getDetailsJPanel(LogTableModel logTableModel);
+    public abstract JPanel getDetailsPanel(LogTableModel logTableModel);
 
     private boolean searchFound;
 

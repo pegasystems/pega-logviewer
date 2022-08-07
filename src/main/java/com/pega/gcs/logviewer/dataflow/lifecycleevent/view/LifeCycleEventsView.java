@@ -68,11 +68,6 @@ public abstract class LifeCycleEventsView extends JPanel implements TableModelLi
         });
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.event.TableModelListener#tableChanged(javax.swing.event. TableModelEvent)
-     */
     @Override
     public void tableChanged(TableModelEvent tableModelEvent) {
         if (tableModelEvent.getType() == TableModelEvent.UPDATE) {

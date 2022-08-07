@@ -44,11 +44,6 @@ public class CombinedDomainXYPlotMouseListener implements ChartMouseListener {
         this.navigationTableController = navigationTableController;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.jfree.chart.ChartMouseListener#chartMouseClicked(org.jfree.chart. ChartMouseEvent)
-     */
     @Override
     public void chartMouseClicked(ChartMouseEvent event) {
         try {
@@ -77,18 +72,12 @@ public class CombinedDomainXYPlotMouseListener implements ChartMouseListener {
             if (logEntryKey != null) {
                 navigationTableController.scrollToKey(logEntryKey);
             }
-            // }
 
         } catch (Exception e) {
             LOG.error("Error handling mouse click", e);
         }
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see org.jfree.chart.ChartMouseListener#chartMouseMoved(org.jfree.chart. ChartMouseEvent)
-     */
     @Override
     public void chartMouseMoved(ChartMouseEvent event) {
 

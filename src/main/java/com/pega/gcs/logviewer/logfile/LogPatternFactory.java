@@ -7,6 +7,8 @@ import org.apache.logging.log4j.core.config.DefaultConfiguration;
 import org.apache.logging.log4j.core.pattern.PatternFormatter;
 import org.apache.logging.log4j.core.pattern.PatternParser;
 
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern.LogType;
+
 public class LogPatternFactory {
 
     private static LogPatternFactory _INSTANCE;
@@ -47,10 +49,25 @@ public class LogPatternFactory {
 
             int groupCount = patternFormatterList.size();
 
-            log4jPattern = new Log4jPattern(name, patternString, groupCount, isCW);
+            log4jPattern = new Log4jPattern(LogType.PEGA_RULES, name, patternString, groupCount, isCW);
         }
 
         return log4jPattern;
     }
 
+    public Log4jPattern getDataflowLog4jPattern(String name, String patternString, boolean isCW) {
+
+        Log4jPattern log4jPattern = null;
+
+        if ((patternString != null) && (!"".equals(patternString))) {
+
+            List<PatternFormatter> patternFormatterList = patternParser.parse(patternString);
+
+            int groupCount = patternFormatterList.size();
+
+            log4jPattern = new Log4jPattern(LogType.PEGA_DATAFLOW, name, patternString, groupCount, isCW);
+        }
+
+        return log4jPattern;
+    }
 }

@@ -21,11 +21,11 @@ public class FindingAdapterFactory {
 
     private static final FindingAdapterFactory _INSTANCE = new FindingAdapterFactory();
 
-    private static boolean initialised;
+    private boolean initialised;
 
-    private static Class<?> graphFindingClass;
+    private Class<?> graphFindingClass;
 
-    private static Method swingUtilsGetComponentGraphMethod;
+    private Method swingUtilsGetComponentGraphMethod;
 
     private FindingAdapterFactory() {
 
@@ -56,7 +56,7 @@ public class FindingAdapterFactory {
         return _INSTANCE;
     }
 
-    private static boolean isInitialised() {
+    private boolean isInitialised() {
         return initialised;
     }
 

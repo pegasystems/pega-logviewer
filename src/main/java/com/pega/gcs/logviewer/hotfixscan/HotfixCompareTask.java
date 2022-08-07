@@ -140,7 +140,7 @@ public class HotfixCompareTask extends SwingWorker<Void, String> {
                 @Override
                 public boolean match(HotfixEntry o1, HotfixEntry o2) {
 
-                    boolean match = false;
+                    boolean match;
 
                     match = ((o1.getHotfixId().equals(o2.getHotfixId())))
                             && (o1.getHotfixStatus().equals(o2.getHotfixStatus()));

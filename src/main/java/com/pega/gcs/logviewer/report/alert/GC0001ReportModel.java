@@ -63,7 +63,6 @@ public class GC0001ReportModel extends AlertMessageReportModel {
 
     @Override
     public String getAlertMessageReportEntryKey(String dataText) {
-
         String alertMessageReportEntryKey = null;
 
         return alertMessageReportEntryKey;

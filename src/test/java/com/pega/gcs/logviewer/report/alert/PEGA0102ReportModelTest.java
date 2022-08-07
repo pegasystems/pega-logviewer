@@ -28,4 +28,39 @@ public class PEGA0102ReportModelTest {
                 alertMessageReportEntryKey);
     }
 
+    @Test
+    public void testGetAlertMessageReportEntryKeyString2() {
+
+        String dataText = "Job Scheduler someActivityJobscheduler registration failed in node abgtssdfsf which"
+                + " will cause delayed Queue Processor use cases to stop processing";
+
+        LOG.info("dataText: " + dataText);
+
+        PEGA0102ReportModel pega0102ReportModel = new PEGA0102ReportModel(null, 0, null, null);
+
+        String alertMessageReportEntryKey;
+        alertMessageReportEntryKey = pega0102ReportModel.getAlertMessageReportEntryKey(dataText);
+
+        LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
+
+        org.junit.jupiter.api.Assertions.assertEquals("someActivityJobscheduler", alertMessageReportEntryKey);
+    }
+
+    @Test
+    public void testGetAlertMessageReportEntryKeyString3() {
+
+        String dataText = "someService \"abcd\" registration failed in node abgtssdfsf which will cause delayed Queue Processor use cases t"
+                + "o stop processing. Error message: some errormessage";
+
+        LOG.info("dataText: " + dataText);
+
+        PEGA0102ReportModel pega0102ReportModel = new PEGA0102ReportModel(null, 0, null, null);
+
+        String alertMessageReportEntryKey;
+        alertMessageReportEntryKey = pega0102ReportModel.getAlertMessageReportEntryKey(dataText);
+
+        LOG.info("alertMessageReportEntryKey: " + alertMessageReportEntryKey);
+
+        org.junit.jupiter.api.Assertions.assertEquals("someService \"abcd\"", alertMessageReportEntryKey);
+    }
 }

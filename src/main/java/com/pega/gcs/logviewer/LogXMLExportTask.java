@@ -24,6 +24,7 @@ import org.dom4j.Element;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
 import com.pega.gcs.logviewer.model.LogEntry;
+import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 
@@ -41,11 +42,6 @@ public class LogXMLExportTask extends SwingWorker<Void, Integer> {
         this.xmlFile = xmlFile;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.SwingWorker#doInBackground()
-     */
     @Override
     protected Void doInBackground() throws Exception {
 
@@ -181,14 +177,12 @@ public class LogXMLExportTask extends SwingWorker<Void, Integer> {
 
         LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-        List<String> logEntryColumnList = logEntryModel.getLogEntryColumnList();
-
         DocumentFactory factory = DocumentFactory.getInstance();
 
         Element logEventElement = factory.createElement(logEventName);
 
-        for (String logEntryColumn : logEntryColumnList) {
-            Element logEntryColumnElement = factory.createElement(logEntryColumn);
+        for (LogEntryColumn logEntryColumn : logEntryModel.getLogEntryColumnList()) {
+            Element logEntryColumnElement = factory.createElement(logEntryColumn.getColumnId());
             logEventElement.add(logEntryColumnElement);
         }
 

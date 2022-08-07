@@ -133,8 +133,8 @@ public class HotfixScanCompareTableView extends HotfixScanView {
 
         supplementUtilityJPanel.removeAll();
 
-        LayoutManager layout = new BoxLayout(supplementUtilityJPanel, BoxLayout.LINE_AXIS);
-        supplementUtilityJPanel.setLayout(layout);
+        LayoutManager supplementUtilityLayout = new BoxLayout(supplementUtilityJPanel, BoxLayout.LINE_AXIS);
+        supplementUtilityJPanel.setLayout(supplementUtilityLayout);
 
         Dimension spacer = new Dimension(5, 10);
         Dimension endspacer = new Dimension(15, 10);
@@ -143,7 +143,8 @@ public class HotfixScanCompareTableView extends HotfixScanView {
         JButton generateCompareReportJButton = getGenerateCompareReportJButton();
 
         JPanel compareFileOpenPanel = new JPanel();
-        layout = new BoxLayout(compareFileOpenPanel, BoxLayout.LINE_AXIS);
+        LayoutManager compareFileOpenLayout = new BoxLayout(compareFileOpenPanel, BoxLayout.LINE_AXIS);
+        compareFileOpenPanel.setLayout(compareFileOpenLayout);
 
         compareFileOpenPanel.add(Box.createRigidArea(spacer));
         compareFileOpenPanel.add(compareFileOpenJButton);

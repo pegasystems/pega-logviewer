@@ -61,15 +61,15 @@ public class AlertLogEntryPanel extends JPanel {
 
     private Charset charset;
 
-    private ArrayList<String> logEntryColumnList;
+    private LogEntryModel logEntryModel;
 
     private JTabbedPane alertTabbedPane;
 
     private StyleSheet styleSheet;
 
-    private List<String> tabKeyList;
+    private List<LogEntryColumn> tabColumnList;
 
-    private List<String> longDataKeyList;
+    private List<LogEntryColumn> longDataColumnList;
 
     public AlertLogEntryPanel(AlertLogEntry alertLogEntry, LogEntryModel logEntryModel, Charset charset) {
         super();
@@ -79,21 +79,21 @@ public class AlertLogEntryPanel extends JPanel {
 
         this.logEntryData = alertLogEntry.getLogEntryData();
 
-        this.logEntryColumnList = logEntryModel.getLogEntryColumnList();
+        this.logEntryModel = logEntryModel;
 
-        tabKeyList = new ArrayList<String>();
-        tabKeyList.add(LogEntryColumn.PALDATA.getColumnId());
-        tabKeyList.add(LogEntryColumn.TRACELIST.getColumnId());
-        tabKeyList.add(LogEntryColumn.PRSTACKTRACE.getColumnId());
-        tabKeyList.add(LogEntryColumn.PARAMETERPAGEDATA.getColumnId());
+        tabColumnList = new ArrayList<>();
+        tabColumnList.add(LogEntryColumn.PALDATA);
+        tabColumnList.add(LogEntryColumn.TRACELIST);
+        tabColumnList.add(LogEntryColumn.PRSTACKTRACE);
+        tabColumnList.add(LogEntryColumn.PARAMETERPAGEDATA);
 
-        longDataKeyList = new ArrayList<String>();
-        longDataKeyList.add(LogEntryColumn.LOGGER.getColumnId());
-        longDataKeyList.add(LogEntryColumn.STACK.getColumnId());
-        longDataKeyList.add(LogEntryColumn.LASTINPUT.getColumnId());
-        longDataKeyList.add(LogEntryColumn.FIRSTACTIVITY.getColumnId());
-        longDataKeyList.add(LogEntryColumn.LASTSTEP.getColumnId());
-        longDataKeyList.add(LogEntryColumn.MESSAGE.getColumnId());
+        longDataColumnList = new ArrayList<>();
+        longDataColumnList.add(LogEntryColumn.LOGGER);
+        longDataColumnList.add(LogEntryColumn.STACK);
+        longDataColumnList.add(LogEntryColumn.LASTINPUT);
+        longDataColumnList.add(LogEntryColumn.FIRSTACTIVITY);
+        longDataColumnList.add(LogEntryColumn.LASTSTEP);
+        longDataColumnList.add(LogEntryColumn.MESSAGE);
 
         styleSheet = FileUtilities.getStyleSheet(this.getClass(), "styles.css");
 
@@ -187,13 +187,17 @@ public class AlertLogEntryPanel extends JPanel {
         alertTabbedPane.addChangeListener(changeListener);
     }
 
-    protected JTabbedPane getAlertTabbedPane() {
+    private JTabbedPane getAlertTabbedPane() {
 
         if (alertTabbedPane == null) {
             alertTabbedPane = new JTabbedPane();
         }
 
         return alertTabbedPane;
+    }
+
+    private LogEntryModel getLogEntryModel() {
+        return logEntryModel;
     }
 
     private JComponent getAlertComponent() {
@@ -237,16 +241,16 @@ public class AlertLogEntryPanel extends JPanel {
 
         List<String> logEntryValueList = logEntryData.getLogEntryValueList();
 
-        for (int index = 0; index < logEntryColumnList.size(); index++) {
+        LogEntryModel logEntryModel = getLogEntryModel();
+        List<LogEntryColumn> logEntryColumnList = logEntryModel.getLogEntryColumnList();
+        int columnIndex = 0;
 
-            String name = logEntryColumnList.get(index);
+        for (LogEntryColumn logEntryColumn : logEntryColumnList) {
 
-            if (!tabKeyList.contains(name)) {
-
-                LogEntryColumn logEntryColumn = LogEntryColumn.getTableColumnById(name);
+            if (!tabColumnList.contains(logEntryColumn)) {
 
                 String nameColumn = logEntryColumn.getDisplayName();
-                String valueColumn = logEntryValueList.get(index);
+                String valueColumn = logEntryValueList.get(columnIndex);
 
                 // bug - some sql contains '<>' in criteria, which splits the html table row.
                 valueColumn = StringEscapeUtils.escapeHtml4(valueColumn);
@@ -269,13 +273,14 @@ public class AlertLogEntryPanel extends JPanel {
                 AlertLogEntryPanelTableData alertLogEntryPanelTableData = new AlertLogEntryPanelTableData(nameColumn,
                         valueColumn, isHref);
 
-                if (longDataKeyList.contains(name)) {
+                if (longDataColumnList.contains(logEntryColumn)) {
                     longDataList.add(alertLogEntryPanelTableData);
                 } else {
                     dataList.add(alertLogEntryPanelTableData);
                 }
-
             }
+
+            columnIndex++;
         }
 
         Integer alertId = alertLogEntry.getAlertId();
@@ -286,10 +291,10 @@ public class AlertLogEntryPanel extends JPanel {
 
         if (alertMessage != null) {
 
-            String nameColumn = null;
-            String valueColumn = null;
-            boolean isHref = false;
-            AlertLogEntryPanelTableData alertLogEntryPanelTableData = null;
+            String nameColumn;
+            String valueColumn;
+            boolean isHref;
+            AlertLogEntryPanelTableData alertLogEntryPanelTableData;
 
             nameColumn = "Category";
             StringBuilder valueSB = new StringBuilder();
@@ -409,6 +414,12 @@ public class AlertLogEntryPanel extends JPanel {
 
     private JScrollPane getPalComponent() {
 
+        LogEntryColumn logEntryColumn = LogEntryColumn.PALDATA;
+
+        LogEntryModel logEntryModel = getLogEntryModel();
+
+        int columnIndex = logEntryModel.getLogEntryColumnIndex(logEntryColumn);
+
         HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
         StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
         htmlStyleSheet.addStyleSheet(styleSheet);
@@ -420,9 +431,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         StringBuilder htmlStringBuilder = new StringBuilder();
 
-        htmlStringBuilder.append("<H3 align='center'>" + LogEntryColumn.PALDATA.getDisplayName() + "</H3>");
-
-        int columnIndex = logEntryColumnList.indexOf(LogEntryColumn.PALDATA.getColumnId());
+        htmlStringBuilder.append("<H3 align='center'>" + logEntryColumn.getDisplayName() + "</H3>");
 
         if (columnIndex != -1) {
 
@@ -514,6 +523,12 @@ public class AlertLogEntryPanel extends JPanel {
 
     private JComponent getTraceListComponent() {
 
+        LogEntryColumn logEntryColumn = LogEntryColumn.TRACELIST;
+
+        LogEntryModel logEntryModel = getLogEntryModel();
+
+        int columnIndex = logEntryModel.getLogEntryColumnIndex(logEntryColumn);
+
         HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
         StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
         htmlStyleSheet.addStyleSheet(styleSheet);
@@ -525,9 +540,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         StringBuilder htmlStringBuilder = new StringBuilder();
 
-        htmlStringBuilder.append("<H3 align='center'>" + LogEntryColumn.TRACELIST.getDisplayName() + "</H3>");
-
-        int columnIndex = logEntryColumnList.indexOf(LogEntryColumn.TRACELIST.getColumnId());
+        htmlStringBuilder.append("<H3 align='center'>" + logEntryColumn.getDisplayName() + "</H3>");
 
         if (columnIndex != -1) {
 
@@ -592,6 +605,12 @@ public class AlertLogEntryPanel extends JPanel {
 
     private JComponent getPRStacktraceComponent() {
 
+        LogEntryColumn logEntryColumn = LogEntryColumn.PRSTACKTRACE;
+
+        LogEntryModel logEntryModel = getLogEntryModel();
+
+        int columnIndex = logEntryModel.getLogEntryColumnIndex(logEntryColumn);
+
         HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
         StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
         htmlStyleSheet.addStyleSheet(styleSheet);
@@ -603,9 +622,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         StringBuilder htmlStringBuilder = new StringBuilder();
 
-        htmlStringBuilder.append("<H3 align='center'>" + LogEntryColumn.PRSTACKTRACE.getDisplayName() + "</H3>");
-
-        int columnIndex = logEntryColumnList.indexOf(LogEntryColumn.PRSTACKTRACE.getColumnId());
+        htmlStringBuilder.append("<H3 align='center'>" + logEntryColumn.getDisplayName() + "</H3>");
 
         if (columnIndex != -1) {
 
@@ -661,6 +678,12 @@ public class AlertLogEntryPanel extends JPanel {
 
     private JComponent getParameterPageComponent() {
 
+        LogEntryColumn logEntryColumn = LogEntryColumn.PARAMETERPAGEDATA;
+
+        LogEntryModel logEntryModel = getLogEntryModel();
+
+        int columnIndex = logEntryModel.getLogEntryColumnIndex(logEntryColumn);
+
         HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
         StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
         htmlStyleSheet.addStyleSheet(styleSheet);
@@ -672,9 +695,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         StringBuilder htmlStringBuilder = new StringBuilder();
 
-        htmlStringBuilder.append("<H3 align='center'>" + LogEntryColumn.PARAMETERPAGEDATA.getDisplayName() + "</H3>");
-
-        int columnIndex = logEntryColumnList.indexOf(LogEntryColumn.PARAMETERPAGEDATA.getColumnId());
+        htmlStringBuilder.append("<H3 align='center'>" + logEntryColumn.getDisplayName() + "</H3>");
 
         if (columnIndex != -1) {
 

@@ -54,7 +54,7 @@ public class ClusterState implements NodeObject {
 
     public boolean hasError() {
 
-        boolean error = false;
+        boolean error;
 
         RuleSetVersionInfo ruleSetVersionInfo = getRuleSetVersionInfo();
         CodeSetVersionInfo codeSetVersionInfo = getCodeSetVersionInfo();

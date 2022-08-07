@@ -182,8 +182,8 @@ public class LogThreadDumpParser {
                     threadDumpThreadInfo = threadDumpThreadInfoV7;
                 } else {
 
-                    String priority = null;
-                    String groupName = null;
+                    String priority;
+                    String groupName;
 
                     // arbitrary thread id
                     threadId = threadIDCounter;
@@ -284,7 +284,7 @@ public class LogThreadDumpParser {
 
                     lockedSync = lockedSync.trim();
 
-                    int lockedSyncCount = 0;
+                    int lockedSyncCount;
                     lockedSyncCount = Integer.valueOf(lockedSync);
 
                     threadDumpThreadInfoV7.setLockedSynchronizersCount(lockedSyncCount);

@@ -279,11 +279,6 @@ public class LogDataMainPanel extends JPanel {
 
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.JComponent#removeNotify()
-     */
     @Override
     public void removeNotify() {
         super.removeNotify();
@@ -1119,11 +1114,6 @@ public class LogDataMainPanel extends JPanel {
             logFileLoadTask = new LogFileLoadTask(parent, logTableModel, logViewerSetting, mProgressMonitor,
                     progressBar, progressText) {
 
-                /*
-                 * (non-Javadoc)
-                 * 
-                 * @see javax.swing.SwingWorker#done()
-                 */
                 @Override
                 protected void done() {
 

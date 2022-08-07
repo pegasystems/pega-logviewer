@@ -73,11 +73,6 @@ public class HotfixReportTableModel extends FilterTableModel<Integer> {
         return value;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getColumnValue(java. lang.Object, int)
-     */
     @Override
     public String getColumnValue(Object valueAtObject, int columnIndex) {
 
@@ -93,11 +88,6 @@ public class HotfixReportTableModel extends FilterTableModel<Integer> {
         return columnValue;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getTableColumnModel( )
-     */
     @Override
     public TableColumnModel getTableColumnModel() {
 
@@ -288,12 +278,6 @@ public class HotfixReportTableModel extends FilterTableModel<Integer> {
 
             private static final long serialVersionUID = 5071579118636978454L;
 
-            /*
-             * (non-Javadoc)
-             * 
-             * @see javax.swing.table.DefaultTableCellRenderer# getTableCellRendererComponent(javax.swing.JTable, java.lang.Object, boolean,
-             * boolean, int, int)
-             */
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
                     boolean hasFocus, int row, int column) {

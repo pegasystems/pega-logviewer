@@ -161,12 +161,10 @@ public class LogSystemStartParser {
 
         Map<String, String> systemStartMap = new TreeMap<String, String>();
 
-        MatchObject matchObject = null;
+        MatchObject matchObject;
         int ssIndex = 0;
 
-        List<String> leColumnList = log4jLogEntryModel.getLogEntryColumnList();
-
-        int messageColIndex = leColumnList.indexOf(LogEntryColumn.MESSAGE.getColumnId());
+        int messageColIndex = log4jLogEntryModel.getLogEntryColumnIndex(LogEntryColumn.MESSAGE);
 
         Map<LogEntryKey, LogEntry> logEntryMap = log4jLogEntryModel.getLogEntryMap();
 
@@ -671,7 +669,7 @@ public class LogSystemStartParser {
 
     private String getValue(List<LogEntry> systemStartLogEntryList, int messageColIndex, int index) {
 
-        String value = null;
+        String value;
 
         LogEntry logEntry = systemStartLogEntryList.get(index);
 

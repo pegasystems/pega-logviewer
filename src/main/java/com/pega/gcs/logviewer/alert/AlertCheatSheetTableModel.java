@@ -54,21 +54,11 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
         initialise();
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.table.TableModel#getColumnCount()
-     */
     @Override
     public int getColumnCount() {
         return alertCheatSheetTableColumnList.size();
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see javax.swing.table.TableModel#getValueAt(int, int)
-     */
     @Override
     public Object getValueAt(int rowIndex, int columnIndex) {
 
@@ -85,11 +75,6 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
         return value;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getColumnValue(java. lang.Object, int)
-     */
     @Override
     public String getColumnValue(Object valueAtObject, int columnIndex) {
 
@@ -138,43 +123,22 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
         return columnValue;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel# getModelColumnIndex(int)
-     */
     @Override
     protected int getModelColumnIndex(int column) {
         return column;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#search(java.lang. Comparable, java.lang.Object)
-     */
     @Override
     protected boolean search(Integer key, Object searchStrObj) {
         return false;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel# getNavigationRowIndex(java.util.List, int, boolean, boolean,
-     * boolean, boolean)
-     */
     @Override
     protected FilterTableModelNavigation<Integer> getNavigationRowIndex(List<Integer> resultList,
             int currSelectedRowIndex, boolean forward, boolean first, boolean last, boolean wrap) {
         return null;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel# getFtmEntryKeyList()
-     */
     @Override
     public List<Integer> getFtmEntryKeyList() {
 
@@ -195,11 +159,6 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
         return keyIndexMap;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#resetModel()
-     */
     @Override
     public void resetModel() {
 
@@ -220,41 +179,21 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
         }
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#getEventForKey( java.lang.Comparable)
-     */
     @Override
     public Object getEventForKey(Integer key) {
         return null;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#getTreeNodeForKey (java.lang.Comparable)
-     */
     @Override
     public AbstractTreeTableNode getTreeNodeForKey(Integer key) {
         return null;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel# clearSearchResults(boolean)
-     */
     @Override
     public void clearSearchResults(boolean clearResults) {
 
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.FilterTableModel#getSearchModel()
-     */
     @Override
     public SearchModel<Integer> getSearchModel() {
         return null;
@@ -266,7 +205,7 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
 
         AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
 
-        for (String messageId : alertMessageListProvider.getMessageIdSet()) {
+        for (String messageId : alertMessageListProvider.getMessageIdList()) {
 
             AlertMessage alertMessage = alertMessageListProvider.getAlertMessage(messageId);
             Integer alertId = alertMessage.getId();
@@ -331,11 +270,6 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
         }
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getTableColumnModel( )
-     */
     @Override
     public TableColumnModel getTableColumnModel() {
 
@@ -346,11 +280,9 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
 
         for (AlertCheatSheetTableColumn alertCheatSheetTableColumn : alertCheatSheetTableColumnList) {
 
-            TableCellRenderer tcr = null;
-
             DefaultTableCellRenderer dtcr = getDefaultTableCellRenderer();
             dtcr.setHorizontalAlignment(alertCheatSheetTableColumn.getHorizontalAlignment());
-            tcr = dtcr;
+            TableCellRenderer tcr = dtcr;
 
             int prefColumnWidth = alertCheatSheetTableColumn.getPrefColumnWidth();
 
@@ -372,12 +304,6 @@ public class AlertCheatSheetTableModel extends FilterTableModel<Integer> {
 
             private static final long serialVersionUID = 1504347306097747771L;
 
-            /*
-             * (non-Javadoc)
-             * 
-             * @see javax.swing.table.DefaultTableCellRenderer# getTableCellRendererComponent(javax.swing.JTable, java.lang.Object, boolean,
-             * boolean, int, int)
-             */
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
                     boolean hasFocus, int row, int column) {

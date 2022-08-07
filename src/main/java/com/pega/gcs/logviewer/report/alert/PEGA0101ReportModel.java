@@ -21,8 +21,6 @@ public class PEGA0101ReportModel extends AlertMessageReportModel {
 
     private static final long serialVersionUID = -8889727175209305065L;
 
-    private static final Log4j2Helper LOG = new Log4j2Helper(PEGA0101ReportModel.class);
-
     private List<AlertBoxAndWhiskerReportColumn> alertMessageReportColumnList;
 
     public PEGA0101ReportModel(AlertMessage alertMessage, long thresholdKPI, AlertLogEntryModel alertLogEntryModel,
@@ -65,7 +63,6 @@ public class PEGA0101ReportModel extends AlertMessageReportModel {
 
     @Override
     public String getAlertMessageReportEntryKey(String dataText) {
-
         String alertMessageReportEntryKey = null;
 
         return alertMessageReportEntryKey;

@@ -10,6 +10,8 @@ package com.pega.gcs.logviewer.logfile;
 import java.io.Serializable;
 import java.util.Objects;
 
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern.LogType;
+
 public class Log4jPattern extends AbstractLogPattern implements Serializable, Comparable<Log4jPattern> {
 
     private static final long serialVersionUID = -6759786715613598099L;
@@ -20,9 +22,9 @@ public class Log4jPattern extends AbstractLogPattern implements Serializable, Co
         // for kryo
     }
 
-    public Log4jPattern(String name, String patternString, int groupCount, boolean isCW) {
+    public Log4jPattern(LogType logType, String name, String patternString, int groupCount, boolean isCW) {
 
-        super(LogType.PEGA_RULES, name, groupCount, isCW);
+        super(logType, name, groupCount, isCW);
 
         this.patternString = patternString;
     }
@@ -31,21 +33,11 @@ public class Log4jPattern extends AbstractLogPattern implements Serializable, Co
         return patternString;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.lang.Object#hashCode()
-     */
     @Override
     public int hashCode() {
         return Objects.hash(patternString);
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.lang.Object#equals(java.lang.Object)
-     */
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -61,11 +53,6 @@ public class Log4jPattern extends AbstractLogPattern implements Serializable, Co
         return Objects.equals(patternString, other.patternString);
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see java.lang.Object#toString()
-     */
     @Override
     public String toString() {
 

@@ -99,7 +99,7 @@ public class SystemStateFileLoadTask extends SwingWorker<SystemState, ProgressTa
 
         SystemState systemState = null;
 
-        ModalProgressMonitor progressMonitor = getProgressMonitor();
+        // ModalProgressMonitor progressMonitor = getProgressMonitor();
 
         ProgressTaskInfo progressTaskInfo = new ProgressTaskInfo(0, 0);
 
@@ -375,6 +375,7 @@ public class SystemStateFileLoadTask extends SwingWorker<SystemState, ProgressTa
 
                     } else if (key.startsWith("Datasources-")) {
                         // in Node system state json these file are in root level
+                        @SuppressWarnings("unused")
                         NodeState nodeState = systemState.getNodeStateCollection().iterator().next();
                         // TODO
 
@@ -446,6 +447,7 @@ public class SystemStateFileLoadTask extends SwingWorker<SystemState, ProgressTa
             throws JsonProcessingException, IOException {
 
         ObjectMapper objectMapper = new ObjectMapper();
+
         objectMapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
 
         JsonNode jsonNode = objectMapper.readTree(systemStateJsonByteData.getDatabytes());
@@ -576,8 +578,8 @@ public class SystemStateFileLoadTask extends SwingWorker<SystemState, ProgressTa
 
         JsonNode linksNode = dataNode.get("_links");
 
-        String name = null;
-        Link link = null;
+        String name;
+        Link link;
 
         name = "self";
         JsonNode selfNode = linksNode.get(name);

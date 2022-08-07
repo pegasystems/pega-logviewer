@@ -4,7 +4,7 @@ package com.pega.gcs.logviewer.logfile;
 public abstract class AbstractLogPattern {
 
     public enum LogType {
-        PEGA_ALERT, PEGA_RULES/* Future - , WAS, WLS, JBOSS */
+        PEGA_ALERT, PEGA_RULES, PEGA_DATAFLOW
     }
 
     private LogType logType;

@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -167,8 +166,12 @@ public class AlertMessageListProvider {
         return Collections.unmodifiableMap(alertMessageTypeMap);
     }
 
-    public Set<String> getMessageIdSet() {
-        return Collections.unmodifiableSet(messageIdAlertIdMap.keySet());
+    public List<String> getMessageIdList() {
+
+        List<String> messageIdList = new ArrayList<>(messageIdAlertIdMap.keySet());
+        Collections.sort(messageIdList);
+
+        return messageIdList;
     }
 
     public List<String> getCriticalAlertList() {

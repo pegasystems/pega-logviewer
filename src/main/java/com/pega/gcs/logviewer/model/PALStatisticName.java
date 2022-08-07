@@ -17,6 +17,7 @@ public enum PALStatisticName {
     // value = ROUNDUP(length of name / 0.13)
 
     // -- COUNTS --
+    pxActivationCount                               ( false , 131 , SwingConstants.RIGHT ),
     pxActivityCount                                 ( false , 116 , SwingConstants.RIGHT ),
     pxADPAvoidedLoadsAsUserLoadedSynchronouslyCount ( false , 362 , SwingConstants.RIGHT ),
     pxADPLoadedCount                                ( false , 124 , SwingConstants.RIGHT ),
@@ -70,6 +71,7 @@ public enum PALStatisticName {
     pxOtherIOCount                                  ( false , 108 , SwingConstants.RIGHT ),
     pxParseRuleCount                                ( false , 124 , SwingConstants.RIGHT ),
     pxPassivationCount                              ( false , 139 , SwingConstants.RIGHT ),
+    pxPassivationOnDemandCount                      ( false , 200 , SwingConstants.RIGHT ),
     pxProceduralRuleReadCount                       ( false , 193 , SwingConstants.RIGHT ),
     pxPropertyReadCount                             ( false , 147 , SwingConstants.RIGHT ),
     pxRDBIOCount                                    ( false , 93  , SwingConstants.RIGHT ),
@@ -239,6 +241,10 @@ public enum PALStatisticName {
     pxTotalReqTime                                  ( true  , 108 , SwingConstants.CENTER ),
 
     // -- OTHERS --
+    pxActivationSizeAverage                         ( false , 177 , SwingConstants.RIGHT  ),
+    pxActivationSizeLast                            ( false , 154 , SwingConstants.RIGHT  ),
+    pxActivationSizePeak                            ( false , 154 , SwingConstants.RIGHT  ),
+    pxBytesAllocated                                ( false , 124 , SwingConstants.RIGHT  ),
     pxConnectRequestDataVolume                      ( false , 200 , SwingConstants.RIGHT  ),
     pxConnectResponseDataVolume                     ( false , 208 , SwingConstants.RIGHT  ),
     pxFrameTransactionMapSize                       ( false , 193 , SwingConstants.RIGHT  ),

@@ -357,11 +357,6 @@ public class LogViewer extends BaseFrame {
         return lifeCycleEventsFileFilter;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.fringe.common.gui.BaseFrame#initialize()
-     */
     @SuppressWarnings("unchecked")
     @Override
     protected void initialize() throws Exception {
@@ -418,11 +413,6 @@ public class LogViewer extends BaseFrame {
         recentFileContainer = new RecentFileContainer(getClass(), capacity);
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.fringe.common.gui.BaseFrame#getMenuJMenuBar()
-     */
     @Override
     protected JMenuBar getMenuJMenuBar() {
 
@@ -482,11 +472,6 @@ public class LogViewer extends BaseFrame {
 
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.fringe.common.gui.BaseFrame#getMainJPanel()
-     */
     @Override
     protected JComponent getMainJPanel() {
 
@@ -502,11 +487,6 @@ public class LogViewer extends BaseFrame {
 
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.fringe.common.gui.BaseFrame#getAppName()
-     */
     @Override
     protected String getAppName() {
 
@@ -525,11 +505,6 @@ public class LogViewer extends BaseFrame {
         return appName;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.fringe.common.gui.BaseFrame#release()
-     */
     @Override
     protected void release() {
 
@@ -902,7 +877,7 @@ public class LogViewer extends BaseFrame {
             @Override
             public void actionPerformed(ActionEvent event) {
 
-                LogViewerSettingsDialog logViewerSettingsDialog = null;
+                LogViewerSettingsDialog logViewerSettingsDialog;
                 logViewerSettingsDialog = new LogViewerSettingsDialog(getLogViewerSetting(), getAppIcon(),
                         LogViewer.this);
 
@@ -1147,7 +1122,7 @@ public class LogViewer extends BaseFrame {
 
     private static void generateReport(File logFile) {
         // TODO - generate report
-        LOG.info("Generate Report - not implemented yet!!!.");
+        LOG.info("Generate Report - not implemented yet!!!. " + logFile);
     }
 
     public static void main(final String[] args) {

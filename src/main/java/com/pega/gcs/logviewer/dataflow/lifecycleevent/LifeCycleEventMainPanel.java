@@ -40,10 +40,6 @@ public class LifeCycleEventMainPanel extends JPanel {
 
     private static final Log4j2Helper LOG = new Log4j2Helper(LifeCycleEventMainPanel.class);
 
-    private RecentFileContainer recentFileContainer;
-
-    private LogViewerSetting logViewerSetting;
-
     private LifeCycleEventTableModel lifeCycleEventTableModel;
 
     private NavigationTableController<LifeCycleEventKey> navigationTableController;
@@ -61,9 +57,6 @@ public class LifeCycleEventMainPanel extends JPanel {
             LogViewerSetting logViewerSetting) {
 
         super();
-
-        this.recentFileContainer = recentFileContainer;
-        this.logViewerSetting = logViewerSetting;
 
         String charset = logViewerSetting.getCharset();
 

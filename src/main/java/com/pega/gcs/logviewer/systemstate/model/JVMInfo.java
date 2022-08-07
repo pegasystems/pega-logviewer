@@ -344,10 +344,10 @@ public class JVMInfo {
         } else {
             switch (appServer) {
             case JBOSS:
-                analyseJBoss(nodeId, analysisMarkerListNodeMap);
+                // analyseJBoss(nodeId, analysisMarkerListNodeMap);
                 break;
             case TOMCAT:
-                analyseTomcat(nodeId, analysisMarkerListNodeMap);
+                // analyseTomcat(nodeId, analysisMarkerListNodeMap);
                 break;
             case WEBLOGIC:
                 analyseWebLogic(nodeId, analysisMarkerListNodeMap);
@@ -363,10 +363,6 @@ public class JVMInfo {
 
             }
         }
-
-    }
-
-    private void analyseTomcat(String nodeId, AnalysisMarkerListNodeMap analysisMarkerListNodeMap) {
 
     }
 
@@ -393,10 +389,6 @@ public class JVMInfo {
 
             analysisMarkerListNodeMap.addAnalysisMarker(analysisMarker);
         }
-
-    }
-
-    private void analyseJBoss(String nodeId, AnalysisMarkerListNodeMap analysisMarkerListNodeMap) {
 
     }
 

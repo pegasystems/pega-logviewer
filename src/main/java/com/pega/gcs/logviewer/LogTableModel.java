@@ -130,11 +130,6 @@ public class LogTableModel extends FilterTableModel<LogEntryKey> {
         return logEntry;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getColumnValue(java. lang.Object, int)
-     */
     @Override
     public String getColumnValue(Object valueAtObject, int columnIndex) {
 
@@ -155,7 +150,7 @@ public class LogTableModel extends FilterTableModel<LogEntryKey> {
     @Override
     public String getColumnName(int column) {
         int origColumnIndex = getModelColumnIndex(column);
-        return logEntryModel.getLogEntryColumn(origColumnIndex);
+        return logEntryModel.getLogEntryColumnName(origColumnIndex);
     }
 
     @Override
@@ -176,11 +171,6 @@ public class LogTableModel extends FilterTableModel<LogEntryKey> {
         return logEntry;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getTableColumnModel( )
-     */
     @Override
     public TableColumnModel getTableColumnModel() {
 
@@ -455,11 +445,6 @@ public class LogTableModel extends FilterTableModel<LogEntryKey> {
                         LogTableSearchTask ttst = new LogTableSearchTask(modalProgressMonitor, LogTableModel.this,
                                 searchStrObj) {
 
-                            /*
-                             * (non-Javadoc)
-                             * 
-                             * @see javax.swing.SwingWorker#done()
-                             */
                             @Override
                             protected void done() {
 

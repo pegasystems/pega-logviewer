@@ -97,8 +97,8 @@ public class ThreadDumpRequestorLockTableModel extends AbstractTableModel {
         // set up table columns
         tableColumnModel = new DefaultTableColumnModel();
 
-        TableColumn tableColumn = null;
-        DefaultTableCellRenderer dtcr = null;
+        TableColumn tableColumn;
+        DefaultTableCellRenderer dtcr;
 
         // line number
         tableColumn = new TableColumn(0);

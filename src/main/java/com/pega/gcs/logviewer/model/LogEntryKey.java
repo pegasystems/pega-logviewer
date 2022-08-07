@@ -77,7 +77,7 @@ public class LogEntryKey implements Comparable<LogEntryKey>, Serializable {
     @Override
     public int compareTo(LogEntryKey other) {
 
-        int compare = 0;
+        int compare;
 
         Long thisTimestamp = getTimestamp();
         Long otherTimestamp = other.getTimestamp();

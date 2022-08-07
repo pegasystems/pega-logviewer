@@ -78,6 +78,18 @@ public class LogEntryColumn extends DefaultTableColumn {
     public static final LogEntryColumn FUTURE3               = new LogEntryColumn("FUTURE3"                 , "Future3"                  , 54  , SwingConstants.CENTER , false , false );
     public static final LogEntryColumn DELTA                 = new LogEntryColumn("DELTA"                   , "Delta"                    , 70  , SwingConstants.RIGHT  , true  , false );
 
+    public static final LogEntryColumn EVENT_TYPE            = new LogEntryColumn("EVENT TYPE"              , "EVENT TYPE"               , 200 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn SENDER_NODE_ID        = new LogEntryColumn("SENDER NODE ID"          , "SENDER NODE ID"           , 200 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn RUN_ID                = new LogEntryColumn("RUN ID"                  , "RUN ID"                   , 160 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn ORIGINATOR            = new LogEntryColumn("ORIGINATOR"              , "ORIGINATOR"               , 160 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn REASON                = new LogEntryColumn("REASON"                  , "REASON"                   , 200 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn PARTITION_STATUS      = new LogEntryColumn("PARTITION STATUS"        , "PARTITION STATUS"         , 160 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn PREVIOUS_STATUS       = new LogEntryColumn("PREVIOUS STATUS"         , "PREVIOUS STATUS"          , 160 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn INTENTION             = new LogEntryColumn("INTENTION"               , "INTENTION"                , 200 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn PARTITIONS            = new LogEntryColumn("PARTITIONS"              , "PARTITIONS"               , 200 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn THREAD_NAME           = new LogEntryColumn("THREAD NAME"             , "THREAD NAME"              , 300 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn EVENT                 = new LogEntryColumn("EVENT"                   , "EVENT"                    , 160 , SwingConstants.CENTER , true  , true  );
+
     // futureX keys are placeholder
     // CHECKSTYLE:ON
     // @formatter:on
@@ -144,6 +156,18 @@ public class LogEntryColumn extends DefaultTableColumn {
         logEntryColumnList.add(ISSTATELESSAPP);
         logEntryColumnList.add(CLIENTREQUESTID);
         logEntryColumnList.add(FUTURE3);
+
+        logEntryColumnList.add(EVENT_TYPE);
+        logEntryColumnList.add(SENDER_NODE_ID);
+        logEntryColumnList.add(RUN_ID);
+        logEntryColumnList.add(ORIGINATOR);
+        logEntryColumnList.add(REASON);
+        logEntryColumnList.add(PARTITION_STATUS);
+        logEntryColumnList.add(PREVIOUS_STATUS);
+        logEntryColumnList.add(INTENTION);
+        logEntryColumnList.add(PARTITIONS);
+        logEntryColumnList.add(THREAD_NAME);
+        logEntryColumnList.add(EVENT);
     }
 
     private LogEntryColumn(String columnId, String displayName, int prefColumnWidth, int horizontalAlignment,
@@ -152,15 +176,8 @@ public class LogEntryColumn extends DefaultTableColumn {
         super(columnId, displayName, prefColumnWidth, horizontalAlignment, visibleColumn, filterable);
     }
 
-    public static List<LogEntryColumn> getTableColumnList() {
+    private static List<LogEntryColumn> getTableColumnList() {
         return logEntryColumnList;
-    }
-
-    public static LogEntryColumn getTableColumnByName(String displayName) {
-
-        LogEntryColumn tableColumn = DefaultTableColumn.getTableColumnByName(displayName, getTableColumnList());
-
-        return tableColumn;
     }
 
     public static LogEntryColumn getTableColumnById(String columnId) {
@@ -168,5 +185,46 @@ public class LogEntryColumn extends DefaultTableColumn {
         LogEntryColumn tableColumn = DefaultTableColumn.getTableColumnById(columnId, getTableColumnList());
 
         return tableColumn;
+    }
+
+    public static List<LogEntryColumn> getDataflowLogEventColumnList() {
+
+        List<LogEntryColumn> dataflowLogEventColumnList = new ArrayList<>();
+
+        dataflowLogEventColumnList.add(MESSAGEID);
+        dataflowLogEventColumnList.add(EVENT_TYPE);
+        dataflowLogEventColumnList.add(SENDER_NODE_ID);
+        dataflowLogEventColumnList.add(RUN_ID);
+        dataflowLogEventColumnList.add(ORIGINATOR);
+        dataflowLogEventColumnList.add(REASON);
+        dataflowLogEventColumnList.add(PARTITION_STATUS);
+        dataflowLogEventColumnList.add(PREVIOUS_STATUS);
+        dataflowLogEventColumnList.add(INTENTION);
+        dataflowLogEventColumnList.add(PARTITIONS);
+        dataflowLogEventColumnList.add(THREAD_NAME);
+        dataflowLogEventColumnList.add(EVENT);
+
+        return dataflowLogEventColumnList;
+    }
+
+    public static List<LogEntryColumn> getLifeCycleEventColumnList() {
+
+        List<LogEntryColumn> lifeCycleEventColumnList = new ArrayList<>();
+
+        lifeCycleEventColumnList.add(MESSAGEID);
+        lifeCycleEventColumnList.add(TIMESTAMP);
+        lifeCycleEventColumnList.add(EVENT_TYPE);
+        lifeCycleEventColumnList.add(SENDER_NODE_ID);
+        lifeCycleEventColumnList.add(RUN_ID);
+        lifeCycleEventColumnList.add(ORIGINATOR);
+        lifeCycleEventColumnList.add(REASON);
+        lifeCycleEventColumnList.add(PARTITION_STATUS);
+        lifeCycleEventColumnList.add(PREVIOUS_STATUS);
+        lifeCycleEventColumnList.add(INTENTION);
+        lifeCycleEventColumnList.add(PARTITIONS);
+        lifeCycleEventColumnList.add(THREAD_NAME);
+        lifeCycleEventColumnList.add(EVENT);
+
+        return lifeCycleEventColumnList;
     }
 }

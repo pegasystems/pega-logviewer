@@ -42,6 +42,7 @@ import com.pega.gcs.fringecommon.guiutilities.treetable.AbstractTreeTableNode;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.model.AlertLogEntry;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
+import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 
 public abstract class AlertMessageReportModel extends FilterTableModel<AlertMessageReportEntry> {
@@ -111,11 +112,6 @@ public abstract class AlertMessageReportModel extends FilterTableModel<AlertMess
         return alertMessageReportEntry;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getColumnValue(java. lang.Object, int)
-     */
     @Override
     public String getColumnValue(Object valueAtObject, int columnIndex) {
 
@@ -237,6 +233,56 @@ public abstract class AlertMessageReportModel extends FilterTableModel<AlertMess
 
     protected AlertLogEntryModel getAlertLogEntryModel() {
         return alertLogEntryModel;
+    }
+
+    protected int getMessageLogEntryColumnIndex() {
+
+        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
+
+        int logEntryColumnIndex = alertLogEntryModel.getLogEntryColumnIndex(LogEntryColumn.MESSAGE);
+
+        return logEntryColumnIndex;
+
+    }
+
+    protected int getFirstActivityLogEntryColumnIndex() {
+
+        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
+
+        int logEntryColumnIndex = alertLogEntryModel.getLogEntryColumnIndex(LogEntryColumn.FIRSTACTIVITY);
+
+        return logEntryColumnIndex;
+
+    }
+
+    protected int getLastStepLogEntryColumnIndex() {
+
+        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
+
+        int logEntryColumnIndex = alertLogEntryModel.getLogEntryColumnIndex(LogEntryColumn.LASTSTEP);
+
+        return logEntryColumnIndex;
+
+    }
+
+    protected int getLastInputLogEntryColumnIndex() {
+
+        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
+
+        int logEntryColumnIndex = alertLogEntryModel.getLogEntryColumnIndex(LogEntryColumn.LASTINPUT);
+
+        return logEntryColumnIndex;
+
+    }
+
+    protected int getParameterPageDataLogEntryColumnIndex() {
+
+        AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
+
+        int logEntryColumnIndex = alertLogEntryModel.getLogEntryColumnIndex(LogEntryColumn.PARAMETERPAGEDATA);
+
+        return logEntryColumnIndex;
+
     }
 
     public AlertBoxAndWhiskerReportColumn getKeyAlertMessageReportColumn() {
@@ -415,11 +461,6 @@ public abstract class AlertMessageReportModel extends FilterTableModel<AlertMess
         }
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getTableColumnModel( )
-     */
     @Override
     public TableColumnModel getTableColumnModel() {
 
@@ -430,7 +471,7 @@ public abstract class AlertMessageReportModel extends FilterTableModel<AlertMess
 
         for (AlertBoxAndWhiskerReportColumn alertBoxAndWhiskerReportColumn : getAlertMessageReportColumnList()) {
 
-            TableCellRenderer tcr = null;
+            TableCellRenderer tcr;
 
             DefaultTableCellRenderer dtcr = getDefaultTableCellRenderer();
             dtcr.setHorizontalAlignment(alertBoxAndWhiskerReportColumn.getHorizontalAlignment());
@@ -456,12 +497,6 @@ public abstract class AlertMessageReportModel extends FilterTableModel<AlertMess
 
             private static final long serialVersionUID = 1504347306097747771L;
 
-            /*
-             * (non-Javadoc)
-             * 
-             * @see javax.swing.table.DefaultTableCellRenderer# getTableCellRendererComponent(javax.swing.JTable, java.lang.Object, boolean,
-             * boolean, int, int)
-             */
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
                     boolean hasFocus, int row, int column) {
