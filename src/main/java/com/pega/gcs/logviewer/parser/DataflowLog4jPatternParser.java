@@ -50,9 +50,6 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
 
     }
 
-    /**
-     * @return the dataflowLogEventColumnList
-     */
     private List<LogEntryColumn> getDataflowLogEventColumnList() {
         return dataflowLogEventColumnList;
     }

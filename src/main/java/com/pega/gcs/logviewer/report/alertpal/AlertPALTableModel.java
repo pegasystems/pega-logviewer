@@ -82,21 +82,11 @@ public class AlertPALTableModel extends CustomJTableModel {
         return alertLogEntry;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getTableColumnModel( )
-     */
     @Override
     public TableColumnModel getTableColumnModel() {
         return tableColumnModel;
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see com.pega.gcs.fringecommon.guiutilities.CustomJTableModel#getColumnValue(java. lang.Object, int)
-     */
     @Override
     public String getColumnValue(Object valueAtObject, int columnIndex) {
 
