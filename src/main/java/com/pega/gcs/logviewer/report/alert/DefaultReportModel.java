@@ -10,14 +10,10 @@ package com.pega.gcs.logviewer.report.alert;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.swing.SwingConstants;
 
-import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
-import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 
 public class DefaultReportModel extends AlertMessageReportModel {

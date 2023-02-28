@@ -278,7 +278,6 @@ public class LogViewerSettingsDialog extends JDialog {
             public void actionPerformed(ActionEvent event) {
                 setSettingUpdated(true);
                 dispose();
-
             }
         });
 

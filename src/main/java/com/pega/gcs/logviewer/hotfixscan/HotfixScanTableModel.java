@@ -103,7 +103,7 @@ public class HotfixScanTableModel extends HotfixTableModel {
 
         String inventoryFilePath = getFilePath();
         File inventoryFile = new File(inventoryFilePath);
-        String filename = FileUtilities.getNameWithoutExtension(inventoryFile);
+        String filename = FileUtilities.getFileBaseName(inventoryFile);
         filename = filename.toUpperCase();
 
         Pattern v7Pattern = Pattern.compile(LogViewer.SYSTEM_SCAN_FILE_NAME_REGEX_V7);

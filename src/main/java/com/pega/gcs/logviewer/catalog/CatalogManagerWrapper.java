@@ -171,7 +171,7 @@ public class CatalogManagerWrapper extends PluginWrapper {
         return hotfixEntryDataListMapForProductRelease;
     }
 
-    public String getWorkItemHyperlinkText(String workid) {
+    public String getWorkItemLink(String workid) {
 
         String workItemLink = null;
 
@@ -179,8 +179,7 @@ public class CatalogManagerWrapper extends PluginWrapper {
 
             try {
 
-                Method getWorkItemLinkMethod = catalogManagerClass.getDeclaredMethod("getWorkItemHyperlinkText",
-                        String.class);
+                Method getWorkItemLinkMethod = catalogManagerClass.getDeclaredMethod("getWorkItemLink", String.class);
 
                 workItemLink = (String) getWorkItemLinkMethod.invoke(catalogManager, workid);
 

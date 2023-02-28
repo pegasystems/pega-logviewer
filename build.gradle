@@ -3,9 +3,9 @@ import net.ltgt.gradle.errorprone.CheckSeverity
 plugins {
     id 'java'
     id 'application'
-    id 'net.ltgt.errorprone'        version '2.0.2'
-    id 'com.github.spotbugs'        version '4.8.0'
-    id 'nebula.release'             version '15.3.1'
+    id 'net.ltgt.errorprone'        version '3.0.1'
+    id 'com.github.spotbugs'        version '5.0.13'
+    id 'nebula.release'             version '17.1.0'
 }
 
 group = 'com.pega.gcs'
@@ -26,37 +26,29 @@ repositories {
 
 dependencies {
 
-    errorprone("com.google.errorprone:error_prone_core:2.10.0")
-    errorproneJavac("com.google.errorprone:javac:9+181-r4173-1")
+    errorprone("com.google.errorprone:error_prone_core:2.18.0")
 
     implementation 'gnu.getopt:java-getopt:1.0.13'
-    implementation 'org.jfree:jfreechart:1.5.3'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.1'
-    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.13.1'
-    implementation 'com.fasterxml.woodstox:woodstox-core:6.2.8'
+    implementation 'org.jfree:jfreechart:1.5.4'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.1'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.14.1'
+    implementation 'com.fasterxml.woodstox:woodstox-core:6.5.0'
     implementation 'org.codehaus.woodstox:stax2-api:4.2.1'
-    implementation 'org.apache.poi:poi-ooxml:5.2.0'
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
 
     // Java 11 changes
-    implementation 'jakarta.xml.bind:jakarta.xml.bind-api:3.0.1'
-    implementation 'com.sun.xml.bind:jaxb-impl:3.0.2'
-    implementation 'xerces:xercesImpl:2.12.1'
+    implementation 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
+    implementation 'com.sun.xml.bind:jaxb-impl:4.0.1'
+//    implementation 'xerces:xercesImpl:2.12.2'
     
-    implementation 'com.github.pegasystems:fringeutils-common:v3.4.2'
-    
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2'
+    implementation 'com.github.pegasystems:fringeutils-common:v3.4.3'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
-
-test {
-    useJUnitPlatform()
-    testLogging {
-        events "passed", "skipped", "failed"
-    }
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 application {
@@ -75,8 +67,6 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
     options.compilerArgs += ['-Xlint:-options']
     options.compilerArgs += ['-proc:none']
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
     // configure error prone
     options.errorprone.check("UnnecessaryParentheses", CheckSeverity.OFF)
 }
@@ -125,4 +115,4 @@ applicationDistribution.from(copyPluginsDir) {
     into ('plugins')
 }
 
-build.finalizedBy jacocoTestReport
+build.finalizedBy jacocoTestReport, jacocoTestCoverageVerification

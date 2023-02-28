@@ -406,7 +406,7 @@ public class LogReportExportDialog extends JDialog {
 
     private String getDefaultTSVFileName() {
 
-        String fileName = FileUtilities.getNameWithoutExtension(logFile);
+        String fileName = FileUtilities.getFileBaseName(logFile);
 
         StringBuilder sb = new StringBuilder();
         sb.append(fileName);

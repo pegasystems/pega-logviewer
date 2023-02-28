@@ -198,7 +198,7 @@ public class ChartAndLegendPanel extends JPanel implements ListSelectionListener
 
             String filePath = recentFile.getPath();
             File file = new File(filePath);
-            String name = FileUtilities.getNameWithoutExtension(file);
+            String name = FileUtilities.getFileBaseName(file);
             File parentDir = file.getParentFile();
 
             JFreeChart chart = new JFreeChart(name, JFreeChart.DEFAULT_TITLE_FONT, combinedDomainXYPlot, false);
@@ -617,7 +617,7 @@ public class ChartAndLegendPanel extends JPanel implements ListSelectionListener
 
         try {
 
-            LOG.info("Refresh chart - start");
+            LOG.debug("Refresh chart - start");
 
             LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
@@ -875,12 +875,12 @@ public class ChartAndLegendPanel extends JPanel implements ListSelectionListener
             }
 
         } catch (Exception e) {
-            LOG.info("Error refreshing chart", e);
+            LOG.error("Error refreshing chart", e);
         } finally {
             dataUpdated = false;
             revalidate();
 
-            LOG.info("Refresh chart - end");
+            LOG.debug("Refresh chart - end");
         }
     }
 }

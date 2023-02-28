@@ -10,7 +10,7 @@ publishing {
             from components.java             
             artifact sourcesJar
             artifact docsJar
-
+            
             pom.withXml {
                 def root = asNode()
                 root.appendNode('name', 'Pega LogViewer')
@@ -31,7 +31,7 @@ publishing {
                 def dev1 = developers.appendNode('developer')
                 dev1.appendNode('id', 'vargm')
                 dev1.appendNode('name', 'Manu Varghese')
-        }
+            }
         }
     }
 }

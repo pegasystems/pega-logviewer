@@ -435,7 +435,7 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
         String filePath = recentFile.getPath();
         File file = new File(filePath);
         File parentDir = file.getParentFile();
-        String name = FileUtilities.getNameWithoutExtension(file);
+        String name = FileUtilities.getFileBaseName(file);
 
         StringBuilder titleSB = new StringBuilder();
         titleSB.append(name);
@@ -475,7 +475,7 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
         String filePath = recentFile.getPath();
         File file = new File(filePath);
         File parentDir = file.getParentFile();
-        String name = FileUtilities.getNameWithoutExtension(file);
+        String name = FileUtilities.getFileBaseName(file);
 
         StringBuilder titleSB = new StringBuilder();
         titleSB.append(name);

@@ -44,8 +44,6 @@ import com.pega.gcs.fringecommon.guiutilities.ModalProgressMonitor;
 import com.pega.gcs.fringecommon.guiutilities.NavigationTableController;
 import com.pega.gcs.fringecommon.guiutilities.RecentFile;
 import com.pega.gcs.fringecommon.guiutilities.RecentFileContainer;
-import com.pega.gcs.fringecommon.guiutilities.bookmark.BookmarkContainer;
-import com.pega.gcs.fringecommon.guiutilities.bookmark.BookmarkModel;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.catalog.model.HotfixColumn;
 import com.pega.gcs.logviewer.catalog.model.HotfixEntryKey;

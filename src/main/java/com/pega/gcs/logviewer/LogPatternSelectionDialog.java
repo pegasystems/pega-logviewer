@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.TreeSet;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -43,6 +44,7 @@ import javax.swing.border.EtchedBorder;
 
 import com.pega.gcs.fringecommon.guiutilities.MyColor;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.logviewer.logfile.AbstractLogPattern.LogType;
 import com.pega.gcs.logviewer.logfile.Log4jPattern;
 import com.pega.gcs.logviewer.logfile.Log4jPatternManager;
 import com.pega.gcs.logviewer.logfile.LogPatternFactory;
@@ -364,11 +366,14 @@ public class LogPatternSelectionDialog extends JDialog {
 
                         LogPatternFactory logPatternFactory = LogPatternFactory.getInstance();
 
-                        Log4jPattern log4jPattern = logPatternFactory.getLog4jPattern(logPatternName, logPatternStr,
-                                false);
+                        Log4jPattern log4jPattern = logPatternFactory.getLog4jPattern(LogType.PEGA_RULES,
+                                logPatternName, logPatternStr, false);
 
-                        LogParser logParser = LogParser.getLog4jParser(getReadLineList(), log4jPattern, charset, locale,
-                                displayTimezone);
+                        Set<Log4jPattern> log4jPatternSet = new TreeSet<>();
+                        log4jPatternSet.add(log4jPattern);
+
+                        LogParser logParser = LogParser.getLog4jParser(getReadLineList(), log4jPatternSet, charset,
+                                locale, displayTimezone);
 
                         if (logParser != null) {
                             setLogParser(logParser);

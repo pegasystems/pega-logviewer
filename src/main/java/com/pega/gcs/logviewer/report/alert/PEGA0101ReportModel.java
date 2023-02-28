@@ -13,7 +13,6 @@ import java.util.Locale;
 
 import javax.swing.SwingConstants;
 
-import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 

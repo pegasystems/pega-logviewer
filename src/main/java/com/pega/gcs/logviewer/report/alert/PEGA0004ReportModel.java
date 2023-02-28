@@ -14,7 +14,6 @@ import java.util.Locale;
 import javax.swing.SwingConstants;
 
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
-import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 
 public class PEGA0004ReportModel extends AlertMessageReportModel {

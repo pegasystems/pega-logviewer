@@ -14,6 +14,13 @@ import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -22,13 +29,17 @@ import javax.swing.BorderFactory;
 import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.SwingUtilities;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.StyleSheet;
 
+import com.pega.gcs.fringecommon.guiutilities.GUIUtilities;
+import com.pega.gcs.fringecommon.guiutilities.RightClickMenuItem;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.logviewer.LogViewerUtil;
@@ -58,10 +69,15 @@ public class HotfixEntryDetailPanel extends JPanel {
 
     private HotfixRecordEntryTable hotfixRecordEntryTable;
 
+    private String hotfixIdUrl;
+
     public HotfixEntryDetailPanel(HotfixEntry hotfixEntry, List<HotfixColumn> hotfixColumnList) {
+
         super();
+
         this.hotfixEntry = hotfixEntry;
         this.hotfixColumnList = hotfixColumnList;
+        this.hotfixIdUrl = null;
 
         setLayout(new GridBagLayout());
 
@@ -165,6 +181,43 @@ public class HotfixEntryDetailPanel extends JPanel {
 
                 }
             });
+
+            hfixIdEditorPane.addMouseListener(new MouseAdapter() {
+
+                @Override
+                public void mouseClicked(MouseEvent mouseEvent) {
+
+                    if (SwingUtilities.isRightMouseButton(mouseEvent)) {
+
+                        final JPopupMenu popupMenu = new JPopupMenu();
+
+                        final RightClickMenuItem copyUrlMenuItem = new RightClickMenuItem("Copy Link");
+
+                        copyUrlMenuItem.addActionListener(new ActionListener() {
+
+                            @Override
+                            public void actionPerformed(ActionEvent actionEvent) {
+
+                                String hotfixIdUrl = getHotfixIdUrl();
+
+                                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+
+                                clipboard.setContents(new StringSelection(hotfixIdUrl), copyUrlMenuItem);
+
+                                popupMenu.setVisible(false);
+
+                            }
+                        });
+
+                        popupMenu.add(copyUrlMenuItem);
+
+                        popupMenu.show(mouseEvent.getComponent(), mouseEvent.getX(), mouseEvent.getY());
+
+                    } else {
+                        super.mouseClicked(mouseEvent);
+                    }
+                }
+            });
         }
 
         return hfixIdEditorPane;
@@ -261,6 +314,14 @@ public class HotfixEntryDetailPanel extends JPanel {
         }
 
         return hotfixRecordEntryTable;
+    }
+
+    private String getHotfixIdUrl() {
+        return hotfixIdUrl;
+    }
+
+    private void setHotfixIdUrl(String hotfixIdUrl) {
+        this.hotfixIdUrl = hotfixIdUrl;
     }
 
     private JPanel getDetailsPanel() {
@@ -392,7 +453,12 @@ public class HotfixEntryDetailPanel extends JPanel {
         CatalogManagerWrapper catalogManagerWrapper = CatalogManagerWrapper.getInstance();
 
         hotfixId = hotfixEntry.getHotfixId();
-        data = catalogManagerWrapper.getWorkItemHyperlinkText(hotfixId);
+        String hotfixIdUrl = catalogManagerWrapper.getWorkItemLink(hotfixId);
+
+        setHotfixIdUrl(hotfixIdUrl);
+
+        data = GUIUtilities.getHyperlinkText(hotfixIdUrl, hotfixId);
+
         hfixIdEditorPane.setText(data);
 
         hotfixColumn = HotfixColumn.HOTFIX_DESCRIPTION;

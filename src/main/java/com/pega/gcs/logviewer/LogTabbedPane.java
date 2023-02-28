@@ -32,7 +32,9 @@ import javax.swing.border.Border;
 import com.pega.gcs.fringecommon.guiutilities.ButtonTabComponent;
 import com.pega.gcs.fringecommon.guiutilities.RecentFileContainer;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.LifeCycleEventMainPanel;
+import com.pega.gcs.logviewer.ddsmetrics.DdsMetricMainPanel;
 import com.pega.gcs.logviewer.hotfixscan.HotfixScanMainPanel;
 import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
@@ -166,7 +168,10 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
         return retValue;
     }
 
-    private void addTab(String tabTitle, String path, JPanel tabPanel) {
+    private void addTab(File file, JPanel tabPanel) {
+
+        String tabTitle = FileUtilities.getFileBaseName(file);
+        String path = FileUtilities.getFilePath(file);
 
         addTab(tabTitle, null, tabPanel, path);
 
@@ -212,6 +217,17 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 
     }
 
+    private Integer getFileTabIndex(File file) {
+
+        Integer fileTabIndex = null;
+
+        String filePath = FileUtilities.getFilePath(file);
+
+        fileTabIndex = fileTabIndexMap.get(filePath);
+
+        return fileTabIndex;
+    }
+
     public void loadFile(final File selectedFile) throws Exception {
 
         if (LogViewer.isSystemScanFile(selectedFile)) {
@@ -227,7 +243,7 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 
     public void loadLogFile(final File selectedFile) throws Exception {
 
-        Integer index = fileTabIndexMap.get(selectedFile.getPath());
+        Integer index = getFileTabIndex(selectedFile);
 
         if (index != null) {
 
@@ -256,24 +272,29 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
                         JOptionPane.ERROR_MESSAGE);
             } else {
 
-                LogDataMainPanel logDataMainPanel = new LogDataMainPanel(selectedFile, recentFileContainer,
-                        logViewerSetting);
+                JPanel mainPanel = null;
+
+                String baseName = FileUtilities.getFileBaseName(selectedFile);
+
+                if (baseName.toLowerCase().contains("ddsmetrics")) {
+
+                    mainPanel = new DdsMetricMainPanel(selectedFile, recentFileContainer, logViewerSetting);
+
+                } else {
+
+                    mainPanel = new LogDataMainPanel(selectedFile, recentFileContainer, logViewerSetting);
+                }
 
                 tailingFileList.add(selectedFile.getPath());
 
-                String tabTitle = selectedFile.getName();
-
-                String path = selectedFile.getPath();
-
-                addTab(tabTitle, path, logDataMainPanel);
+                addTab(selectedFile, mainPanel);
             }
         }
-
     }
 
     public void loadSystemScanFile(final File selectedFile) throws Exception {
 
-        Integer index = fileTabIndexMap.get(selectedFile.getPath());
+        Integer index = getFileTabIndex(selectedFile);
 
         if (index != null) {
 
@@ -284,20 +305,16 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
             HotfixScanMainPanel hotfixScanMainPanel = new HotfixScanMainPanel(selectedFile, recentFileContainer,
                     logViewerSetting);
 
-            String tabTitle = selectedFile.getName();
-
-            String path = selectedFile.getPath();
-
-            addTab(tabTitle, path, hotfixScanMainPanel);
+            addTab(selectedFile, hotfixScanMainPanel);
         }
-
     }
 
     public void loadSocketReceiverLog(final int port, AbstractLogPattern abstractLogPattern) throws Exception {
 
         String path = "SockectReceiver_UDP_" + port;
+        File file = new File(path);
 
-        Integer index = fileTabIndexMap.get(path);
+        Integer index = getFileTabIndex(file);
 
         if (index != null) {
 
@@ -305,17 +322,16 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 
         } else {
 
-            SocketReceiverLogMainPanel socketReceiverLogMainPanel = new SocketReceiverLogMainPanel(port, path,
+            SocketReceiverLogMainPanel socketReceiverLogMainPanel = new SocketReceiverLogMainPanel(port, file,
                     abstractLogPattern, recentFileContainer, logViewerSetting);
 
-            addTab(path, path, socketReceiverLogMainPanel);
+            addTab(file, socketReceiverLogMainPanel);
         }
-
     }
 
     public void loadSystemStateFile(final File systemStateFile) throws Exception {
 
-        Integer index = fileTabIndexMap.get(systemStateFile.getPath());
+        Integer index = getFileTabIndex(systemStateFile);
 
         if (index != null) {
 
@@ -326,18 +342,13 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
             JPanel systemStateMainPanel = new SystemStateMainPanel(systemStateFile, recentFileContainer,
                     logViewerSetting);
 
-            String tabTitle = systemStateFile.getName();
-
-            String path = systemStateFile.getPath();
-
-            addTab(tabTitle, path, systemStateMainPanel);
+            addTab(systemStateFile, systemStateMainPanel);
         }
-
     }
 
     public void loadLifeCycleEventsFile(final File lifeCycleEventsFile) throws Exception {
 
-        Integer index = fileTabIndexMap.get(lifeCycleEventsFile.getPath());
+        Integer index = getFileTabIndex(lifeCycleEventsFile);
 
         if (index != null) {
 
@@ -348,11 +359,7 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
             JPanel lifeCycleEventMainPanel = new LifeCycleEventMainPanel(lifeCycleEventsFile, recentFileContainer,
                     logViewerSetting);
 
-            String tabTitle = lifeCycleEventsFile.getName();
-
-            String path = lifeCycleEventsFile.getPath();
-
-            addTab(tabTitle, path, lifeCycleEventMainPanel);
+            addTab(lifeCycleEventsFile, lifeCycleEventMainPanel);
         }
 
     }

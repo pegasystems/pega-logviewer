@@ -14,11 +14,12 @@ import javax.swing.JLabel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingWorker;
 
+import org.apache.commons.io.FileUtils;
+
 import com.pega.gcs.fringecommon.guiutilities.EventReadTaskInfo;
 import com.pega.gcs.fringecommon.guiutilities.FileReadTaskInfo;
 import com.pega.gcs.fringecommon.guiutilities.ReadCounterTaskInfo;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
 import com.pega.gcs.fringecommon.utilities.KnuthMorrisPrattAlgorithm;
 import com.pega.gcs.logviewer.LogTableModel;
@@ -83,7 +84,7 @@ public class SocketReceiverLogTask extends SwingWorker<LogParser, ReadCounterTas
         Locale locale = logTableModel.getLocale();
         TimeZone displayTimezone = logTableModel.getLogTimeZone();
 
-        LogParser logParser = LogParser.getLogParser(abstractLogPattern, charset, locale, displayTimezone);
+        LogParser logParser = LogParser.getLogParserFromPattern(abstractLogPattern, charset, locale, displayTimezone);
 
         updateLogTableModel(logParser);
 
@@ -105,7 +106,7 @@ public class SocketReceiverLogTask extends SwingWorker<LogParser, ReadCounterTas
         long totalread = 0;
         byte[] balanceByteArray = new byte[0];
 
-        int buffSize = DEFAULT_CHUNK_SIZE * FileUtilities.ONE_MB;
+        int buffSize = DEFAULT_CHUNK_SIZE * (int) FileUtils.ONE_MB;
 
         try (DatagramSocket datagramSocket = new DatagramSocket(port)) {
 

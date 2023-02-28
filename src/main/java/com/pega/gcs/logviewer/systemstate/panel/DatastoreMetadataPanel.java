@@ -6,15 +6,10 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
 
-import com.pega.gcs.fringecommon.guiutilities.datatable.DataTable;
 import com.pega.gcs.fringecommon.guiutilities.datatable.DataTablePanel;
 import com.pega.gcs.logviewer.systemstate.SystemStateUtil;
 import com.pega.gcs.logviewer.systemstate.model.DatastoreMetadata;
-import com.pega.gcs.logviewer.systemstate.model.DatastoreNodeMetadata;
-import com.pega.gcs.logviewer.systemstate.table.DatastoreMetadataTableColumn;
 import com.pega.gcs.logviewer.systemstate.table.DatastoreMetadataTableModel;
 
 public class DatastoreMetadataPanel extends JPanel {

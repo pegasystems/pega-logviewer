@@ -250,29 +250,32 @@ public abstract class LogParser {
 
             AlertLogParser alertLogParser = new AlertLogParser(alertLogPattern, charset, locale);
 
-            for (String readLine : readLineList) {
-                alertLogParser.parse(readLine);
-            }
+            int rowCount = tryLogParser(alertLogParser, readLineList);
 
-            alertLogParser.parseFinal();
-
-            LogEntryModel lem = alertLogParser.getLogEntryModel();
-
-            if (lem.getTotalRowCount() > 0) {
+            if (rowCount > 0) {
                 // success
                 LOG.info("creating AlertLogParser for " + filename);
                 logParser = alertLogParser;
             }
+
         } else if ((filename.toUpperCase().contains("CLUSTER")) || (filename.toUpperCase().contains("HAZELCAST"))
                 || (filename.toUpperCase().contains("BIX"))) {
 
-            Set<Log4jPattern> pegaClusterLog4jPatternSet = log4jPatternManager.getDefaultClusterLog4jPatternSet();
+            Set<Log4jPattern> log4jPatternSet = log4jPatternManager.getDefaultClusterLog4jPatternSet();
 
-            logParser = getLog4jParser(readLineList, pegaClusterLog4jPatternSet, charset, locale, displayTimezone);
+            logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayTimezone);
+
         } else if (filename.toUpperCase().contains("DATAFLOW")) {
-            Set<Log4jPattern> pegaDataflowLog4jPatternSet = log4jPatternManager.getDefaultDataflowLog4jPatternSet();
 
-            logParser = getLog4jParser(readLineList, pegaDataflowLog4jPatternSet, charset, locale, displayTimezone);
+            Set<Log4jPattern> log4jPatternSet = log4jPatternManager.getDefaultDataflowLog4jPatternSet();
+
+            logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayTimezone);
+
+        } else if (filename.toUpperCase().contains("DDSMETRICS")) {
+
+            Set<Log4jPattern> log4jPatternSet = log4jPatternManager.getDefaultDdsMetricLog4jPatternSet();
+
+            logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayTimezone);
         }
 
         // check if a PegaRules log file
@@ -288,27 +291,30 @@ public abstract class LogParser {
         return logParser;
     }
 
-    public static LogParser getLogParser(AbstractLogPattern abstractLogPattern, Charset charset, Locale locale,
-            TimeZone displayTimezone) {
+    public static LogParser getLogParserFromPattern(AbstractLogPattern abstractLogPattern, Charset charset,
+            Locale locale, TimeZone displayTimezone) {
 
         LogParser logParser = null;
 
         LogType logType = abstractLogPattern.getLogType();
 
-        // TODO implement other types as well
         switch (logType) {
 
         case PEGA_ALERT:
             logParser = new AlertLogParser((AlertLogPattern) abstractLogPattern, charset, locale);
             break;
         case PEGA_RULES:
+        case PEGA_CLUSTER:
             logParser = new Log4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale, displayTimezone);
             break;
         case PEGA_DATAFLOW:
             logParser = new DataflowLog4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale,
                     displayTimezone);
             break;
-
+        case PEGA_DDSMETRIC:
+            logParser = new DdsMetricLog4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale,
+                    displayTimezone);
+            break;
         default:
             break;
         }
@@ -319,46 +325,28 @@ public abstract class LogParser {
     // currently assuming all pattern as of type pegarules. change when
     // implementing other types like WAS, WLS
     // with 8.6 changes, multiple patterns are now matching , hence selecting a pattern that returns the max nos of rows.
-    private static LogParser getLog4jParser(List<String> readLineList, Set<Log4jPattern> log4jPatternSet,
+    public static LogParser getLog4jParser(List<String> readLineList, Set<Log4jPattern> log4jPatternSet,
             Charset charset, Locale locale, TimeZone displayTimezone) {
 
         LogParser logParser = null;
 
         for (Log4jPattern log4jPattern : log4jPatternSet) {
 
-            if (log4jPattern.getLogType() == LogType.PEGA_DATAFLOW) {
+            LogParser currentLogParser = getLogParserFromPattern(log4jPattern, charset, locale, displayTimezone);
 
-                LogParser dataflowLog4jParser = getDataflowLog4jParser(readLineList, log4jPattern, charset, locale,
-                        displayTimezone);
+            int rowCount = tryLogParser(currentLogParser, readLineList);
 
-                int rowCount = (dataflowLog4jParser != null) ? dataflowLog4jParser.getLogEntryModel().getTotalRowCount()
-                        : 0;
+            int logParserRowCount = (logParser != null) ? logParser.getProcessedCount() : 0;
 
-                int logParserRowCount = (logParser != null) ? logParser.getLogEntryModel().getTotalRowCount() : 0;
-
-                if (rowCount > logParserRowCount) {
-                    logParser = dataflowLog4jParser;
-                }
-
-            } else {
-                LogParser log4jPatternParser = getLog4jParser(readLineList, log4jPattern, charset, locale,
-                        displayTimezone);
-
-                int rowCount = (log4jPatternParser != null) ? log4jPatternParser.getLogEntryModel().getTotalRowCount()
-                        : 0;
-
-                int logParserRowCount = (logParser != null) ? logParser.getLogEntryModel().getTotalRowCount() : 0;
-
-                if (rowCount > logParserRowCount) {
-                    logParser = log4jPatternParser;
-                }
+            if (rowCount > logParserRowCount) {
+                logParser = currentLogParser;
             }
+
         }
 
         if (logParser != null) {
             // success
-            LogEntryModel lem = logParser.getLogEntryModel();
-            int logParserRowCount = lem.getTotalRowCount();
+            int logParserRowCount = logParser.getProcessedCount();
 
             LOG.info("Creating Log4jPatternParser: *rowCount: " + logParserRowCount + " Parser: " + logParser);
         }
@@ -366,60 +354,22 @@ public abstract class LogParser {
         return logParser;
     }
 
-    // currently assuming all pattern as of type pegarules. change when
-    // implementing other types like WAS, WLS
-    public static LogParser getLog4jParser(List<String> readLineList, Log4jPattern log4jPattern, Charset charset,
-            Locale locale, TimeZone displayTimezone) {
+    private static int tryLogParser(LogParser logParser, List<String> readLineList) {
 
-        LogParser logParser = null;
-
-        LOG.info("Trying Log4j Pattern " + log4jPattern);
-
-        Log4jPatternParser log4jPatternParser;
-        log4jPatternParser = new Log4jPatternParser(log4jPattern, charset, locale, displayTimezone);
+        LOG.info("Trying LogParser " + logParser);
 
         for (String readLine : readLineList) {
-            log4jPatternParser.parse(readLine);
+            logParser.parse(readLine);
         }
 
-        log4jPatternParser.parseFinal();
+        logParser.parseFinal();
 
-        LogEntryModel lem = log4jPatternParser.getLogEntryModel();
+        int rowCount = logParser.getProcessedCount();
 
-        if (lem.getTotalRowCount() > 0) {
-            // success
-            LOG.info("Creating Log4jPatternParser using " + log4jPattern);
-            logParser = log4jPatternParser;
-        }
+        LOG.info("Trying LogParser " + logParser + " rowCount:" + rowCount);
 
-        return logParser;
-    }
+        return rowCount;
 
-    private static LogParser getDataflowLog4jParser(List<String> readLineList, Log4jPattern log4jPattern,
-            Charset charset, Locale locale, TimeZone displayTimezone) {
-
-        LogParser logParser = null;
-
-        LOG.info("Trying Dataflow Log4j Pattern " + log4jPattern);
-
-        DataflowLog4jPatternParser dataflowLog4jPatternParser;
-        dataflowLog4jPatternParser = new DataflowLog4jPatternParser(log4jPattern, charset, locale, displayTimezone);
-
-        for (String readLine : readLineList) {
-            dataflowLog4jPatternParser.parse(readLine);
-        }
-
-        dataflowLog4jPatternParser.parseFinal();
-
-        LogEntryModel lem = dataflowLog4jPatternParser.getLogEntryModel();
-
-        if (lem.getTotalRowCount() > 0) {
-            // success
-            LOG.info("Creating DataflowLog4jPatternParser using " + log4jPattern);
-            logParser = dataflowLog4jPatternParser;
-        }
-
-        return logParser;
     }
 
     protected int incrementAndGetProcessedCount() {
@@ -453,18 +403,22 @@ public abstract class LogParser {
         return json;
     }
 
-    private boolean isValidJson(String line) {
+    private Boolean isValidJson(String line) {
 
-        try {
-            String json = extractJson(line);
+        Boolean validJson = null;
 
-            objectMapper.readTree(json);
+        String json = extractJson(line);
 
-        } catch (JacksonException e) {
-            return false;
+        if ((json != null) && (!"".equals(json.trim()))) {
+            try {
+                objectMapper.readTree(json);
+                validJson = Boolean.TRUE;
+            } catch (JacksonException e) {
+                validJson = Boolean.FALSE;
+            }
         }
 
-        return true;
+        return validJson;
     }
 
     protected String getLineFromCloudK(String line) {
@@ -473,10 +427,12 @@ public abstract class LogParser {
 
         if (isCloudK == null) {
             // check and set if valid json
-            isCloudK = Boolean.valueOf(isValidJson(line));
+            Boolean validJson = isValidJson(line);
+
+            isCloudK = validJson != null ? validJson : null;
         }
 
-        if (isCloudK) {
+        if ((isCloudK != null) && (isCloudK)) {
             // extract message from json
             try {
 

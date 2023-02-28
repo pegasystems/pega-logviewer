@@ -21,7 +21,7 @@ public class LogEntryColumn extends DefaultTableColumn {
     //                                                                                                        displayName         prefColumnWidth    horizontalAlignment visibleColumn filterable
     public static final LogEntryColumn ALERTNUMBER           = new LogEntryColumn("ALERTNUMBER"             , "Alert Number"             , 100 , SwingConstants.CENTER , true  , false );
     public static final LogEntryColumn APP                   = new LogEntryColumn("APP"                     , "App"                      , 120 , SwingConstants.CENTER , true  , true  );
-    public static final LogEntryColumn INTERACTIONNUMBER     = new LogEntryColumn("INTERACTIONNUMBER"       , "Interaction Number"       , 100 , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn INTERACTIONNUMBER     = new LogEntryColumn("INTERACTIONNUMBER"       , "Interaction Number"       , 100 , SwingConstants.CENTER , true  , true  );
     public static final LogEntryColumn LASTINPUT             = new LogEntryColumn("LASTINPUT"               , "Last Input"               , 200 , SwingConstants.CENTER , true  , false );
     public static final LogEntryColumn LASTSTEP              = new LogEntryColumn("LASTSTEP"                , "Last Step"                , 200 , SwingConstants.CENTER , true  , false );
     public static final LogEntryColumn LEVEL                 = new LogEntryColumn("LEVEL"                   , "Level"                    , 70  , SwingConstants.CENTER , true  , true  );

@@ -342,7 +342,7 @@ public class AlertMessageReportEntryFrame extends JFrame {
         String filePath = recentFile.getPath();
         File file = new File(filePath);
         File parentDir = file.getParentFile();
-        String name = FileUtilities.getNameWithoutExtension(file);
+        String name = FileUtilities.getFileBaseName(file);
         String alertMessageId = alertMessageReportModel.getAlertMessageID();
 
         StringBuilder titleSB = new StringBuilder();
@@ -598,7 +598,7 @@ public class AlertMessageReportEntryFrame extends JFrame {
         String filePath = recentFile.getPath();
         File file = new File(filePath);
         File parentDir = file.getParentFile();
-        String name = FileUtilities.getNameWithoutExtension(file);
+        String name = FileUtilities.getFileBaseName(file);
         String alertMessageId = alertMessageReportModel.getAlertMessageID();
 
         StringBuilder titleSB = new StringBuilder();
@@ -1070,7 +1070,7 @@ public class AlertMessageReportEntryFrame extends JFrame {
     private void updateOutliers(DefaultListModel<AlertReportListEntry> defaultListModel) {
 
         @SuppressWarnings("unchecked")
-        List<Double> outliersList = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getOutliers();
+        List<Number> outliersList = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getOutliers();
 
         List<LogEntryKey> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();
 

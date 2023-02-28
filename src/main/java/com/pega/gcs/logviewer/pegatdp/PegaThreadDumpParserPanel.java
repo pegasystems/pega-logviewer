@@ -514,7 +514,7 @@ public class PegaThreadDumpParserPanel extends JPanel {
 
     private String getDefaultReportFileName() {
 
-        String fileName = FileUtilities.getNameWithoutExtension(logFile);
+        String fileName = FileUtilities.getFileBaseName(logFile);
 
         // String outputFile =
         // filename.concat("-").concat(line).concat(".html");

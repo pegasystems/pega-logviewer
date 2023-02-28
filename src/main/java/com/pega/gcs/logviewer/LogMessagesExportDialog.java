@@ -704,7 +704,7 @@ public class LogMessagesExportDialog extends JDialog {
 
     private String getDefaultMessagesFileName() {
 
-        String fileName = FileUtilities.getNameWithoutExtension(logFile);
+        String fileName = FileUtilities.getFileBaseName(logFile);
 
         StringBuilder sb = new StringBuilder();
         sb.append(fileName);

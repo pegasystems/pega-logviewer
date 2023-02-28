@@ -3,6 +3,8 @@ Pega-LogViewer
 
 [![Java CI with Gradle](https://github.com/pegasystems/pega-logviewer/actions/workflows/gradle.yml/badge.svg)](https://github.com/pegasystems/pega-logviewer/actions/workflows/gradle.yml)
 [![GitHub tag](https://img.shields.io/github/release/pegasystems/pega-logviewer.svg)](https://github.com/pegasystems/pega-logviewer/releases)
+[![JitPack](https://jitpack.io/v/pegasystems/pega-logviewer.svg)](https://jitpack.io/#pegasystems/pega-logviewer)
+
 
 Pega-LogViewer is a Java Swing based tool to view most Pega generated log files
 - Rules
@@ -42,6 +44,19 @@ The timeline graph is governed by the data in the table. in case you filter the 
 		1. Alert Overview with consolidated Alerts statistics
 		1. Individual Alert tabs with details.
 		
+**How it works :**
+
+- **Note: Java is required (Min version: Java 11) and JAVA_HOME env variable needs to be set to run this applicaiton.**
+
+The tool can be downloaded from [Releases page](https://github.com/pegasystems/pega-logviewer/releases) under **Assets** section.
+
+1. Extract 'pega-logviewer-<*version*>.zip' to a folder.
+2. The tool is launched using the one of the scripts in the ‘bin’ folder.
+	For Windows         - ‘pega-logviewer.bat’
+	For ubuntu and Mac  - ‘pega-logviewer’
+3. Ootb, heap size is set to 4G.
+4. The heap size and other jvm parameter can be updated by modifying the launch script and updating the ‘DEFAULT_JVM_OPTS’ variable.
+
 **Build from source :**
 
 To build the project use the following command:
@@ -54,18 +69,6 @@ The project can be run from the gradle command line with the following command:
   ```
   $ ./gradlew run
   ```
-**How it works :**
-
-- **Note: Java is required and JAVA_HOME env variable needs to be set to run this applicaiton.**
-
-The tool can be downloaded from [Releases page](https://github.com/pegasystems/pega-logviewer/releases) under **Assets** section.
-
-1. Extract 'pega-logviewer-<*version*>.zip' to a folder.
-2. The tool is launched using the one of the scripts in the ‘bin’ folder.
-	For Windows         - ‘pega-logviewer.bat’
-	For ubuntu and Mac  - ‘pega-logviewer’
-3. Ootb, heap size is set to 4G.
-4. The heap size and other jvm parameter can be updated by modifying the launch script and updating the ‘DEFAULT_JVM_OPTS’ variable.
 
 **PegaRULES log file:**
 

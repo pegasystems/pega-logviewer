@@ -84,7 +84,7 @@ public class PartitionsChartPanel extends JPanel {
             String filePath = lifeCycleEventTableModel.getFilePath();
 
             File file = new File(filePath);
-            String name = FileUtilities.getNameWithoutExtension(file);
+            String name = FileUtilities.getFileBaseName(file);
             File parentDir = file.getParentFile();
 
             JFreeChart chart = new JFreeChart(name, JFreeChart.DEFAULT_TITLE_FONT, combinedDomainXYPlot, false);

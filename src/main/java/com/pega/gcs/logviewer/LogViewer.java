@@ -88,6 +88,7 @@ public class LogViewer extends BaseFrame {
 
     public static final String PREF_CATALOG_BOOKMARK = "catalog_bookmark";
 
+    /* ================================== */
     // System State
     private static final String SYSTEM_STATE_FILE_CHOOSER_FILTER_DESC = "System State JSON files";
 
@@ -99,6 +100,7 @@ public class LogViewer extends BaseFrame {
     // SystemState_cluster.json
     private static final String SYSTEM_STATE_FILE_NAME_REGEX = ".*?SystemState.*?(_.*?)?";
 
+    /* ================================== */
     // Life Cycle Events
     private static final String LIFECYCLEEVENTS_FILE_CHOOSER_FILTER_DESC = "Life Cycle Events files";
 
@@ -109,6 +111,8 @@ public class LogViewer extends BaseFrame {
     // Get_events_for_run_2021-01-19_18-35-50.xlsx
     private static final String LIFECYCLEEVENTS_FILE_NAME_REGEX = "Get_events_for_run_(.*?)";
 
+    /* ================================== */
+
     private String appName;
 
     private LogViewerSetting logViewerSetting;
@@ -117,7 +121,7 @@ public class LogViewer extends BaseFrame {
 
     private File selectedFile;
 
-    private RecentFileJMenu recentFileJMenu;
+    private RecentFileJMenu recentFileMenu;
 
     private RecentFileContainer recentFileContainer;
 
@@ -184,7 +188,7 @@ public class LogViewer extends BaseFrame {
 
         boolean scanResultZipFile = false;
 
-        String ext = FileUtilities.getExtension(systemScanFile);
+        String ext = FileUtilities.getFileExtension(systemScanFile);
 
         for (String fileExt : SYSTEM_SCAN_FILE_CHOOSER_FILTER_EXT) {
 
@@ -196,7 +200,7 @@ public class LogViewer extends BaseFrame {
 
         if (scanResultZipFile) {
 
-            String filename = FileUtilities.getNameWithoutExtension(systemScanFile);
+            String filename = FileUtilities.getFileBaseName(systemScanFile);
 
             Pattern fileNamePattern = Pattern.compile(SYSTEM_SCAN_FILE_NAME_REGEX, Pattern.CASE_INSENSITIVE);
 
@@ -217,7 +221,7 @@ public class LogViewer extends BaseFrame {
 
         boolean isSystemStateFile = false;
 
-        String ext = FileUtilities.getExtension(systemStateFile);
+        String ext = FileUtilities.getFileExtension(systemStateFile);
 
         for (String fileExt : SYSTEM_STATE_FILE_CHOOSER_FILTER_EXT) {
 
@@ -229,7 +233,7 @@ public class LogViewer extends BaseFrame {
 
         if (isSystemStateFile) {
 
-            String filename = FileUtilities.getNameWithoutExtension(systemStateFile);
+            String filename = FileUtilities.getFileBaseName(systemStateFile);
 
             Pattern fileNamePattern = Pattern.compile(SYSTEM_STATE_FILE_NAME_REGEX, Pattern.CASE_INSENSITIVE);
 
@@ -250,7 +254,7 @@ public class LogViewer extends BaseFrame {
 
         boolean isLifeCycleEventsFile = false;
 
-        String ext = FileUtilities.getExtension(lifeCycleEventsFile);
+        String ext = FileUtilities.getFileExtension(lifeCycleEventsFile);
 
         for (String fileExt : LIFECYCLEEVENTS_FILE_CHOOSER_FILTER_EXT) {
 
@@ -262,7 +266,7 @@ public class LogViewer extends BaseFrame {
 
         if (isLifeCycleEventsFile) {
 
-            String filename = FileUtilities.getNameWithoutExtension(lifeCycleEventsFile);
+            String filename = FileUtilities.getFileBaseName(lifeCycleEventsFile);
 
             Pattern fileNamePattern = Pattern.compile(LIFECYCLEEVENTS_FILE_NAME_REGEX, Pattern.CASE_INSENSITIVE);
 
@@ -414,56 +418,16 @@ public class LogViewer extends BaseFrame {
     }
 
     @Override
-    protected JMenuBar getMenuJMenuBar() {
+    protected JMenuBar getToolMenuBar() {
 
-        // ---- FILE ----
-        JMenu fileJMenu = new JMenu("   File   ");
+        JMenu fileJMenu = getFileMenu();
 
-        fileJMenu.setMnemonic(KeyEvent.VK_F);
+        JMenu editJMenu = getEditMenu();
 
-        JMenuItem loadPegaLogFileMenuItem = getLoadPegaLogFileMenuItem();
-        JMenuItem loadHotfixInventoryFileMenuItem = getLoadHotfixInventoryFileMenuItem();
-        JMenuItem loadSystemStateFileMenuItem = getLoadSystemStateFileMenuItem();
-        JMenuItem loadLifeCycleEventsFileMenuItem = getLoadLifeCycleEventsFileMenuItem();
-        JMenuItem socketReceiverLogFileMenuItem = getSocketReceiverLogFileMenuItem();
-        RecentFileJMenu recentFileJMenu = getRecentFileJMenu();
-        JMenuItem clearRecentMenuItem = getClearRecentMenuItem();
-        JMenuItem exitMenuItem = getExitMenuItem();
-
-        // fileJMenu.addSeparator();
-        fileJMenu.add(loadPegaLogFileMenuItem);
-        fileJMenu.add(loadHotfixInventoryFileMenuItem);
-        fileJMenu.add(loadSystemStateFileMenuItem);
-        fileJMenu.add(loadLifeCycleEventsFileMenuItem);
-        fileJMenu.add(socketReceiverLogFileMenuItem);
-        fileJMenu.add(recentFileJMenu);
-        fileJMenu.add(clearRecentMenuItem);
-        fileJMenu.add(exitMenuItem);
-
-        JMenu editJMenu = new JMenu("   Edit   ");
-        editJMenu.setMnemonic(KeyEvent.VK_E);
-
-        JMenuItem alertCheatSheetMenuItem = getAlertCheatSheetMenuItem();
-        JMenuItem settingsMenuItem = getSettingsMenuItem();
-        JMenuItem hotfixCatalogViewerMenuItem = getHotfixCatalogViewerMenuItem();
-        JMenuItem patchReleaseCatalogViewerMenuItem = getPatchReleaseCatalogViewerMenuItem();
-
-        editJMenu.add(alertCheatSheetMenuItem);
-
-        if (hotfixCatalogViewerMenuItem != null) {
-            editJMenu.add(hotfixCatalogViewerMenuItem);
-        }
-
-        if (patchReleaseCatalogViewerMenuItem != null) {
-            editJMenu.add(patchReleaseCatalogViewerMenuItem);
-        }
-
-        editJMenu.add(settingsMenuItem);
-
-        // ---- HELP ----
-        JMenu helpJMenu = getHelpAboutJMenu();
+        JMenu helpJMenu = getHelpMenu();
 
         JMenuBar menuBar = new JMenuBar();
+
         menuBar.add(fileJMenu);
         menuBar.add(editJMenu);
         menuBar.add(helpJMenu);
@@ -513,12 +477,62 @@ public class LogViewer extends BaseFrame {
         LOG.info("LogViewer - Stopped");
     }
 
+    protected JMenu getFileMenu() {
+
+        JMenu fileMenu = getToolMenu("File", KeyEvent.VK_F);
+
+        JMenuItem loadPegaLogFileMenuItem = getLoadPegaLogFileMenuItem();
+        JMenuItem loadHotfixInventoryFileMenuItem = getLoadHotfixInventoryFileMenuItem();
+        JMenuItem loadSystemStateFileMenuItem = getLoadSystemStateFileMenuItem();
+        JMenuItem loadLifeCycleEventsFileMenuItem = getLoadLifeCycleEventsFileMenuItem();
+        JMenuItem socketReceiverLogFileMenuItem = getSocketReceiverLogFileMenuItem();
+        RecentFileJMenu recentFileMenu = getRecentFileMenu();
+        JMenuItem clearRecentMenuItem = getClearRecentMenuItem();
+        JMenuItem exitMenuItem = getExitMenuItem();
+
+        // fileJMenu.addSeparator();
+        fileMenu.add(loadPegaLogFileMenuItem);
+        fileMenu.add(loadHotfixInventoryFileMenuItem);
+        fileMenu.add(loadSystemStateFileMenuItem);
+        fileMenu.add(loadLifeCycleEventsFileMenuItem);
+        fileMenu.add(socketReceiverLogFileMenuItem);
+        fileMenu.add(recentFileMenu);
+        fileMenu.add(clearRecentMenuItem);
+        fileMenu.add(exitMenuItem);
+
+        return fileMenu;
+    }
+
+    protected JMenu getEditMenu() {
+
+        JMenu editMenu = getToolMenu("Edit", KeyEvent.VK_E);
+
+        JMenuItem alertCheatSheetMenuItem = getAlertCheatSheetMenuItem();
+        JMenuItem settingsMenuItem = getSettingsMenuItem();
+        JMenuItem hotfixCatalogViewerMenuItem = getHotfixCatalogViewerMenuItem();
+        JMenuItem patchReleaseCatalogViewerMenuItem = getPatchReleaseCatalogViewerMenuItem();
+
+        editMenu.add(alertCheatSheetMenuItem);
+
+        if (hotfixCatalogViewerMenuItem != null) {
+            editMenu.add(hotfixCatalogViewerMenuItem);
+        }
+
+        if (patchReleaseCatalogViewerMenuItem != null) {
+            editMenu.add(patchReleaseCatalogViewerMenuItem);
+        }
+
+        editMenu.add(settingsMenuItem);
+
+        return editMenu;
+    }
+
     private JMenuItem getLoadPegaLogFileMenuItem() {
 
         JMenuItem loadPegaLogFileMenuItem = new JMenuItem("Load Pega Log File");
 
         loadPegaLogFileMenuItem.setMnemonic(KeyEvent.VK_L);
-        loadPegaLogFileMenuItem.setToolTipText("Load PegaRULES or Alert Log File");
+        loadPegaLogFileMenuItem.setToolTipText("Load Pega application log file");
 
         ImageIcon ii = FileUtilities.getImageIcon(getClass(), "open.png");
 
@@ -676,11 +690,11 @@ public class LogViewer extends BaseFrame {
         return loadLifeCycleEventsFileMenuItem;
     }
 
-    private RecentFileJMenu getRecentFileJMenu() {
+    private RecentFileJMenu getRecentFileMenu() {
 
-        if (recentFileJMenu == null) {
+        if (recentFileMenu == null) {
 
-            recentFileJMenu = new RecentFileJMenu(recentFileContainer) {
+            recentFileMenu = new RecentFileJMenu(recentFileContainer) {
 
                 private static final long serialVersionUID = -5159590911380579230L;
 
@@ -706,7 +720,7 @@ public class LogViewer extends BaseFrame {
             };
         }
 
-        return recentFileJMenu;
+        return recentFileMenu;
     }
 
     private JMenuItem getClearRecentMenuItem() {

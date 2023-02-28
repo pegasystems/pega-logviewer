@@ -401,7 +401,7 @@ public class LogXMLExportDialog extends JDialog {
 
     private String getDefaultXMLFileName() {
 
-        String fileName = FileUtilities.getNameWithoutExtension(logFile);
+        String fileName = FileUtilities.getFileBaseName(logFile);
 
         StringBuilder sb = new StringBuilder();
         sb.append(fileName);

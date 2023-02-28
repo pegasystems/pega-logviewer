@@ -354,7 +354,7 @@ public class HotfixScanCompareTableView extends HotfixScanView {
 
             File file = new File(filePath);
 
-            String fileName = FileUtilities.getNameWithoutExtension(file);
+            String fileName = FileUtilities.getFileBaseName(file);
 
             StringBuilder sb = new StringBuilder();
             sb.append(fileName);

@@ -9,7 +9,7 @@
 		<RollingRandomAccessFile
 			name="RollingRandomAccessFile"
 			fileName="${sys:user.dir}/logs/LogViewer.log"
-			filePattern="logs/LogViewer-%d{yyyy-MM-dd}-%i.log.gz">
+			filePattern="${sys:user.dir}/logs/LogViewer-%d{yyyy-MM-dd}-%i.log.gz">
 			<PatternLayout
 				pattern="%d [%30.30t] (%50.50c) [%-5p] - %m%n" />
 			<Policies>
@@ -21,16 +21,16 @@
 
 	</Appenders>
 	<Loggers>
-		<!-- Logger name="com.pega.gcs.logviewer" additivity="false"
-			level="trace">
+		<!-- Logger name="com.pega.gcs" additivity="false" level="debug">
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="RollingRandomAccessFile" />
-		</Logger-->
-        <!-- Logger name="com.pega.gcs.fringecommon" additivity="false"
-            level="trace">
-            <AppenderRef ref="Console" />
-            <AppenderRef ref="RollingRandomAccessFile" />
-        </Logger -->
+		</Logger>
+		<Logger
+			name="com.pega.gcs.fringecommon.utilities.kyro.KryoSerializer"
+			additivity="false" level="info">
+			<AppenderRef ref="Console" />
+			<AppenderRef ref="RollingRandomAccessFile" />
+		</Logger -->
 		<Root level="info">
 			<AppenderRef ref="Console" />
 			<AppenderRef ref="RollingRandomAccessFile" />

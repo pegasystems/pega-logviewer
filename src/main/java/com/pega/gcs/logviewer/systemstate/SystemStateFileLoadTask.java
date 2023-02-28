@@ -23,6 +23,7 @@ import javax.swing.SwingWorker;
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry;
 import org.apache.commons.compress.archivers.sevenz.SevenZFile;
 import org.apache.commons.compress.utils.SeekableInMemoryByteChannel;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -107,7 +108,7 @@ public class SystemStateFileLoadTask extends SwingWorker<SystemState, ProgressTa
 
         String filePath = recentFile.getPath();
 
-        String fileExt = FileUtilities.getExtension(filePath);
+        String fileExt = FilenameUtils.getExtension(filePath);
 
         if ("zip".equalsIgnoreCase(fileExt)) {
 
@@ -127,7 +128,7 @@ public class SystemStateFileLoadTask extends SwingWorker<SystemState, ProgressTa
 
                     String zipEntryName = zipEntry.getName();
 
-                    String zipEntryExt = FileUtilities.getExtension(zipEntryName);
+                    String zipEntryExt = FilenameUtils.getExtension(zipEntryName);
 
                     if ("7z".equalsIgnoreCase(zipEntryExt)) {
 
@@ -153,7 +154,7 @@ public class SystemStateFileLoadTask extends SwingWorker<SystemState, ProgressTa
             try (FileInputStream fis = new FileInputStream(filePath)) {
 
                 File file = new File(filePath);
-                String filename = FileUtilities.getNameWithoutExtension(file);
+                String filename = FileUtilities.getFileBaseName(file);
 
                 byte[] byteArray = new byte[fis.available()];
                 fis.read(byteArray);
@@ -217,7 +218,7 @@ public class SystemStateFileLoadTask extends SwingWorker<SystemState, ProgressTa
 
                 File file = new File(zipEntryName);
 
-                String filename = FileUtilities.getNameWithoutExtension(file);
+                String filename = FileUtilities.getFileBaseName(file);
 
                 Matcher systemStateJsonMatcher = systemStateJsonPattern.matcher(filename);
 
@@ -293,7 +294,7 @@ public class SystemStateFileLoadTask extends SwingWorker<SystemState, ProgressTa
 
                     File file = new File(zipEntryName);
 
-                    String filename = FileUtilities.getNameWithoutExtension(file);
+                    String filename = FileUtilities.getFileBaseName(file);
 
                     Matcher systemStateJsonMatcher = systemStateJsonPattern.matcher(filename);
 
@@ -612,7 +613,7 @@ public class SystemStateFileLoadTask extends SwingWorker<SystemState, ProgressTa
 
             File file = new File(name);
 
-            String filename = FileUtilities.getNameWithoutExtension(file);
+            String filename = FileUtilities.getFileBaseName(file);
 
             if (filename.startsWith("Datasources-")) {
                 // TODO finalised data structure for this json
@@ -659,7 +660,7 @@ public class SystemStateFileLoadTask extends SwingWorker<SystemState, ProgressTa
 
             File file = new File(name);
 
-            String filename = FileUtilities.getNameWithoutExtension(file);
+            String filename = FileUtilities.getFileBaseName(file);
 
             Matcher reportsCsvFileMatcher = reportsCsvFilePattern.matcher(filename);
 

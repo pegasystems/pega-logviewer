@@ -45,6 +45,7 @@ import com.pega.gcs.logviewer.model.Log4jLogSystemStartEntry;
 import com.pega.gcs.logviewer.model.Log4jLogThreadDumpEntry;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.LogEntryKey;
+import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.SystemStart;
 
 public class Log4jPatternParser extends LogParser {
@@ -590,7 +591,7 @@ public class Log4jPatternParser extends LogParser {
     }
 
     @Override
-    public Log4jLogEntryModel getLogEntryModel() {
+    public LogEntryModel getLogEntryModel() {
         return log4jLogEntryModel;
     }
 
@@ -630,7 +631,7 @@ public class Log4jPatternParser extends LogParser {
 
     protected void buildLogEntry() {
 
-        Log4jLogEntryModel log4jLogEntryModel = getLogEntryModel();
+        Log4jLogEntryModel log4jLogEntryModel = (Log4jLogEntryModel) getLogEntryModel();
         AtomicInteger logEntryIndex = getLogEntryIndex();
         ArrayList<String> logEntryColumnValueList = getLogEntryColumnValueList();
         String logEntryText = getLogEntryText();

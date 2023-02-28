@@ -247,7 +247,7 @@ public class LogTableMouseListener extends MouseAdapter {
                     String filePath = logTableModel.getFilePath();
                     File logFile = new File(filePath);
 
-                    String fileName = FileUtilities.getNameWithoutExtension(logFile);
+                    String fileName = FileUtilities.getFileBaseName(logFile);
                     fileName = fileName + "-" + postfix + ".log";
                     File currentDirectory = logFile.getParentFile();
 

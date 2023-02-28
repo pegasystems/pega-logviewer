@@ -547,7 +547,7 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
             Locale locale = logTableModel.getLocale();
             TimeZone displayTimezone = logTableModel.getLogTimeZone();
 
-            logParser = LogParser.getLogParser(abstractLogPattern, charset, locale, displayTimezone);
+            logParser = LogParser.getLogParserFromPattern(abstractLogPattern, charset, locale, displayTimezone);
         }
 
         return logParser;

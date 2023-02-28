@@ -23,6 +23,7 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.File;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
@@ -147,7 +148,7 @@ public class SocketReceiverLogMainPanel extends JPanel {
 
     private Rectangle oldBounds;
 
-    public SocketReceiverLogMainPanel(int port, String path, AbstractLogPattern abstractLogPattern,
+    public SocketReceiverLogMainPanel(int port, File file, AbstractLogPattern abstractLogPattern,
             RecentFileContainer recentFileContainer, LogViewerSetting logViewerSetting) {
 
         super();
@@ -161,8 +162,9 @@ public class SocketReceiverLogMainPanel extends JPanel {
 
         Map<String, Object> defaultAttribsIfNew = new HashMap<>();
         defaultAttribsIfNew.put(RecentFile.KEY_LOCALE, locale);
+        defaultAttribsIfNew.put("port", port);
 
-        RecentFile recentFile = recentFileContainer.getRecentFile(path, charset, false, defaultAttribsIfNew);
+        RecentFile recentFile = recentFileContainer.getRecentFile(file, charset, false, defaultAttribsIfNew);
 
         recentFile.setAttribute(RecentFile.KEY_LOGFILETYPE, abstractLogPattern);
 

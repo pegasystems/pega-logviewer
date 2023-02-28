@@ -10,8 +10,6 @@ package com.pega.gcs.logviewer.logfile;
 import java.io.Serializable;
 import java.util.Objects;
 
-import com.pega.gcs.logviewer.logfile.AbstractLogPattern.LogType;
-
 public class Log4jPattern extends AbstractLogPattern implements Serializable, Comparable<Log4jPattern> {
 
     private static final long serialVersionUID = -6759786715613598099L;

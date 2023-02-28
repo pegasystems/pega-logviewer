@@ -16,9 +16,9 @@ import com.pega.gcs.logviewer.dataflow.lifecycleevent.LifeCycleEventMessageParse
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.LifeCycleEventMessage;
 import com.pega.gcs.logviewer.logfile.Log4jPattern;
 import com.pega.gcs.logviewer.model.Log4jLogEntry;
-import com.pega.gcs.logviewer.model.Log4jLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.LogEntryKey;
+import com.pega.gcs.logviewer.model.LogEntryModel;
 
 public class DataflowLog4jPatternParser extends Log4jPatternParser {
 
@@ -42,9 +42,9 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
 
         // reset model columns with LFE columns
         List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
-        Log4jLogEntryModel log4jLogEntryModel = getLogEntryModel();
+        LogEntryModel logEntryModel = getLogEntryModel();
 
-        log4jLogEntryModel.updateLogEntryColumnList(logEntryColumnList);
+        logEntryModel.updateLogEntryColumnList(logEntryColumnList);
 
         lifeCycleEventMessageParser = new LifeCycleEventMessageParser();
 
@@ -61,7 +61,7 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
     @Override
     protected void buildLogEntry() {
 
-        Log4jLogEntryModel log4jLogEntryModel = getLogEntryModel();
+        LogEntryModel logEntryModel = getLogEntryModel();
         AtomicInteger logEntryIndex = getLogEntryIndex();
         ArrayList<String> logEntryColumnValueList = getLogEntryColumnValueList();
         String logEntryText = getLogEntryText();
@@ -76,7 +76,7 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
 
             String timestampStr = logEntryColumnValueList.get(timestampIndex);
 
-            DateFormat modelDateFormat = log4jLogEntryModel.getModelDateFormat();
+            DateFormat modelDateFormat = logEntryModel.getModelDateFormat();
 
             long logEntryTime = -1;
             try {
@@ -124,7 +124,7 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
             Log4jLogEntry log4jLogEntry = new Log4jLogEntry(logEntryKey, logEntryColumnValueList, logEntryText, false,
                     logLevelId);
 
-            log4jLogEntryModel.addLogEntry(log4jLogEntry, logEntryColumnValueList, getCharset(), getLocale());
+            logEntryModel.addLogEntry(log4jLogEntry, logEntryColumnValueList, getCharset(), getLocale());
 
             // update the processed counter
             incrementAndGetProcessedCount();
