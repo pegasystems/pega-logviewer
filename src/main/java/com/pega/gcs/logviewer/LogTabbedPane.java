@@ -34,7 +34,6 @@ import com.pega.gcs.fringecommon.guiutilities.RecentFileContainer;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.LifeCycleEventMainPanel;
-import com.pega.gcs.logviewer.ddsmetrics.DdsMetricMainPanel;
 import com.pega.gcs.logviewer.hotfixscan.HotfixScanMainPanel;
 import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
@@ -274,17 +273,16 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
 
                 JPanel mainPanel = null;
 
-                String baseName = FileUtilities.getFileBaseName(selectedFile);
-
-                if (baseName.toLowerCase().contains("ddsmetrics")) {
-
-                    mainPanel = new DdsMetricMainPanel(selectedFile, recentFileContainer, logViewerSetting);
-
-                } else {
-
-                    mainPanel = new LogDataMainPanel(selectedFile, recentFileContainer, logViewerSetting);
-                }
-
+                /** See https://github.com/pegasystems/pega-logviewer/issues/13
+                 *
+                 * String baseName = FileUtilities.getFileBaseName(selectedFile);
+                 * if (baseName.toLowerCase().contains("ddsmetrics")) {
+                 *  mainPanel = new DdsMetricMainPanel(selectedFile, recentFileContainer, logViewerSetting);
+                 * } else {
+                 *  mainPanel = new LogDataMainPanel(selectedFile, recentFileContainer, logViewerSetting);
+                 * }
+                **/
+                mainPanel = new LogDataMainPanel(selectedFile, recentFileContainer, logViewerSetting);
                 tailingFileList.add(selectedFile.getPath());
 
                 addTab(selectedFile, mainPanel);

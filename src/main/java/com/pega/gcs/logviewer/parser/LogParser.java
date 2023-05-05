@@ -311,10 +311,12 @@ public abstract class LogParser {
             logParser = new DataflowLog4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale,
                     displayTimezone);
             break;
-        case PEGA_DDSMETRIC:
-            logParser = new DdsMetricLog4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale,
-                    displayTimezone);
-            break;
+        /** See https://github.com/pegasystems/pega-logviewer/issues/13
+         * case PEGA_DDSMETRIC:
+         *  logParser = new DdsMetricLog4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale,
+         *  displayTimezone);
+         *  break;
+         */
         default:
             break;
         }
