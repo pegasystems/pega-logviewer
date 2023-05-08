@@ -187,6 +187,26 @@ public class LogEntryColumn extends DefaultTableColumn {
         return tableColumn;
     }
 
+    public static List<LogEntryColumn> getCloudKLogEventColumnList() {
+
+        List<LogEntryColumn> cloudKLogEventColumnList = new ArrayList<>();
+
+        cloudKLogEventColumnList.add(LINE);
+        cloudKLogEventColumnList.add(TIMESTAMP);
+        cloudKLogEventColumnList.add(THREAD);
+        cloudKLogEventColumnList.add(PEGATHREAD);
+        cloudKLogEventColumnList.add(TENANTID);
+        cloudKLogEventColumnList.add(APP);
+        cloudKLogEventColumnList.add(LOGGER);
+        cloudKLogEventColumnList.add(LEVEL);
+        cloudKLogEventColumnList.add(STACK);
+        cloudKLogEventColumnList.add(REQUESTORID);
+        cloudKLogEventColumnList.add(USERID);
+        cloudKLogEventColumnList.add(MESSAGE);
+
+        return cloudKLogEventColumnList;
+    }
+
     public static List<LogEntryColumn> getDataflowLogEventColumnList() {
 
         List<LogEntryColumn> dataflowLogEventColumnList = new ArrayList<>();

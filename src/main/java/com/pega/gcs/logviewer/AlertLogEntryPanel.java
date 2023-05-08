@@ -18,6 +18,7 @@ import java.awt.Insets;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
@@ -39,7 +40,9 @@ import org.apache.commons.text.StringEscapeUtils;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.FileUtilities;
+import com.pega.gcs.logviewer.alert.AlertLogEntryPanelUtil;
 import com.pega.gcs.logviewer.model.AlertLogEntry;
+import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.LogEntryData;
 import com.pega.gcs.logviewer.model.LogEntryModel;
@@ -61,7 +64,7 @@ public class AlertLogEntryPanel extends JPanel {
 
     private Charset charset;
 
-    private LogEntryModel logEntryModel;
+    private AlertLogEntryModel alertLogEntryModel;
 
     private JTabbedPane alertTabbedPane;
 
@@ -71,7 +74,7 @@ public class AlertLogEntryPanel extends JPanel {
 
     private List<LogEntryColumn> longDataColumnList;
 
-    public AlertLogEntryPanel(AlertLogEntry alertLogEntry, LogEntryModel logEntryModel, Charset charset) {
+    public AlertLogEntryPanel(AlertLogEntry alertLogEntry, AlertLogEntryModel alertLogEntryModel, Charset charset) {
         super();
 
         this.alertLogEntry = alertLogEntry;
@@ -79,7 +82,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         this.logEntryData = alertLogEntry.getLogEntryData();
 
-        this.logEntryModel = logEntryModel;
+        this.alertLogEntryModel = alertLogEntryModel;
 
         tabColumnList = new ArrayList<>();
         tabColumnList.add(LogEntryColumn.PALDATA);
@@ -109,6 +112,8 @@ public class AlertLogEntryPanel extends JPanel {
         JComponent parameterPageComponent = getParameterPageComponent();
         JComponent rawTextComponent = getRawTextComponent();
 
+        int tabIndex = 0;
+
         String tabText = "Alert Detail";
         JLabel tabLabel = new JLabel(tabText);
         Font labelFont = tabLabel.getFont();
@@ -120,7 +125,7 @@ public class AlertLogEntryPanel extends JPanel {
         tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
         alertTabbedPane.addTab(tabText, alertComponent);
-        alertTabbedPane.setTabComponentAt(0, tabLabel);
+        alertTabbedPane.setTabComponentAt(tabIndex++, tabLabel);
 
         tabText = LogEntryColumn.PALDATA.getDisplayName();
         tabLabel = new JLabel(tabText);
@@ -130,7 +135,7 @@ public class AlertLogEntryPanel extends JPanel {
         tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
         alertTabbedPane.addTab(tabText, palComponent);
-        alertTabbedPane.setTabComponentAt(1, tabLabel);
+        alertTabbedPane.setTabComponentAt(tabIndex++, tabLabel);
 
         tabText = LogEntryColumn.TRACELIST.getDisplayName();
         tabLabel = new JLabel(tabText);
@@ -140,7 +145,7 @@ public class AlertLogEntryPanel extends JPanel {
         tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
         alertTabbedPane.addTab(tabText, traceListComponent);
-        alertTabbedPane.setTabComponentAt(2, tabLabel);
+        alertTabbedPane.setTabComponentAt(tabIndex++, tabLabel);
 
         tabText = LogEntryColumn.PRSTACKTRACE.getDisplayName();
         tabLabel = new JLabel(tabText);
@@ -150,7 +155,7 @@ public class AlertLogEntryPanel extends JPanel {
         tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
         alertTabbedPane.addTab(tabText, prStacktraceComponent);
-        alertTabbedPane.setTabComponentAt(3, tabLabel);
+        alertTabbedPane.setTabComponentAt(tabIndex++, tabLabel);
 
         tabText = LogEntryColumn.PARAMETERPAGEDATA.getDisplayName();
         tabLabel = new JLabel(tabText);
@@ -160,7 +165,7 @@ public class AlertLogEntryPanel extends JPanel {
         tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
         alertTabbedPane.addTab(tabText, parameterPageComponent);
-        alertTabbedPane.setTabComponentAt(4, tabLabel);
+        alertTabbedPane.setTabComponentAt(tabIndex++, tabLabel);
 
         tabText = "Raw Text";
         tabLabel = new JLabel(tabText);
@@ -170,9 +175,7 @@ public class AlertLogEntryPanel extends JPanel {
         tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
         alertTabbedPane.addTab(tabText, rawTextComponent);
-        alertTabbedPane.setTabComponentAt(5, tabLabel);
-
-        alertTabbedPane.setSelectedIndex(selectedIndex);
+        alertTabbedPane.setTabComponentAt(tabIndex++, tabLabel);
 
         ChangeListener changeListener = new ChangeListener() {
 
@@ -183,6 +186,38 @@ public class AlertLogEntryPanel extends JPanel {
                 selectedIndex = alertTabbedPane.getSelectedIndex();
             }
         };
+
+        // alert specific tabs
+        AlertLogEntryPanelUtil alertLogEntryPanelUtil = AlertLogEntryPanelUtil.getInstance();
+
+        Map<String, JComponent> additionalAlertTabs;
+        additionalAlertTabs = alertLogEntryPanelUtil.getAdditionalAlertTabs(alertLogEntryModel, alertLogEntry);
+
+        if (additionalAlertTabs != null) {
+
+            for (Map.Entry<String, JComponent> entry : additionalAlertTabs.entrySet()) {
+
+                tabText = entry.getKey();
+                JComponent additionalComponent = entry.getValue();
+
+                tabLabel = new JLabel(tabText);
+                tabLabel.setFont(tabFont);
+                // tabLabel.setSize(dim);
+                tabLabel.setPreferredSize(dim);
+                tabLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+                alertTabbedPane.addTab(tabText, additionalComponent);
+                alertTabbedPane.setTabComponentAt(tabIndex++, tabLabel);
+            }
+        }
+
+        int tabCount = alertTabbedPane.getTabCount();
+
+        if (selectedIndex < tabCount) {
+            alertTabbedPane.setSelectedIndex(selectedIndex);
+        } else {
+            selectedIndex = 0;
+        }
 
         alertTabbedPane.addChangeListener(changeListener);
     }
@@ -196,8 +231,8 @@ public class AlertLogEntryPanel extends JPanel {
         return alertTabbedPane;
     }
 
-    private LogEntryModel getLogEntryModel() {
-        return logEntryModel;
+    private LogEntryModel getAlertLogEntryModel() {
+        return alertLogEntryModel;
     }
 
     private JComponent getAlertComponent() {
@@ -241,7 +276,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         List<String> logEntryValueList = logEntryData.getLogEntryValueList();
 
-        LogEntryModel logEntryModel = getLogEntryModel();
+        LogEntryModel logEntryModel = getAlertLogEntryModel();
         List<LogEntryColumn> logEntryColumnList = logEntryModel.getLogEntryColumnList();
         int columnIndex = 0;
 
@@ -416,7 +451,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         LogEntryColumn logEntryColumn = LogEntryColumn.PALDATA;
 
-        LogEntryModel logEntryModel = getLogEntryModel();
+        LogEntryModel logEntryModel = getAlertLogEntryModel();
 
         int columnIndex = logEntryModel.getLogEntryColumnIndex(logEntryColumn);
 
@@ -525,7 +560,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         LogEntryColumn logEntryColumn = LogEntryColumn.TRACELIST;
 
-        LogEntryModel logEntryModel = getLogEntryModel();
+        LogEntryModel logEntryModel = getAlertLogEntryModel();
 
         int columnIndex = logEntryModel.getLogEntryColumnIndex(logEntryColumn);
 
@@ -607,7 +642,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         LogEntryColumn logEntryColumn = LogEntryColumn.PRSTACKTRACE;
 
-        LogEntryModel logEntryModel = getLogEntryModel();
+        LogEntryModel logEntryModel = getAlertLogEntryModel();
 
         int columnIndex = logEntryModel.getLogEntryColumnIndex(logEntryColumn);
 
@@ -680,7 +715,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         LogEntryColumn logEntryColumn = LogEntryColumn.PARAMETERPAGEDATA;
 
-        LogEntryModel logEntryModel = getLogEntryModel();
+        LogEntryModel logEntryModel = getAlertLogEntryModel();
 
         int columnIndex = logEntryModel.getLogEntryColumnIndex(logEntryColumn);
 
@@ -817,4 +852,5 @@ public class AlertLogEntryPanel extends JPanel {
 
         return tablehtmlSB.toString();
     }
+
 }

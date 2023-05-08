@@ -119,6 +119,11 @@ public abstract class LogEntryModel {
         return modelDateFormat;
     }
 
+    // added for CloudK v2
+    public void setModelDateFormat(DateFormat modelDateFormat) {
+        this.modelDateFormat = modelDateFormat;
+    }
+
     public void setModelDateFormatTimeZone(TimeZone modelTimeZone) {
 
         DateFormat modelDateFormat = getModelDateFormat();

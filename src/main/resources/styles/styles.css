@@ -17,8 +17,8 @@ BODY {
 	scrollbar-arrow-color: #5270A4;
 	scrollbar-track-color: white;
 	font-family: Verdana, Arial, sans-serif;
-    font-size: 12pt;
-    font-weight: normal;
+	font-size: 12pt;
+	font-weight: normal;
 }
 
 DIV {
@@ -96,4 +96,22 @@ A {
 
 .valueColumn {
 	width: 100%;
+}
+
+.valueColumnCenter {
+	width: 100%;
+	text-align: center;
+}
+
+.valueColumnLeftIndent {
+	width: 100%;
+	text-align: left;
+	text-indent: 10px;
+}
+
+.valueColumnRightIndent {
+	direction:rtl;
+	width: 100%;
+	text-align: right;
+	text-indent: 10px;
 }

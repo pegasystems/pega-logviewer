@@ -77,14 +77,11 @@ public class Log4jPatternParser extends LogParser {
     private Pattern systemDatepattern;
     private Pattern hzMemberspattern;
 
-    private ArrayList<LogEntryColumn> logEntryColumnList;
     private ArrayList<String> logEntryColumnValueList;
     private String logEntryText;
     private ArrayList<String> additionalLines;
 
     private int lineCount;
-
-    private AtomicInteger logEntryIndex;
 
     private StringBuilder parseLine;
     private int parseLineCount;
@@ -115,7 +112,6 @@ public class Log4jPatternParser extends LogParser {
 
         this.displayTimezone = displayTimezone;
 
-        logEntryIndex = new AtomicInteger(0);
         parseLine = null;
         parseLineCount = 1;
 
@@ -139,7 +135,6 @@ public class Log4jPatternParser extends LogParser {
         hazelcastMembership = null;
         clusterMembershipManagerV84 = null;
 
-        logEntryColumnList = new ArrayList<>();
         logEntryColumnValueList = new ArrayList<>();
         logEntryText = null;
         additionalLines = new ArrayList<>();
@@ -161,9 +156,13 @@ public class Log4jPatternParser extends LogParser {
 
         hzMemberspattern = Pattern.compile("Members \\[(.+?)\\] \\{");
 
+        setLogEntryColumnList(new ArrayList<>());
+
         generateRegExp();
 
         log4jLogEntryModel = new Log4jLogEntryModel(getDateFormat(), displayTimezone);
+
+        List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
 
         log4jLogEntryModel.updateLogEntryColumnList(logEntryColumnList);
 
@@ -172,10 +171,6 @@ public class Log4jPatternParser extends LogParser {
     @Override
     public String toString() {
         return "Log4jPatternParser [regExp=" + regExp + ", log4jPattern=" + getLogPattern() + "]";
-    }
-
-    protected List<LogEntryColumn> getLogEntryColumnList() {
-        return logEntryColumnList;
     }
 
     protected void addColumn(LogEntryColumn logEntryColumn) {
@@ -473,7 +468,7 @@ public class Log4jPatternParser extends LogParser {
         // LOG.info("loggerIndex: " + levelIndex);
         LOG.info("generateRegExp - lineCount: " + lineCount);
         LOG.info("generateRegExp - regExp: " + regExp);
-        LOG.info("generateRegExp - logEntryColumnList: " + logEntryColumnList);
+        LOG.info("generateRegExp - logEntryColumnList: " + getLogEntryColumnList());
 
         linePattern = Pattern.compile(regExp);
     }
@@ -509,7 +504,44 @@ public class Log4jPatternParser extends LogParser {
     }
 
     @Override
-    public void parse(String line) {
+    protected void parseV2(String line) {
+
+        logEntryText = line;
+
+        Map<String, Object> fieldMap = getCloudKFieldMap(line);
+
+        if (fieldMap != null) {
+
+            String time = (String) fieldMap.get("@timestamp");
+            String thread = (String) fieldMap.get("thread_name");
+            String pegaThread = (String) fieldMap.get("pegathread");
+            String tenantid = "";
+            String app = (String) fieldMap.get("app");
+            String logger = (String) fieldMap.get("logger_name");
+            String logLevel = (String) fieldMap.get("level");
+            String stack = (String) fieldMap.get("stack");
+            String requestorId = (String) fieldMap.get("RequestorId");
+            String userid = (String) fieldMap.get("userid");
+            String message = (String) fieldMap.get("message");
+
+            logEntryColumnValueList.add(time);
+            logEntryColumnValueList.add(thread);
+            logEntryColumnValueList.add(pegaThread);
+            logEntryColumnValueList.add(tenantid);
+            logEntryColumnValueList.add(app);
+            logEntryColumnValueList.add(logger);
+            logEntryColumnValueList.add(logLevel);
+            logEntryColumnValueList.add(stack);
+            logEntryColumnValueList.add(requestorId);
+            logEntryColumnValueList.add(userid);
+            logEntryColumnValueList.add(message);
+
+            buildLogEntry();
+        }
+    }
+
+    @Override
+    protected void parseV1(String line) {
 
         line = getLineFromCloudK(line);
 
@@ -603,10 +635,6 @@ public class Log4jPatternParser extends LogParser {
         return logEntryText;
     }
 
-    protected AtomicInteger getLogEntryIndex() {
-        return logEntryIndex;
-    }
-
     protected int getLevelIndex() {
         return levelIndex;
     }
@@ -660,6 +688,12 @@ public class Log4jPatternParser extends LogParser {
             int timestampIndex = getTimestampIndex();
             int loggerIndex = getLoggerIndex();
             int messageIndex = getMessageIndex();
+
+            CloudKVersion cloudKVersion = getCloudKVersion();
+
+            if (CloudKVersion.V2.equals(cloudKVersion)) {
+                messageIndex = 10;
+            }
 
             String logger = logEntryColumnValueList.get(loggerIndex).toUpperCase();
 

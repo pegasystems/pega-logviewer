@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,6 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.JacksonException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.DateTimeUtilities;
@@ -30,9 +32,9 @@ import com.pega.gcs.logviewer.logfile.AlertLogPattern;
 import com.pega.gcs.logviewer.logfile.Log4jPattern;
 import com.pega.gcs.logviewer.logfile.Log4jPatternManager;
 import com.pega.gcs.logviewer.logfile.LogPatternFactory;
+import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.LogEntryKey;
 import com.pega.gcs.logviewer.model.LogEntryModel;
-import com.pega.gcs.logviewer.parser.cloudkjson.CloudKMessage;
 
 public abstract class LogParser {
 
@@ -46,7 +48,13 @@ public abstract class LogParser {
 
     private DateFormat dateFormat;
 
-    public abstract void parse(String line);
+    private List<LogEntryColumn> logEntryColumnList;
+
+    private AtomicInteger logEntryIndex;
+
+    protected abstract void parseV1(String line);
+
+    protected abstract void parseV2(String line);
 
     public abstract void parseFinalInternal();
 
@@ -58,23 +66,44 @@ public abstract class LogParser {
 
     private Pattern cloudkPattern;
 
-    private Boolean isCloudK;
+    private Pattern cloudkDatePattern;
+
+    private CloudKVersion cloudKVersion;
 
     private ObjectMapper objectMapper;
 
+    protected enum CloudKVersion {
+        // NULL - normal log entry
+        // V0 - normal log entry but cloud/aws timestamp appended
+        // V1 - cloudk Json entry
+        // V2 - cloudk json entry
+        NULL, V0, V1, V2;
+    }
+
     public LogParser(AbstractLogPattern abstractLogPattern, Charset charset, Locale locale) {
+
         this.dateFormat = null;
         this.abstractLogPattern = abstractLogPattern;
         this.charset = charset;
         this.locale = locale;
+
+        this.logEntryColumnList = null;
+
+        this.logEntryIndex = new AtomicInteger(0);
+
         this.processedCount = new AtomicInteger(0);
         this.resetProcessedCount = false;
 
         String cloudkRegex = ".*?\\s(.*)";
         cloudkPattern = Pattern.compile(cloudkRegex);
 
-        this.objectMapper = new ObjectMapper();
+        // 2023-04-26T13:28:31.811Z
+        String cloudkDateRegex = "^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.\\d{3}Z).*";
+        cloudkDatePattern = Pattern.compile(cloudkDateRegex);
 
+        cloudKVersion = null;
+
+        this.objectMapper = new ObjectMapper();
     }
 
     public AbstractLogPattern getLogPattern() {
@@ -95,6 +124,39 @@ public abstract class LogParser {
 
     protected void setDateFormat(DateFormat dateFormat) {
         this.dateFormat = dateFormat;
+    }
+
+    protected List<LogEntryColumn> getLogEntryColumnList() {
+        return logEntryColumnList;
+    }
+
+    protected void setLogEntryColumnList(List<LogEntryColumn> logEntryColumnList) {
+        this.logEntryColumnList = logEntryColumnList;
+    }
+
+    protected AtomicInteger getLogEntryIndex() {
+        return logEntryIndex;
+    }
+
+    public void parse(String line) {
+
+        CloudKVersion cloudKVersion = getCloudKVersion(line);
+
+        switch (cloudKVersion) {
+
+        case NULL:
+        case V0:
+        case V1:
+            parseV1(line);
+            break;
+        case V2:
+            parseV2(line);
+            break;
+        default:
+            parseV1(line);
+            break;
+
+        }
     }
 
     public void parseFinal() {
@@ -336,6 +398,15 @@ public abstract class LogParser {
 
             int rowCount = tryLogParser(currentLogParser, readLineList);
 
+            CloudKVersion cloudKVersion = currentLogParser.getCloudKVersion();
+
+            // trying only once as we know the pattern for cloudk v2 logs
+            if (CloudKVersion.V2.equals(cloudKVersion)) {
+                logParser = currentLogParser;
+
+                break;
+            }
+
             int logParserRowCount = (logParser != null) ? logParser.getProcessedCount() : 0;
 
             if (rowCount > logParserRowCount) {
@@ -390,66 +461,149 @@ public abstract class LogParser {
         return processedCount.get();
     }
 
-    private String extractJson(String line) {
+    private String extractLogMessage(String line) {
 
-        String json = null;
+        String logMessage = null;
 
-        Matcher cloudkPatternMatcher = cloudkPattern.matcher(line);
+        if (line != null) {
 
-        if (cloudkPatternMatcher.find()) {
-            json = cloudkPatternMatcher.group(1);
-        }
+            Matcher cloudkPatternMatcher = cloudkPattern.matcher(line);
 
-        return json;
-    }
-
-    private Boolean isValidJson(String line) {
-
-        Boolean validJson = null;
-
-        String json = extractJson(line);
-
-        if ((json != null) && (!"".equals(json.trim()))) {
-            try {
-                objectMapper.readTree(json);
-                validJson = Boolean.TRUE;
-            } catch (JacksonException e) {
-                validJson = Boolean.FALSE;
+            if (cloudkPatternMatcher.find()) {
+                logMessage = cloudkPatternMatcher.group(1);
             }
         }
 
-        return validJson;
+        return logMessage;
     }
 
+    protected CloudKVersion getCloudKVersion() {
+        return cloudKVersion;
+    }
+
+    protected CloudKVersion getCloudKVersion(String line) {
+
+        if (cloudKVersion == null) {
+
+            String logMessage = extractLogMessage(line);
+
+            if ((logMessage != null) && (!"".equals(logMessage.trim()))) {
+
+                try {
+                    TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
+                    };
+
+                    Map<String, Object> fieldMap = objectMapper.readValue(logMessage, typeRef);
+
+                    Object value = fieldMap.get("@timestamp");
+
+                    if (value == null) {
+                        cloudKVersion = CloudKVersion.V1;
+                    } else {
+
+                        cloudKVersion = CloudKVersion.V2;
+
+                        AbstractLogPattern abstractLogPattern = getLogPattern();
+
+                        if ((abstractLogPattern != null)
+                                && (!abstractLogPattern.getLogType().equals(LogType.PEGA_ALERT))) {
+
+                            // override data generated from pattern
+                            LogEntryModel logEntryModel = getLogEntryModel();
+
+                            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+                            logEntryModel.setModelDateFormat(dateFormat);
+
+                            List<LogEntryColumn> cloudKLogEventColumnList = LogEntryColumn
+                                    .getCloudKLogEventColumnList();
+
+                            logEntryModel.updateLogEntryColumnList(cloudKLogEventColumnList);
+                        }
+                    }
+                } catch (JacksonException e) {
+
+                    // not a json, check for aws type logs.
+                    Matcher cloudkDateMatcher = cloudkDatePattern.matcher(line);
+
+                    if (cloudkDateMatcher.matches()) {
+                        cloudKVersion = CloudKVersion.V0;
+                    } else {
+                        cloudKVersion = CloudKVersion.NULL;
+                    }
+                }
+
+                LOG.info("Found Log type version as " + cloudKVersion);
+            }
+        }
+
+        return cloudKVersion;
+    }
+
+    protected Map<String, Object> getCloudKFieldMap(String line) {
+
+        Map<String, Object> fieldMap = null;
+
+        try {
+
+            String json = extractLogMessage(line);
+
+            TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
+            };
+
+            fieldMap = objectMapper.readValue(json, typeRef);
+
+        } catch (JacksonException e) {
+            LOG.error("Error parsing log json data", e.getMessage());
+        }
+
+        return fieldMap;
+    }
+
+    // only to be called from V1 parsing
     protected String getLineFromCloudK(String line) {
 
         String lineFromCloudK = null;
 
-        if (isCloudK == null) {
-            // check and set if valid json
-            Boolean validJson = isValidJson(line);
+        CloudKVersion cloudKVersion = getCloudKVersion(line);
 
-            isCloudK = validJson != null ? validJson : null;
-        }
+        switch (cloudKVersion) {
 
-        if ((isCloudK != null) && (isCloudK)) {
-            // extract message from json
+        case NULL:
+            lineFromCloudK = line;
+            break;
+
+        case V0:
+            lineFromCloudK = extractLogMessage(line);
+            break;
+
+        case V1:
             try {
 
-                String json = extractJson(line);
+                String logMessage = extractLogMessage(line);
 
-                CloudKMessage cloudKMessage = objectMapper.readValue(json, CloudKMessage.class);
+                TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
+                };
 
-                lineFromCloudK = cloudKMessage.getMessage();
+                Map<String, Object> fieldMap = objectMapper.readValue(logMessage, typeRef);
+
+                lineFromCloudK = (String) fieldMap.get("message");
 
             } catch (Exception e) {
-                LOG.error("Error parsing CloudK Json");
+                LOG.error("Error parsing CloudK Json", e.getMessage());
 
                 lineFromCloudK = line;
             }
 
-        } else {
+            break;
+
+        case V2:
             lineFromCloudK = line;
+            break;
+
+        default:
+            lineFromCloudK = line;
+            break;
+
         }
 
         return lineFromCloudK;

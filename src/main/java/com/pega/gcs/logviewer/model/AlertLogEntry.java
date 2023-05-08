@@ -90,7 +90,9 @@ public class AlertLogEntry extends LogEntry {
 
         JPanel detailsPanel;
 
-        detailsPanel = new AlertLogEntryPanel(this, logTableModel.getLogEntryModel(), logTableModel.getCharset());
+        AlertLogEntryModel alertLogEntryModel = (AlertLogEntryModel) logTableModel.getLogEntryModel();
+
+        detailsPanel = new AlertLogEntryPanel(this, alertLogEntryModel, logTableModel.getCharset());
 
         return detailsPanel;
     }

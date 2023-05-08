@@ -20,6 +20,10 @@ public class CustomChartPanel extends ChartPanel {
         super(chart);
     }
 
+    public CustomChartPanel(JFreeChart chart, boolean useBuffer) {
+        super(chart, useBuffer);
+    }
+
     @Override
     public void doSaveAs() throws IOException {
 

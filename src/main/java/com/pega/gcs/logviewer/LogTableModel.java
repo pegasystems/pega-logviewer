@@ -100,7 +100,14 @@ public class LogTableModel extends FilterTableModel<LogEntryKey> {
 
     @Override
     protected HashMap<LogEntryKey, Integer> getKeyIndexMap() {
-        return logEntryModel.getKeyIndexMap();
+
+        HashMap<LogEntryKey, Integer> keyIndexMap = null;
+
+        if (logEntryModel != null) {
+            keyIndexMap = logEntryModel.getKeyIndexMap();
+        }
+
+        return keyIndexMap;
     }
 
     @Override

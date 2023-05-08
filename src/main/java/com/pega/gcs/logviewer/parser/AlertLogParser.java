@@ -16,6 +16,8 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,13 +37,9 @@ public class AlertLogParser extends LogParser {
 
     private int alertVersion;
 
-    private List<LogEntryColumn> logEntryColumnList;
-
     private StringBuilder fullLogEntryTextSB;
 
     private int capturedColumnCount;
-
-    private int logEntryIndex;
 
     // store the index of 'messageid' column so as to identify colour
     private int messageIDIndex;
@@ -61,10 +59,9 @@ public class AlertLogParser extends LogParser {
         super(alertLogPattern, charset, locale);
 
         alertVersion = -1;
-        logEntryColumnList = null;
+
         fullLogEntryTextSB = new StringBuilder();
         capturedColumnCount = 0;
-        logEntryIndex = 0;
 
         getTimeStampFormat("%d{}{GMT}");
 
@@ -80,17 +77,71 @@ public class AlertLogParser extends LogParser {
     }
 
     @Override
-    public void parse(String line) {
+    protected void parseV2(String line) {
 
-        String[] fields = null;
+        Map<String, Object> fieldMap = getCloudKFieldMap(line);
+
+        if (fieldMap != null) {
+
+            String message = (String) fieldMap.get("message");
+
+            setupLogEntryColumnList(message);
+
+            List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
+
+            if (logEntryColumnList != null) {
+
+                fullLogEntryTextSB.append(message);
+
+                buildLogEntry();
+            }
+        }
+    }
+
+    @Override
+    protected void parseV1(String line) {
 
         line = getLineFromCloudK(line);
+
+        setupLogEntryColumnList(line);
+
+        List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
+
+        if (logEntryColumnList != null) {
+
+            String[] fields = null;
+
+            int logEntryColumnListSize = logEntryColumnList.size();
+
+            // logEntryColumnListSize has additional Line column
+            if ((fullLogEntryTextSB.length() > 0) && (capturedColumnCount < (logEntryColumnListSize - 1))) {
+
+                fullLogEntryTextSB.append(line);
+                fields = fullLogEntryTextSB.toString().split("\\*");
+                capturedColumnCount = fields.length;
+
+            } else {
+
+                buildLogEntry();
+
+                fullLogEntryTextSB.append(line);
+                fields = fullLogEntryTextSB.toString().split("\\*");
+                capturedColumnCount = fields.length;
+            }
+        } else {
+            LOG.info("discarding empty line in the begining");
+        }
+    }
+
+    private void setupLogEntryColumnList(String line) {
+
+        List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
 
         if ((line != null) && (!line.isEmpty()) && (logEntryColumnList == null)) {
 
             int oldStyleIndex = 0;
 
-            fields = line.split("\\*");
+            String[] fields = line.split("\\*");
 
             int fieldsLen = fields.length;
 
@@ -158,36 +209,13 @@ public class AlertLogParser extends LogParser {
 
                 LOG.info("logEntryColumnList: " + logEntryColumnList);
 
+                setLogEntryColumnList(logEntryColumnList);
                 alertLogEntryModel.updateLogEntryColumnList(logEntryColumnList);
             } else {
                 LOG.info("discarding line: " + line);
             }
         }
 
-        if (logEntryColumnList != null) {
-
-            int logEntryColumnListSize = logEntryColumnList.size();
-
-            // logEntryColumnListSize has additional Line column
-            if ((fullLogEntryTextSB.length() > 0) && (capturedColumnCount < (logEntryColumnListSize - 1))) {
-
-                fullLogEntryTextSB.append(line);
-                fields = fullLogEntryTextSB.toString().split("\\*");
-                capturedColumnCount = fields.length;
-
-            } else {
-
-                buildLogEntry();
-
-                logEntryIndex++;
-
-                fullLogEntryTextSB.append(line);
-                fields = fullLogEntryTextSB.toString().split("\\*");
-                capturedColumnCount = fields.length;
-            }
-        } else {
-            LOG.info("discarding empty line in the begining");
-        }
     }
 
     @Override
@@ -209,9 +237,13 @@ public class AlertLogParser extends LogParser {
 
         if (fullLogEntryTextSB.length() > 0) {
 
+            LogEntryModel logEntryModel = getLogEntryModel();
+            AtomicInteger logEntryIndex = getLogEntryIndex();
+            List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
+
             try {
 
-                LogEntryModel logEntryModel = getLogEntryModel();
+                logEntryIndex.incrementAndGet();
 
                 int logEntryColumnListSize = logEntryColumnList.size();
 
@@ -237,6 +269,9 @@ public class AlertLogParser extends LogParser {
                     Date logEntryDate = modelDateFormat.parse(timestampStr);
                     logEntryTime = logEntryDate.getTime();
                 } catch (ParseException pe) {
+
+                    LOG.error("Error parsing line: [" + logEntryIndex + "] logentry: [" + logEntryText + "]", pe);
+
                     // possibly a older style alert. extract the date string and
                     // parse it again
                     Matcher alertDateMatcher = alertDatePattern.matcher(timestampStr);
@@ -282,7 +317,7 @@ public class AlertLogParser extends LogParser {
                 String palDataStr = fields[palDataIndex];
                 Number[] palDataValueArray = parsePALData(palDataStr);
 
-                LogEntryKey logEntryKey = new LogEntryKey(logEntryIndex, logEntryTime);
+                LogEntryKey logEntryKey = new LogEntryKey(logEntryIndex.intValue(), logEntryTime);
 
                 alertLogEntry = new AlertLogEntry(logEntryKey, logEntryColumnValueList, logEntryText, alertVersion,
                         alertId, observedKPI, criticalAlertEntry, palDataValueArray);
