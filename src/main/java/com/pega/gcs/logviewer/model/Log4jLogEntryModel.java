@@ -63,7 +63,7 @@ public class Log4jLogEntryModel extends LogEntryModel {
 
     private List<HazelcastMembership> hazelcastMembershipList;
 
-    private Map<String, List<LogEntryKey>> errorLogEntryIndexMap;
+    private Map<String, List<LogEntryKey>> exceptionClassLogEntryIndexMap;
 
     private List<LogEntryKey> threadDumpLogEntryIndexList;
 
@@ -86,7 +86,7 @@ public class Log4jLogEntryModel extends LogEntryModel {
         systemStartList = new ArrayList<>();
         hazelcastMembershipList = new ArrayList<>();
 
-        errorLogEntryIndexMap = new HashMap<>();
+        exceptionClassLogEntryIndexMap = new HashMap<>();
         threadDumpLogEntryIndexList = new ArrayList<>();
 
         // log series collection is not build upfront in rules log.
@@ -728,8 +728,8 @@ public class Log4jLogEntryModel extends LogEntryModel {
         return hazelcastMembershipList;
     }
 
-    public Map<String, List<LogEntryKey>> getErrorLogEntryIndexMap() {
-        return errorLogEntryIndexMap;
+    public Map<String, List<LogEntryKey>> getExceptionClassLogEntryIndexMap() {
+        return exceptionClassLogEntryIndexMap;
     }
 
     public List<LogEntryKey> getThreadDumpLogEntryKeyList() {

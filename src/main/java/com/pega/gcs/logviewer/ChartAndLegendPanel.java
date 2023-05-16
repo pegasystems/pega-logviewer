@@ -220,7 +220,12 @@ public class ChartAndLegendPanel extends JPanel implements ListSelectionListener
             customChartPanel.setMaximumDrawHeight(Integer.MAX_VALUE);
             customChartPanel.setMouseWheelEnabled(true);
             customChartPanel.setRangeZoomable(false);
-            customChartPanel.setDefaultDirectoryForSaveAs(parentDir);
+
+            try {
+                customChartPanel.setDefaultDirectoryForSaveAs(parentDir);
+            } catch (IllegalArgumentException iae) {
+                LOG.error("Unable to set chart save-as directory: " + parentDir, iae);
+            }
 
             // LogTableModel logTableModel = (LogTableModel) logTable.getModel();
             // LogEntryModel logEntryModel = logTableModel.getLogEntryModel();

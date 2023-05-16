@@ -34,48 +34,65 @@ public class Pega0062Tab extends JPanel {
 
     private DateFormat displayDateFormat;
 
-    public Pega0062Tab(Map<String, Object> fieldMap, DateFormat displayDateFormat) {
+    public Pega0062Tab(ArrayList<Map<String, Object>> stageMetricsList, DateFormat displayDateFormat) {
         super();
 
         this.displayDateFormat = displayDateFormat;
 
         this.styleSheet = FileUtilities.getStyleSheet(this.getClass(), "styles.css");
 
-        @SuppressWarnings("unchecked")
-        ArrayList<Map<String, Object>> stageMetricsList = (ArrayList<Map<String, Object>>) fieldMap.get("stageMetrics");
-
         String dataFlowKey = null;
 
         List<StageRecord> stageRecordList = new ArrayList<>();
 
-        for (Map<String, Object> stageMetric : stageMetricsList) {
+        if (stageMetricsList != null) {
 
-            if (dataFlowKey == null) {
-                dataFlowKey = getDataflowKey(stageMetric);
+            for (Map<String, Object> stageMetric : stageMetricsList) {
+
+                if (dataFlowKey == null) {
+                    dataFlowKey = getDataflowKey(stageMetric);
+                }
+
+                StageRecord stageRecord = getStageRecord(stageMetric);
+
+                stageRecordList.add(stageRecord);
+
             }
-
-            StageRecord stageRecord = getStageRecord(stageMetric);
-
-            stageRecordList.add(stageRecord);
-
         }
 
         setLayout(new GridBagLayout());
 
-        GridBagConstraints gbc1 = new GridBagConstraints();
-        gbc1.gridx = 0;
-        gbc1.gridy = 0;
-        gbc1.weightx = 1.0D;
-        gbc1.weighty = 1.0D;
-        gbc1.fill = GridBagConstraints.BOTH;
-        gbc1.anchor = GridBagConstraints.NORTHWEST;
-        gbc1.insets = new Insets(0, 0, 0, 0);
+        int xindex = 0;
+        int yindex = 0;
+
+        if (dataFlowKey != null) {
+
+            GridBagConstraints gbc1 = new GridBagConstraints();
+            gbc1.gridx = xindex;
+            gbc1.gridy = yindex;
+            gbc1.weightx = 1.0D;
+            gbc1.weighty = 1.0D;
+            gbc1.fill = GridBagConstraints.BOTH;
+            gbc1.anchor = GridBagConstraints.NORTHWEST;
+            gbc1.insets = new Insets(0, 0, 0, 0);
+
+            JPanel dataflowKeypanel = getDataflowKeyComponent(dataFlowKey);
+
+            add(dataflowKeypanel, gbc1);
+        }
+
+        GridBagConstraints gbc2 = new GridBagConstraints();
+        gbc2.gridx = xindex;
+        gbc2.gridy = yindex++;
+        gbc2.weightx = 1.0D;
+        gbc2.weighty = 1.0D;
+        gbc2.fill = GridBagConstraints.BOTH;
+        gbc2.anchor = GridBagConstraints.NORTHWEST;
+        gbc2.insets = new Insets(0, 0, 0, 0);
 
         JPanel stageMetricPanel = getStageMetricComponent(stageRecordList);
 
-        add(stageMetricPanel, gbc1);
-
-        int xindex = 0;
+        add(stageMetricPanel, gbc2);
 
         for (StageRecord stageRecord : stageRecordList) {
 
@@ -88,16 +105,16 @@ public class Pega0062Tab extends JPanel {
 
                 JComponent stopWatchMetricComponent = getStopWatchMetricPanel(stageId, stageName, stopwatchesList);
 
-                GridBagConstraints gbc2 = new GridBagConstraints();
-                gbc2.gridx = xindex++;
-                gbc2.gridy = 1;
-                gbc2.weightx = 1.0D;
-                gbc2.weighty = 1.0D;
-                gbc2.fill = GridBagConstraints.BOTH;
-                gbc2.anchor = GridBagConstraints.NORTHWEST;
-                gbc2.insets = new Insets(0, 0, 0, 0);
+                GridBagConstraints gbc3 = new GridBagConstraints();
+                gbc3.gridx = xindex++;
+                gbc3.gridy = yindex;
+                gbc3.weightx = 1.0D;
+                gbc3.weighty = 1.0D;
+                gbc3.fill = GridBagConstraints.BOTH;
+                gbc3.anchor = GridBagConstraints.NORTHWEST;
+                gbc3.insets = new Insets(0, 0, 0, 0);
 
-                add(stopWatchMetricComponent, gbc2);
+                add(stopWatchMetricComponent, gbc3);
             }
         }
 
@@ -180,6 +197,49 @@ public class Pega0062Tab extends JPanel {
 
         return stageRecord;
 
+    }
+
+    private JPanel getDataflowKeyComponent(String dataflowKey) {
+
+        HTMLEditorKit htmlEditorKit = new HTMLEditorKit();
+        StyleSheet htmlStyleSheet = htmlEditorKit.getStyleSheet();
+
+        StyleSheet styleSheet = getStyleSheet();
+        htmlStyleSheet.addStyleSheet(styleSheet);
+
+        JEditorPane stageMetricEditorPane = new JEditorPane();
+        stageMetricEditorPane.setEditable(false);
+        stageMetricEditorPane.setContentType("text/html");
+        stageMetricEditorPane.setEditorKitForContentType("text/html", htmlEditorKit);
+
+        StringBuilder htmlStringBuilder = new StringBuilder();
+
+        htmlStringBuilder.append("<H3 align='center'>");
+        htmlStringBuilder.append("Dataflow Key: ");
+        htmlStringBuilder.append(dataflowKey);
+        htmlStringBuilder.append("</H3>");
+        htmlStringBuilder.append("</DIV></BODY></HTML>");
+
+        stageMetricEditorPane.setText(htmlStringBuilder.toString());
+
+        GridBagConstraints gbc1 = new GridBagConstraints();
+        gbc1.gridx = 0;
+        gbc1.gridy = 0;
+        gbc1.weightx = 1.0D;
+        gbc1.weighty = 1.0D;
+        gbc1.fill = GridBagConstraints.BOTH;
+        gbc1.anchor = GridBagConstraints.NORTHWEST;
+        gbc1.insets = new Insets(2, 2, 2, 2);
+
+        JPanel stageMetricPanel = new JPanel();
+
+        stageMetricPanel.setLayout(new GridBagLayout());
+
+        stageMetricPanel.add(stageMetricEditorPane, gbc1);
+        stageMetricPanel.setBackground(Color.WHITE);
+        stageMetricPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+
+        return stageMetricPanel;
     }
 
     private JPanel getStageMetricComponent(List<StageRecord> stageRecordList) {

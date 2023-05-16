@@ -179,7 +179,11 @@ public class DdsMetricTableInfoChartPanel extends JPanel implements TableModelLi
             customChartPanel.setPreferredSize(new Dimension(1890, 5000));
             customChartPanel.setMouseWheelEnabled(false);
             customChartPanel.setRangeZoomable(false);
-            customChartPanel.setDefaultDirectoryForSaveAs(parentDir);
+            try {
+                customChartPanel.setDefaultDirectoryForSaveAs(parentDir);
+            } catch (IllegalArgumentException iae) {
+                LOG.error("Unable to set chart save-as directory: " + parentDir, iae);
+            }
 
             customChartPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));
         }

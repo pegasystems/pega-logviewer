@@ -34,6 +34,8 @@ public class AlertLogEntryPanelUtil {
 
     private Pattern pega0062Pattern;
 
+    private Pattern pega0063Pattern;
+
     private AlertLogEntryPanelUtil() {
 
         this.objectMapper = JsonMapper.builder().disable(MapperFeature.ALLOW_COERCION_OF_SCALARS).build();
@@ -53,6 +55,18 @@ public class AlertLogEntryPanelUtil {
         }
 
         return pega0062Pattern;
+    }
+
+    private Pattern getPega0063Pattern() {
+
+        if (pega0063Pattern == null) {
+
+            String metricsRegex = "Strategy shape metrics are:(.*)";
+
+            pega0063Pattern = Pattern.compile(metricsRegex);
+        }
+
+        return pega0063Pattern;
     }
 
     public static AlertLogEntryPanelUtil getInstance() {
@@ -79,6 +93,10 @@ public class AlertLogEntryPanelUtil {
 
         case "PEGA0062":
             additionalAlertTabs = getPega0062Tabs(alertLogEntryModel, alertLogEntry);
+            break;
+
+        case "PEGA0063":
+            additionalAlertTabs = getPega0063Tabs(alertLogEntryModel, alertLogEntry);
             break;
 
         default:
@@ -124,6 +142,37 @@ public class AlertLogEntryPanelUtil {
         return tabMap;
     }
 
+    public Map<String, JComponent> getPega0063Tabs(AlertLogEntryModel alertLogEntryModel, AlertLogEntry alertLogEntry) {
+
+        LinkedHashMap<String, JComponent> tabMap = new LinkedHashMap<>();
+
+        Pattern pattern = getPega0063Pattern();
+
+        int messageIndex = alertLogEntryModel.getLogEntryColumnIndex(LogEntryColumn.MESSAGE);
+
+        ArrayList<String> logEntryValueList = alertLogEntry.getLogEntryValueList();
+
+        String message = logEntryValueList.get(messageIndex);
+
+        Matcher patternMatcher = pattern.matcher(message);
+        boolean matches = patternMatcher.find();
+
+        if (matches) {
+
+            String dfMetricTitle = "Strategy Metrics";
+            String dfMetricData = patternMatcher.group(1).trim();
+
+            DateFormat displayDateFormat = alertLogEntryModel.getDisplayDateFormat();
+
+            JComponent dfMetricComponent = getPega0063Component(dfMetricData, displayDateFormat);
+
+            tabMap.put(dfMetricTitle, dfMetricComponent);
+
+        }
+
+        return tabMap;
+    }
+
     private JComponent getPega0062Component(String metricData, DateFormat displayDateFormat) {
 
         JComponent component = null;
@@ -137,7 +186,43 @@ public class AlertLogEntryPanelUtil {
 
             Map<String, Object> fieldMap = objectMapper.readValue(metricData, typeRef);
 
-            Pega0062Tab pega0062Tab = new Pega0062Tab(fieldMap, displayDateFormat);
+            @SuppressWarnings("unchecked")
+            ArrayList<Map<String, Object>> stageMetricsList = (ArrayList<Map<String, Object>>) fieldMap
+                    .get("stageMetrics");
+
+            Pega0062Tab pega0062Tab = new Pega0062Tab(stageMetricsList, displayDateFormat);
+
+            JScrollPane scrollPane = new JScrollPane(pega0062Tab, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+                    ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+
+            scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+            component = scrollPane;
+
+        } catch (Exception e) {
+            LOG.error("Error parsing PEGA0062 data", e);
+        }
+
+        return component;
+    }
+
+    private JComponent getPega0063Component(String metricData, DateFormat displayDateFormat) {
+
+        JComponent component = null;
+
+        ObjectMapper objectMapper = getObjectMapper();
+
+        try {
+
+            TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
+            };
+
+            Map<String, Object> fieldMap = objectMapper.readValue(metricData, typeRef);
+
+            ArrayList<Map<String, Object>> stageMetricsList = new ArrayList<>();
+            stageMetricsList.add(fieldMap);
+
+            Pega0062Tab pega0062Tab = new Pega0062Tab(stageMetricsList, displayDateFormat);
 
             JScrollPane scrollPane = new JScrollPane(pega0062Tab, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                     ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);

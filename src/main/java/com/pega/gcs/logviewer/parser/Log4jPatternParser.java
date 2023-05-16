@@ -68,6 +68,8 @@ public class Log4jPatternParser extends LogParser {
 
     private static final int MATCHER_STR_LEN = 500;
 
+    private static final String V2_STR_FORMAT = "%s [%s] [%s] [%s] [%s] (%s) %s %s %s %s - %s";
+
     private String regExp;
 
     private Pattern linePattern;
@@ -506,7 +508,7 @@ public class Log4jPatternParser extends LogParser {
     @Override
     protected void parseV2(String line) {
 
-        logEntryText = line;
+        StringBuilder logEntryTextSB = new StringBuilder();
 
         Map<String, Object> fieldMap = getCloudKFieldMap(line);
 
@@ -523,6 +525,8 @@ public class Log4jPatternParser extends LogParser {
             String requestorId = (String) fieldMap.get("RequestorId");
             String userid = (String) fieldMap.get("userid");
             String message = (String) fieldMap.get("message");
+            @SuppressWarnings("unchecked")
+            Map<String, String> exception = (Map<String, String>) fieldMap.get("exception");
 
             logEntryColumnValueList.add(time);
             logEntryColumnValueList.add(thread);
@@ -535,6 +539,28 @@ public class Log4jPatternParser extends LogParser {
             logEntryColumnValueList.add(requestorId);
             logEntryColumnValueList.add(userid);
             logEntryColumnValueList.add(message);
+
+            logEntryTextSB.append(String.format(V2_STR_FORMAT, time, thread, pegaThread, tenantid, app, logger,
+                    logLevel, stack, requestorId, userid, message));
+
+            if (exception != null) {
+
+                String stacktrace = exception.get("stacktrace");
+
+                if (stacktrace != null) {
+
+                    String[] stacktraceLines = stacktrace.split("\\n");
+
+                    for (String stacktraceLine : stacktraceLines) {
+
+                        logEntryTextSB.append(System.lineSeparator());
+                        logEntryTextSB.append(stacktraceLine);
+                        additionalLines.add(stacktraceLine);
+                    }
+                }
+            }
+
+            logEntryText = logEntryTextSB.toString();
 
             buildLogEntry();
         }
@@ -687,17 +713,22 @@ public class Log4jPatternParser extends LogParser {
             int levelIndex = getLevelIndex();
             int timestampIndex = getTimestampIndex();
             int loggerIndex = getLoggerIndex();
-            int messageIndex = getMessageIndex();
+
+            String message = null;
 
             CloudKVersion cloudKVersion = getCloudKVersion();
 
             if (CloudKVersion.V2.equals(cloudKVersion)) {
-                messageIndex = 10;
+                message = logEntryColumnValueList.get(10);
+            } else {
+
+                int messageIndex = getMessageIndex();
+
+                message = logEntryColumnValueList.get(messageIndex);
             }
 
             String logger = logEntryColumnValueList.get(loggerIndex).toUpperCase();
 
-            String message = logEntryColumnValueList.get(messageIndex);
             message = message.trim();
 
             if ((logger.endsWith("INTERNAL.ASYNC.AGENT")) || (logger.endsWith("ENGINE.CONTEXT.AGENT"))
@@ -845,8 +876,8 @@ public class Log4jPatternParser extends LogParser {
                     fullLogEntryTextSB.append(System.getProperty("line.separator"));
                     fullLogEntryTextSB.append(line);
 
-                    Map<String, List<LogEntryKey>> errorLogEntryIndexMap = log4jLogEntryModel
-                            .getErrorLogEntryIndexMap();
+                    Map<String, List<LogEntryKey>> exceptionClassLogEntryIndexMap = log4jLogEntryModel
+                            .getExceptionClassLogEntryIndexMap();
 
                     // in case of error log check if there is an exception in
                     // the lines
@@ -859,11 +890,11 @@ public class Log4jPatternParser extends LogParser {
                             String exception = matcher.group(0);
 
                             List<LogEntryKey> errorLogEntryIndexList;
-                            errorLogEntryIndexList = errorLogEntryIndexMap.get(exception);
+                            errorLogEntryIndexList = exceptionClassLogEntryIndexMap.get(exception);
 
                             if (errorLogEntryIndexList == null) {
                                 errorLogEntryIndexList = new ArrayList<LogEntryKey>();
-                                errorLogEntryIndexMap.put(exception, errorLogEntryIndexList);
+                                exceptionClassLogEntryIndexMap.put(exception, errorLogEntryIndexList);
                             }
 
                             errorLogEntryIndexList.add(logEntryKey);
@@ -898,7 +929,8 @@ public class Log4jPatternParser extends LogParser {
             // if this is just an error entry, capture it in an empty group
             if ((logLevelId > 5) && (!exceptionsEntry)) {
 
-                Map<String, List<LogEntryKey>> errorLogEntryIndexMap = log4jLogEntryModel.getErrorLogEntryIndexMap();
+                Map<String, List<LogEntryKey>> errorLogEntryIndexMap = log4jLogEntryModel
+                        .getExceptionClassLogEntryIndexMap();
 
                 Matcher matcher = exceptionPattern.matcher(message);
 

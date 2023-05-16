@@ -459,7 +459,12 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
         customChartPanel.setMaximumDrawHeight(Integer.MAX_VALUE);
         customChartPanel.setMouseWheelEnabled(true);
         customChartPanel.setRangeZoomable(false);
-        customChartPanel.setDefaultDirectoryForSaveAs(parentDir);
+
+        try {
+            customChartPanel.setDefaultDirectoryForSaveAs(parentDir);
+        } catch (IllegalArgumentException iae) {
+            LOG.error("Unable to set chart save-as directory: " + parentDir, iae);
+        }
 
         customChartPanel.addChartMouseListener(
                 new CombinedDomainXYPlotMouseListener(customChartPanel, logEntryModel, navigationTableController));
@@ -507,7 +512,12 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
         customChartPanel.setMaximumDrawHeight(Integer.MAX_VALUE);
         customChartPanel.setMouseWheelEnabled(true);
         customChartPanel.setRangeZoomable(false);
-        customChartPanel.setDefaultDirectoryForSaveAs(parentDir);
+        try {
+            customChartPanel.setDefaultDirectoryForSaveAs(parentDir);
+        } catch (IllegalArgumentException iae) {
+            LOG.error("Unable to set chart save-as directory: " + parentDir, iae);
+        }
+
         // boxAndWiskerPanel.addChartMouseListener(new
         // CombinedDomainCategoryPlotMouseListener(chartPanel, logTable));
 

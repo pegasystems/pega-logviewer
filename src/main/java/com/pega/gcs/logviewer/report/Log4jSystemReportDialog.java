@@ -86,7 +86,7 @@ public class Log4jSystemReportDialog extends SystemReportDialog {
 
     private JList<ExceptionLeafNode> errorJList;
 
-    private JTree exceptionJTree;
+    private JTree exceptionClassTree;
 
     private JPanel errorAreaJPanel;
 
@@ -146,7 +146,7 @@ public class Log4jSystemReportDialog extends SystemReportDialog {
             log4jLogEntryModel = (Log4jLogEntryModel) logTableModel.getLogEntryModel();
 
             List<SystemStart> systemStartList = log4jLogEntryModel.getSystemStartList();
-            Map<String, List<LogEntryKey>> errorLogEntryIndexMap = log4jLogEntryModel.getErrorLogEntryIndexMap();
+            Map<String, List<LogEntryKey>> errorLogEntryIndexMap = log4jLogEntryModel.getExceptionClassLogEntryIndexMap();
             List<LogEntryKey> threadDumpIndexList = log4jLogEntryModel.getThreadDumpLogEntryKeyList();
             List<HazelcastMembership> hazelcastMembershipList = log4jLogEntryModel.getHazelcastMembershipList();
 
@@ -233,7 +233,7 @@ public class Log4jSystemReportDialog extends SystemReportDialog {
         Log4jLogEntryModel log4jLogEntryModel;
         log4jLogEntryModel = (Log4jLogEntryModel) logTableModel.getLogEntryModel();
 
-        Map<String, List<LogEntryKey>> errorLogEntryIndexMap = log4jLogEntryModel.getErrorLogEntryIndexMap();
+        Map<String, List<LogEntryKey>> errorLogEntryIndexMap = log4jLogEntryModel.getExceptionClassLogEntryIndexMap();
 
         Map<LogEntryKey, LogEntry> logEntryMap = log4jLogEntryModel.getLogEntryMap();
 
@@ -312,7 +312,7 @@ public class Log4jSystemReportDialog extends SystemReportDialog {
 
         JPanel errorJListJPanel = getErrorJListJPanel();
 
-        JPanel exceptionJTreeJPanel = getExceptionJTreeJPanel();
+        JPanel exceptionJTreeJPanel = getExceptionClassTreePanel();
 
         JSplitPane errorJSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, errorJListJPanel, exceptionJTreeJPanel);
 
@@ -364,34 +364,34 @@ public class Log4jSystemReportDialog extends SystemReportDialog {
         return errorJTreeHeaderJPanel;
     }
 
-    private JPanel getExceptionJTreeJPanel() {
+    private JPanel getExceptionClassTreePanel() {
 
-        JPanel exceptionJTreeJPanel = new JPanel();
+        JPanel exceptionClassTreePanel = new JPanel();
 
-        LayoutManager layout = new BoxLayout(exceptionJTreeJPanel, BoxLayout.PAGE_AXIS);
+        LayoutManager layout = new BoxLayout(exceptionClassTreePanel, BoxLayout.PAGE_AXIS);
 
-        exceptionJTreeJPanel.setLayout(layout);
+        exceptionClassTreePanel.setLayout(layout);
 
-        JPanel exceptionJTreeHeaderJPanel = getExceptionJTreeHeaderJPanel();
+        JPanel exceptionClassHeaderPanel = getExceptionClassHeaderPanel();
 
-        JTree exceptionJTree = getExceptionJTree();
-        JScrollPane exceptionJTreeJScrollPane = new JScrollPane(exceptionJTree);
+        JTree exceptionClassTree = getExceptionClassTree();
+        JScrollPane exceptionJTreeJScrollPane = new JScrollPane(exceptionClassTree);
 
-        exceptionJTreeJPanel.add(exceptionJTreeHeaderJPanel);
-        exceptionJTreeJPanel.add(exceptionJTreeJScrollPane);
+        exceptionClassTreePanel.add(exceptionClassHeaderPanel);
+        exceptionClassTreePanel.add(exceptionJTreeJScrollPane);
 
-        return exceptionJTreeJPanel;
+        return exceptionClassTreePanel;
     }
 
-    private JPanel getExceptionJTreeHeaderJPanel() {
+    private JPanel getExceptionClassHeaderPanel() {
 
-        JPanel exceptionJTreeHeaderJPanel = new JPanel();
+        JPanel exceptionClassHeaderPanel = new JPanel();
 
-        LayoutManager layout = new BoxLayout(exceptionJTreeHeaderJPanel, BoxLayout.LINE_AXIS);
+        LayoutManager layout = new BoxLayout(exceptionClassHeaderPanel, BoxLayout.LINE_AXIS);
 
-        exceptionJTreeHeaderJPanel.setLayout(layout);
+        exceptionClassHeaderPanel.setLayout(layout);
 
-        String labelText = "Error List - Grouped by Exception";
+        String labelText = "Grouped by Exception Class";
         JLabel threadDumpAtTraceJLabel = LogViewerUtil.getHeaderLabel(labelText, 200);
 
         JButton expandAllExceptionJButton = getExpandAllExceptionJButton();
@@ -399,19 +399,19 @@ public class Log4jSystemReportDialog extends SystemReportDialog {
         Dimension edge = new Dimension(10, 35);
         Dimension spacer = new Dimension(1, 35);
 
-        exceptionJTreeHeaderJPanel.add(Box.createRigidArea(edge));
-        exceptionJTreeHeaderJPanel.add(Box.createHorizontalGlue());
-        exceptionJTreeHeaderJPanel.add(threadDumpAtTraceJLabel);
-        exceptionJTreeHeaderJPanel.add(Box.createHorizontalGlue());
-        exceptionJTreeHeaderJPanel.add(Box.createRigidArea(spacer));
-        exceptionJTreeHeaderJPanel.add(Box.createHorizontalGlue());
-        exceptionJTreeHeaderJPanel.add(expandAllExceptionJButton);
-        exceptionJTreeHeaderJPanel.add(Box.createHorizontalGlue());
-        exceptionJTreeHeaderJPanel.add(Box.createRigidArea(edge));
+        exceptionClassHeaderPanel.add(Box.createRigidArea(edge));
+        exceptionClassHeaderPanel.add(Box.createHorizontalGlue());
+        exceptionClassHeaderPanel.add(threadDumpAtTraceJLabel);
+        exceptionClassHeaderPanel.add(Box.createHorizontalGlue());
+        exceptionClassHeaderPanel.add(Box.createRigidArea(spacer));
+        exceptionClassHeaderPanel.add(Box.createHorizontalGlue());
+        exceptionClassHeaderPanel.add(expandAllExceptionJButton);
+        exceptionClassHeaderPanel.add(Box.createHorizontalGlue());
+        exceptionClassHeaderPanel.add(Box.createRigidArea(edge));
 
-        exceptionJTreeHeaderJPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        exceptionClassHeaderPanel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
 
-        return exceptionJTreeHeaderJPanel;
+        return exceptionClassHeaderPanel;
     }
 
     protected JList<ExceptionLeafNode> getErrorJList() {
@@ -523,17 +523,17 @@ public class Log4jSystemReportDialog extends SystemReportDialog {
         return errorJList;
     }
 
-    protected JTree getExceptionJTree() {
+    protected JTree getExceptionClassTree() {
 
-        if (exceptionJTree == null) {
+        if (exceptionClassTree == null) {
 
             LogTableModel logTableModel = getLogTableModel();
 
             LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-            exceptionJTree = new JTree(exceptionDefaultTreeModel);
-            exceptionJTree.setRootVisible(false);
-            exceptionJTree.setShowsRootHandles(true);
+            exceptionClassTree = new JTree(exceptionDefaultTreeModel);
+            exceptionClassTree.setRootVisible(false);
+            exceptionClassTree.setShowsRootHandles(true);
 
             DefaultTreeCellRenderer dtcr = new DefaultTreeCellRenderer() {
 
@@ -574,14 +574,14 @@ public class Log4jSystemReportDialog extends SystemReportDialog {
             dtcr.setClosedIcon(null);
             dtcr.setLeafIcon(null);
 
-            exceptionJTree.setCellRenderer(dtcr);
+            exceptionClassTree.setCellRenderer(dtcr);
 
             TreeSelectionListener tsl = new TreeSelectionListener() {
 
                 @Override
                 public void valueChanged(TreeSelectionEvent treeSelectionEvent) {
 
-                    JTree exceptionJTree = getExceptionJTree();
+                    JTree exceptionJTree = getExceptionClassTree();
 
                     DefaultMutableTreeNode node = (DefaultMutableTreeNode) exceptionJTree
                             .getLastSelectedPathComponent();
@@ -605,19 +605,19 @@ public class Log4jSystemReportDialog extends SystemReportDialog {
                 }
             };
 
-            exceptionJTree.addTreeSelectionListener(tsl);
+            exceptionClassTree.addTreeSelectionListener(tsl);
 
-            TreeSelectionModel tsm = exceptionJTree.getSelectionModel();
+            TreeSelectionModel tsm = exceptionClassTree.getSelectionModel();
 
             tsm.setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
 
-            exceptionJTree.setRowHeight(20);
-            exceptionJTree.addMouseListener(new MouseAdapter() {
+            exceptionClassTree.setRowHeight(20);
+            exceptionClassTree.addMouseListener(new MouseAdapter() {
 
                 @Override
                 public void mouseClicked(MouseEvent mouseEvent) {
 
-                    JTree exceptionJTree = getExceptionJTree();
+                    JTree exceptionJTree = getExceptionClassTree();
 
                     int selRow = exceptionJTree.getRowForLocation(mouseEvent.getX(), mouseEvent.getY());
                     TreePath selPath = exceptionJTree.getPathForLocation(mouseEvent.getX(), mouseEvent.getY());
@@ -651,7 +651,7 @@ public class Log4jSystemReportDialog extends SystemReportDialog {
 
         }
 
-        return exceptionJTree;
+        return exceptionClassTree;
     }
 
     protected void errorJListScrollToIndex(LogEntryKey logEntryKey) {
@@ -683,7 +683,7 @@ public class Log4jSystemReportDialog extends SystemReportDialog {
 
                     if (EXPAND_ALL_ACTION.equals(actionEvent.getActionCommand())) {
 
-                        JTree exceptionJTree = getExceptionJTree();
+                        JTree exceptionJTree = getExceptionClassTree();
                         LogViewerUtil.expandAll(exceptionJTree, true);
 
                         expandAllExceptionJButton.setText(COLLAPSE_ALL_ACTION);
@@ -691,7 +691,7 @@ public class Log4jSystemReportDialog extends SystemReportDialog {
 
                     } else {
 
-                        JTree exceptionJTree = getExceptionJTree();
+                        JTree exceptionJTree = getExceptionClassTree();
                         LogViewerUtil.expandAll(exceptionJTree, false);
 
                         expandAllExceptionJButton.setText(EXPAND_ALL_ACTION);
