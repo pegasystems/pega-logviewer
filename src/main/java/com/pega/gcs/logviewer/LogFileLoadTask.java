@@ -39,7 +39,6 @@ import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.GeneralUtilities;
 import com.pega.gcs.fringecommon.utilities.KnuthMorrisPrattAlgorithm;
 import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
-import com.pega.gcs.logviewer.logfile.AbstractLogPattern.LogType;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
 import com.pega.gcs.logviewer.parser.LogParser;
@@ -92,24 +91,28 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
         this.errorCount = 0;
 
         this.tailLogFile = logViewerSetting.isTailLogFile();
-        this.logParser = getLogParserFromRecentFile();
 
-        // in case of alert file, there is no log pattern and we need to parse
-        // the file anyways to get the column list
-        if (logParser != null) {
+        // not reusing saved pattern because of re-parsing needed for CloudK V2 type logs
+        // this.logParser = getLogParserFromRecentFile();
+        //
+        // // in case of alert file, there is no log pattern and we need to parse
+        // // the file anyways to get the column list
+        // if (logParser != null) {
+        //
+        // AbstractLogPattern abstractLogPattern = logParser.getLogPattern();
+        //
+        // if ((abstractLogPattern != null) && (!abstractLogPattern.getLogType().equals(LogType.PEGA_ALERT))) {
+        //
+        // LOG.info("Using Log Pattern: " + abstractLogPattern);
+        //
+        // updateLogTableModel(logParser);
+        //
+        // } else {
+        // logParser = null;
+        // }
+        // }
 
-            AbstractLogPattern abstractLogPattern = logParser.getLogPattern();
-
-            if ((abstractLogPattern != null) && (!abstractLogPattern.getLogType().equals(LogType.PEGA_ALERT))) {
-
-                LOG.info("Using Log Pattern: " + abstractLogPattern);
-
-                updateLogTableModel(logParser);
-
-            } else {
-                logParser = null;
-            }
-        }
+        logParser = null;
     }
 
     public long getTotalLineCount() {
@@ -535,24 +538,24 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
         }
     }
 
-    private LogParser getLogParserFromRecentFile() {
-
-        LogParser logParser = null;
-
-        AbstractLogPattern abstractLogPattern = logTableModel.getLogPattern();
-
-        if (abstractLogPattern != null) {
-            // get values from saved pref data
-            Charset charset = logTableModel.getCharset();
-            Locale locale = logTableModel.getLocale();
-            TimeZone displayTimezone = logTableModel.getLogTimeZone();
-
-            logParser = LogParser.getLogParserFromPattern(abstractLogPattern, charset, locale, displayTimezone);
-        }
-
-        return logParser;
-
-    }
+    // private LogParser getLogParserFromRecentFile() {
+    //
+    // LogParser logParser = null;
+    //
+    // AbstractLogPattern abstractLogPattern = logTableModel.getLogPattern();
+    //
+    // if (abstractLogPattern != null) {
+    // // get values from saved pref data
+    // Charset charset = logTableModel.getCharset();
+    // Locale locale = logTableModel.getLocale();
+    // TimeZone displayTimezone = logTableModel.getLogTimeZone();
+    //
+    // logParser = LogParser.getLogParserFromPattern(abstractLogPattern, charset, locale, displayTimezone);
+    // }
+    //
+    // return logParser;
+    //
+    // }
 
     private LogParser getLogParser(String fileName, List<String> readLineList, Charset charset, Locale locale,
             TimeZone displayTimezone) {

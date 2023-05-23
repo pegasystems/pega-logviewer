@@ -158,16 +158,52 @@ public class Log4jPatternParser extends LogParser {
 
         hzMemberspattern = Pattern.compile("Members \\[(.+?)\\] \\{");
 
-        setLogEntryColumnList(new ArrayList<>());
-
-        generateRegExp();
+        List<LogEntryColumn> logEntryColumnList = getLogEntryColumnsFromLog4jPattern();
 
         log4jLogEntryModel = new Log4jLogEntryModel(getDateFormat(), displayTimezone);
 
-        List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
-
         log4jLogEntryModel.updateLogEntryColumnList(logEntryColumnList);
 
+    }
+
+    protected int getLevelIndex() {
+
+        if (levelIndex == -1) {
+            LogEntryModel logEntryModel = getLogEntryModel();
+            levelIndex = logEntryModel.getLogEntryColumnIndex(LogEntryColumn.LEVEL);
+        }
+
+        return levelIndex;
+    }
+
+    protected int getTimestampIndex() {
+
+        if (timestampIndex == -1) {
+            LogEntryModel logEntryModel = getLogEntryModel();
+            timestampIndex = logEntryModel.getLogEntryColumnIndex(LogEntryColumn.TIMESTAMP);
+        }
+
+        return timestampIndex;
+    }
+
+    private int getLoggerIndex() {
+
+        if (loggerIndex == -1) {
+            LogEntryModel logEntryModel = getLogEntryModel();
+            loggerIndex = logEntryModel.getLogEntryColumnIndex(LogEntryColumn.LOGGER);
+        }
+
+        return loggerIndex;
+    }
+
+    protected int getMessageIndex() {
+
+        if (messageIndex == -1) {
+            LogEntryModel logEntryModel = getLogEntryModel();
+            messageIndex = logEntryModel.getLogEntryColumnIndex(LogEntryColumn.MESSAGE);
+        }
+
+        return messageIndex;
     }
 
     @Override
@@ -175,12 +211,9 @@ public class Log4jPatternParser extends LogParser {
         return "Log4jPatternParser [regExp=" + regExp + ", log4jPattern=" + getLogPattern() + "]";
     }
 
-    protected void addColumn(LogEntryColumn logEntryColumn) {
-        List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
-        logEntryColumnList.add(logEntryColumn);
-    }
+    private List<LogEntryColumn> getLogEntryColumnsFromLog4jPattern() {
 
-    private void generateRegExp() {
+        ArrayList<LogEntryColumn> logEntryColumnList = new ArrayList<>();
 
         lineCount = 0;
         regExp = "";
@@ -191,13 +224,13 @@ public class Log4jPatternParser extends LogParser {
 
         String pattern = OptionConverter.convertSpecialChars(logPatternStr);
 
-        LOG.info("generateRegExp - logPatternStr: " + logPatternStr);
+        LOG.info("getLogEntryColumnsFromLog4jPattern - logPatternStr: " + logPatternStr);
 
         PatternParser patternParser = LogPatternFactory.getInstance().getPatternParser();
 
         List<PatternFormatter> patternFormatterList = patternParser.parse(pattern);
 
-        addColumn(LogEntryColumn.LINE);
+        logEntryColumnList.add(LogEntryColumn.LINE);
 
         for (PatternFormatter patternFormatter : patternFormatterList) {
 
@@ -230,7 +263,7 @@ public class Log4jPatternParser extends LogParser {
                 format = DEFAULT_GROUP;
 
                 regExp = regExp + format;
-                addColumn(LogEntryColumn.CLASS);
+                logEntryColumnList.add(LogEntryColumn.CLASS);
 
                 break;
 
@@ -244,10 +277,7 @@ public class Log4jPatternParser extends LogParser {
                 format = "(" + format + ")";
 
                 regExp = regExp + format;
-                addColumn(LogEntryColumn.TIMESTAMP);
-
-                // column list has additional LINE, column
-                timestampIndex = getLogEntryColumnList().size() - 2;
+                logEntryColumnList.add(LogEntryColumn.TIMESTAMP);
 
                 break;
 
@@ -257,7 +287,7 @@ public class Log4jPatternParser extends LogParser {
                 format = DEFAULT_GROUP;
 
                 regExp = regExp + format;
-                addColumn(LogEntryColumn.FILE);
+                logEntryColumnList.add(LogEntryColumn.FILE);
 
                 break;
 
@@ -267,7 +297,7 @@ public class Log4jPatternParser extends LogParser {
                 format = DEFAULT_GROUP;
 
                 regExp = regExp + format;
-                addColumn(LogEntryColumn.LOCATIONINFO);
+                logEntryColumnList.add(LogEntryColumn.LOCATIONINFO);
 
                 break;
 
@@ -292,10 +322,7 @@ public class Log4jPatternParser extends LogParser {
                 }
 
                 regExp = regExp + format;
-                addColumn(LogEntryColumn.LEVEL);
-
-                // column list has additional LINE column
-                levelIndex = getLogEntryColumnList().size() - 2;
+                logEntryColumnList.add(LogEntryColumn.LEVEL);
 
                 break;
 
@@ -305,7 +332,7 @@ public class Log4jPatternParser extends LogParser {
                 format = DEFAULT_GROUP;
 
                 regExp = regExp + format;
-                addColumn(LogEntryColumn.LINE);
+                logEntryColumnList.add(LogEntryColumn.LINE);
 
                 break;
 
@@ -337,10 +364,7 @@ public class Log4jPatternParser extends LogParser {
                 format = NOSPACE_GROUP;
 
                 regExp = regExp + format;
-                addColumn(LogEntryColumn.LOGGER);
-
-                // column list has additional LINE, column
-                loggerIndex = getLogEntryColumnList().size() - 2;
+                logEntryColumnList.add(LogEntryColumn.LOGGER);
 
                 break;
 
@@ -353,7 +377,7 @@ public class Log4jPatternParser extends LogParser {
 
                 LogEntryColumn mapLogEntryColumn = LogEntryColumn.getTableColumnById(mapPropertyName.toUpperCase());
 
-                addColumn(mapLogEntryColumn);
+                logEntryColumnList.add(mapLogEntryColumn);
 
                 break;
 
@@ -377,7 +401,7 @@ public class Log4jPatternParser extends LogParser {
 
                 LogEntryColumn mdcLogEntryColumn = LogEntryColumn.getTableColumnById(mdcPropertyName.toUpperCase());
 
-                addColumn(mdcLogEntryColumn);
+                logEntryColumnList.add(mdcLogEntryColumn);
 
                 break;
 
@@ -387,10 +411,7 @@ public class Log4jPatternParser extends LogParser {
                 format = GREEDY_GROUP;
 
                 regExp = regExp + format;
-                addColumn(LogEntryColumn.MESSAGE);
-
-                // column list has additional LINE, column
-                messageIndex = getLogEntryColumnList().size() - 2;
+                logEntryColumnList.add(LogEntryColumn.MESSAGE);
 
                 break;
 
@@ -400,7 +421,7 @@ public class Log4jPatternParser extends LogParser {
                 format = DEFAULT_GROUP;
 
                 regExp = regExp + format;
-                addColumn(LogEntryColumn.METHOD);
+                logEntryColumnList.add(LogEntryColumn.METHOD);
 
                 break;
 
@@ -410,7 +431,7 @@ public class Log4jPatternParser extends LogParser {
                 format = DEFAULT_GROUP;
 
                 regExp = regExp + format;
-                addColumn(LogEntryColumn.NDC);
+                logEntryColumnList.add(LogEntryColumn.NDC);
 
                 break;
 
@@ -420,7 +441,7 @@ public class Log4jPatternParser extends LogParser {
                 format = DEFAULT_GROUP;
 
                 regExp = regExp + format;
-                addColumn(LogEntryColumn.RELATIVETIME);
+                logEntryColumnList.add(LogEntryColumn.RELATIVETIME);
 
                 break;
 
@@ -430,7 +451,7 @@ public class Log4jPatternParser extends LogParser {
                 format = DEFAULT_GROUP;
 
                 regExp = regExp + format;
-                addColumn(LogEntryColumn.LOG4JID);
+                logEntryColumnList.add(LogEntryColumn.LOG4JID);
 
                 break;
 
@@ -455,7 +476,7 @@ public class Log4jPatternParser extends LogParser {
                 format = DEFAULT_GROUP;
 
                 regExp = regExp + format;
-                addColumn(LogEntryColumn.THREAD);
+                logEntryColumnList.add(LogEntryColumn.THREAD);
 
                 break;
 
@@ -470,9 +491,11 @@ public class Log4jPatternParser extends LogParser {
         // LOG.info("loggerIndex: " + levelIndex);
         LOG.info("generateRegExp - lineCount: " + lineCount);
         LOG.info("generateRegExp - regExp: " + regExp);
-        LOG.info("generateRegExp - logEntryColumnList: " + getLogEntryColumnList());
+        LOG.info("generateRegExp - logEntryColumnList: " + logEntryColumnList);
 
         linePattern = Pattern.compile(regExp);
+
+        return logEntryColumnList;
     }
 
     private String getMDCName(String patternConverterName) {
@@ -505,6 +528,18 @@ public class Log4jPatternParser extends LogParser {
         return propertyName;
     }
 
+    protected void addLogEntryColumnValue(String value) {
+        logEntryColumnValueList.add(value);
+    }
+
+    protected void addLogEntryColumnValue(int index, String value) {
+        logEntryColumnValueList.add(index, value);
+    }
+
+    protected void addAdditionalLine(String line) {
+        additionalLines.add(line);
+    }
+
     @Override
     protected void parseV2(String line) {
 
@@ -514,34 +549,10 @@ public class Log4jPatternParser extends LogParser {
 
         if (fieldMap != null) {
 
-            String time = (String) fieldMap.get("@timestamp");
-            String thread = (String) fieldMap.get("thread_name");
-            String pegaThread = (String) fieldMap.get("pegathread");
-            String tenantid = "";
-            String app = (String) fieldMap.get("app");
-            String logger = (String) fieldMap.get("logger_name");
-            String logLevel = (String) fieldMap.get("level");
-            String stack = (String) fieldMap.get("stack");
-            String requestorId = (String) fieldMap.get("RequestorId");
-            String userid = (String) fieldMap.get("userid");
-            String message = (String) fieldMap.get("message");
+            processCloudKFieldMap(logEntryTextSB, fieldMap);
+
             @SuppressWarnings("unchecked")
             Map<String, String> exception = (Map<String, String>) fieldMap.get("exception");
-
-            logEntryColumnValueList.add(time);
-            logEntryColumnValueList.add(thread);
-            logEntryColumnValueList.add(pegaThread);
-            logEntryColumnValueList.add(tenantid);
-            logEntryColumnValueList.add(app);
-            logEntryColumnValueList.add(logger);
-            logEntryColumnValueList.add(logLevel);
-            logEntryColumnValueList.add(stack);
-            logEntryColumnValueList.add(requestorId);
-            logEntryColumnValueList.add(userid);
-            logEntryColumnValueList.add(message);
-
-            logEntryTextSB.append(String.format(V2_STR_FORMAT, time, thread, pegaThread, tenantid, app, logger,
-                    logLevel, stack, requestorId, userid, message));
 
             if (exception != null) {
 
@@ -555,7 +566,7 @@ public class Log4jPatternParser extends LogParser {
 
                         logEntryTextSB.append(System.lineSeparator());
                         logEntryTextSB.append(stacktraceLine);
-                        additionalLines.add(stacktraceLine);
+                        addAdditionalLine(stacktraceLine);
                     }
                 }
             }
@@ -564,6 +575,48 @@ public class Log4jPatternParser extends LogParser {
 
             buildLogEntry();
         }
+    }
+
+    protected void processCloudKFieldMap(StringBuilder logEntryTextSB, Map<String, Object> fieldMap) {
+
+        String time = (String) fieldMap.get("@timestamp");
+        String thread = (String) fieldMap.get("thread_name");
+        String pegaThread = (String) fieldMap.get("pegathread");
+        String tenantid = "";
+        String app = (String) fieldMap.get("app");
+        String logger = (String) fieldMap.get("logger_name");
+        String logLevel = (String) fieldMap.get("level");
+        String stack = (String) fieldMap.get("stack");
+        String requestorId = (String) fieldMap.get("RequestorId");
+        String userid = (String) fieldMap.get("userid");
+        String message = (String) fieldMap.get("message");
+
+        // (TIMESTAMP);
+        // (THREAD);
+        // (PEGATHREAD);
+        // (TENANTID);
+        // (APP);
+        // (LOGGER);
+        // (LEVEL);
+        // (STACK);
+        // (REQUESTORID);
+        // (USERID);
+        // (MESSAGE);
+
+        addLogEntryColumnValue(time);
+        addLogEntryColumnValue(thread);
+        addLogEntryColumnValue(pegaThread);
+        addLogEntryColumnValue(tenantid);
+        addLogEntryColumnValue(app);
+        addLogEntryColumnValue(logger);
+        addLogEntryColumnValue(logLevel);
+        addLogEntryColumnValue(stack);
+        addLogEntryColumnValue(requestorId);
+        addLogEntryColumnValue(userid);
+        addLogEntryColumnValue(message);
+
+        logEntryTextSB.append(String.format(V2_STR_FORMAT, time, thread, pegaThread, tenantid, app, logger, logLevel,
+                stack, requestorId, userid, message));
     }
 
     @Override
@@ -631,11 +684,11 @@ public class Log4jPatternParser extends LogParser {
                     valueSB.append(balanceStr);
                 }
 
-                logEntryColumnValueList.add(valueSB.toString());
+                addLogEntryColumnValue(valueSB.toString());
             }
 
         } else {
-            additionalLines.add(parseLine.toString());
+            addAdditionalLine(parseLine.toString());
         }
 
         parseLine = null;
@@ -661,27 +714,33 @@ public class Log4jPatternParser extends LogParser {
         return logEntryText;
     }
 
-    protected int getLevelIndex() {
-        return levelIndex;
-    }
-
-    protected int getTimestampIndex() {
-        return timestampIndex;
-    }
-
-    private int getLoggerIndex() {
-        return loggerIndex;
-    }
-
-    protected int getMessageIndex() {
-        return messageIndex;
-    }
-
     protected void clearBuildLogEntryData() {
         logEntryText = null;
         logEntryColumnValueList.clear();
         additionalLines.clear();
     }
+
+    // protected String getMessageStr() {
+    //
+    // String message = null;
+    //
+    // ArrayList<String> logEntryColumnValueList = getLogEntryColumnValueList();
+    //
+    // CloudKVersion cloudKVersion = getCloudKVersion();
+    //
+    // if (CloudKVersion.V2.equals(cloudKVersion)) {
+    // message = logEntryColumnValueList.get(10);
+    // } else {
+    //
+    // int messageIndex = getMessageIndex();
+    //
+    // message = logEntryColumnValueList.get(messageIndex);
+    // }
+    //
+    // message = message.trim();
+    //
+    // return message;
+    // }
 
     protected void buildLogEntry() {
 
@@ -702,6 +761,8 @@ public class Log4jPatternParser extends LogParser {
 
             logEntryIndex.incrementAndGet();
 
+            addLogEntryColumnValue(0, String.valueOf(logEntryIndex));
+
             boolean sysdateEntry = false;
             boolean systemStartEntry = false;
             boolean threadDumpEntry = false;
@@ -713,23 +774,11 @@ public class Log4jPatternParser extends LogParser {
             int levelIndex = getLevelIndex();
             int timestampIndex = getTimestampIndex();
             int loggerIndex = getLoggerIndex();
+            int messageIndex = getMessageIndex();
 
-            String message = null;
-
-            CloudKVersion cloudKVersion = getCloudKVersion();
-
-            if (CloudKVersion.V2.equals(cloudKVersion)) {
-                message = logEntryColumnValueList.get(10);
-            } else {
-
-                int messageIndex = getMessageIndex();
-
-                message = logEntryColumnValueList.get(messageIndex);
-            }
+            String message = logEntryColumnValueList.get(messageIndex);
 
             String logger = logEntryColumnValueList.get(loggerIndex).toUpperCase();
-
-            message = message.trim();
 
             if ((logger.endsWith("INTERNAL.ASYNC.AGENT")) || (logger.endsWith("ENGINE.CONTEXT.AGENT"))
                     || (logger.endsWith("AGENTCONFIGURATION"))) {
@@ -1004,9 +1053,6 @@ public class Log4jPatternParser extends LogParser {
                     log4jLogThreadDumpEntry = null;
                 }
             }
-
-            // add all last otherwise messes up the indexes
-            logEntryColumnValueList.add(0, String.valueOf(logEntryIndex));
 
             if (threadDumpEntry) {
 

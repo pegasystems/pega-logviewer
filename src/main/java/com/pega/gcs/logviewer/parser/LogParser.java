@@ -10,6 +10,7 @@ package com.pega.gcs.logviewer.parser;
 import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -48,7 +49,7 @@ public abstract class LogParser {
 
     private DateFormat dateFormat;
 
-    private List<LogEntryColumn> logEntryColumnList;
+    // private List<LogEntryColumn> logEntryColumnList;
 
     private AtomicInteger logEntryIndex;
 
@@ -87,7 +88,7 @@ public abstract class LogParser {
         this.charset = charset;
         this.locale = locale;
 
-        this.logEntryColumnList = null;
+        // this.logEntryColumnList = null;
 
         this.logEntryIndex = new AtomicInteger(0);
 
@@ -126,13 +127,13 @@ public abstract class LogParser {
         this.dateFormat = dateFormat;
     }
 
-    protected List<LogEntryColumn> getLogEntryColumnList() {
-        return logEntryColumnList;
-    }
-
-    protected void setLogEntryColumnList(List<LogEntryColumn> logEntryColumnList) {
-        this.logEntryColumnList = logEntryColumnList;
-    }
+    // protected List<LogEntryColumn> getLogEntryColumnList() {
+    // return logEntryColumnList;
+    // }
+    //
+    // protected void setLogEntryColumnList(List<LogEntryColumn> logEntryColumnList) {
+    // this.logEntryColumnList = logEntryColumnList;
+    // }
 
     protected AtomicInteger getLogEntryIndex() {
         return logEntryIndex;
@@ -366,8 +367,11 @@ public abstract class LogParser {
             logParser = new AlertLogParser((AlertLogPattern) abstractLogPattern, charset, locale);
             break;
         case PEGA_RULES:
-        case PEGA_CLUSTER:
             logParser = new Log4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale, displayTimezone);
+            break;
+        case PEGA_CLUSTER:
+            logParser = new ClusterLog4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale,
+                    displayTimezone);
             break;
         case PEGA_DATAFLOW:
             logParser = new DataflowLog4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale,
@@ -503,21 +507,49 @@ public abstract class LogParser {
 
                         cloudKVersion = CloudKVersion.V2;
 
+                        LogEntryModel logEntryModel = getLogEntryModel();
+
+                        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+                        logEntryModel.setModelDateFormat(dateFormat);
+
                         AbstractLogPattern abstractLogPattern = getLogPattern();
 
-                        if ((abstractLogPattern != null)
-                                && (!abstractLogPattern.getLogType().equals(LogType.PEGA_ALERT))) {
+                        if (abstractLogPattern != null) {
 
-                            // override data generated from pattern
-                            LogEntryModel logEntryModel = getLogEntryModel();
+                            List<LogEntryColumn> cloudKLogEventColumnList = null;
 
-                            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-                            logEntryModel.setModelDateFormat(dateFormat);
+                            LogType logType = abstractLogPattern.getLogType();
 
-                            List<LogEntryColumn> cloudKLogEventColumnList = LogEntryColumn
-                                    .getCloudKLogEventColumnList();
+                            switch (logType) {
 
-                            logEntryModel.updateLogEntryColumnList(cloudKLogEventColumnList);
+                            case PEGA_ALERT:
+                                cloudKLogEventColumnList = null;
+                                break;
+                            case PEGA_CLUSTER:
+                                cloudKLogEventColumnList = LogEntryColumn.getCloudKPegaClusterColumnList();
+                                break;
+                            case PEGA_DATAFLOW:
+
+                                cloudKLogEventColumnList = new ArrayList<>();
+                                cloudKLogEventColumnList.addAll(LogEntryColumn.getCloudKPegaDataflowColumnList());
+                                cloudKLogEventColumnList.addAll(LogEntryColumn.getDataflowLogEventColumnList());
+
+                                break;
+                            case PEGA_DDSMETRIC:
+                                cloudKLogEventColumnList = null;
+                                break;
+                            case PEGA_RULES:
+                                cloudKLogEventColumnList = LogEntryColumn.getCloudKPegaRulesColumnList();
+                                break;
+                            default:
+                                cloudKLogEventColumnList = null;
+                                break;
+
+                            }
+
+                            if (cloudKLogEventColumnList != null) {
+                                logEntryModel.updateLogEntryColumnList(cloudKLogEventColumnList);
+                            }
                         }
                     }
                 } catch (JacksonException e) {

@@ -187,7 +187,7 @@ public class LogEntryColumn extends DefaultTableColumn {
         return tableColumn;
     }
 
-    public static List<LogEntryColumn> getCloudKLogEventColumnList() {
+    public static List<LogEntryColumn> getCloudKPegaRulesColumnList() {
 
         List<LogEntryColumn> cloudKLogEventColumnList = new ArrayList<>();
 
@@ -202,6 +202,36 @@ public class LogEntryColumn extends DefaultTableColumn {
         cloudKLogEventColumnList.add(STACK);
         cloudKLogEventColumnList.add(REQUESTORID);
         cloudKLogEventColumnList.add(USERID);
+        cloudKLogEventColumnList.add(MESSAGE);
+
+        return cloudKLogEventColumnList;
+    }
+
+    public static List<LogEntryColumn> getCloudKPegaClusterColumnList() {
+
+        List<LogEntryColumn> cloudKLogEventColumnList = new ArrayList<>();
+
+        cloudKLogEventColumnList.add(LINE);
+        cloudKLogEventColumnList.add(TIMESTAMP);
+        cloudKLogEventColumnList.add(THREAD);
+        cloudKLogEventColumnList.add(LOGGER);
+        cloudKLogEventColumnList.add(LEVEL);
+        cloudKLogEventColumnList.add(MESSAGE);
+
+        return cloudKLogEventColumnList;
+    }
+
+    public static List<LogEntryColumn> getCloudKPegaDataflowColumnList() {
+
+        List<LogEntryColumn> cloudKLogEventColumnList = new ArrayList<>();
+
+        cloudKLogEventColumnList.add(LINE);
+        cloudKLogEventColumnList.add(TIMESTAMP);
+        cloudKLogEventColumnList.add(THREAD);
+        cloudKLogEventColumnList.add(PEGATHREAD);
+        cloudKLogEventColumnList.add(LOGGER);
+        cloudKLogEventColumnList.add(LEVEL);
+        cloudKLogEventColumnList.add(CORRELATIONID);
         cloudKLogEventColumnList.add(MESSAGE);
 
         return cloudKLogEventColumnList;

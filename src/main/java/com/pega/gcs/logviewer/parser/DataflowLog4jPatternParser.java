@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -24,6 +25,10 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
 
     private static final Log4j2Helper LOG = new Log4j2Helper(DataflowLog4jPatternParser.class);
 
+    // 2023-05-11 06:29:30,274 (.DataFlowDiagnosticsFileLogger) INFO -
+    private static final String V2_STR_FORMAT = "%s [%s] [%s] (%s) %s %s - %s";
+
+    // additional DF specific columns
     private List<LogEntryColumn> dataflowLogEventColumnList;
 
     private LifeCycleEventMessageParser lifeCycleEventMessageParser;
@@ -33,18 +38,19 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
 
         super(log4jPattern, charset, locale, displayTimezone);
 
+        // log4j related columns
+        LogEntryModel logEntryModel = getLogEntryModel();
+        List<LogEntryColumn> logEntryColumnList = logEntryModel.getLogEntryColumnList();
+
         dataflowLogEventColumnList = LogEntryColumn.getDataflowLogEventColumnList();
 
-        // Add Dataflow LFE Columns
-        for (LogEntryColumn lfeCol : dataflowLogEventColumnList) {
-            addColumn(lfeCol);
-        }
+        List<LogEntryColumn> dfLogEntryColumnList = new ArrayList<>();
+
+        dfLogEntryColumnList.addAll(logEntryColumnList);
+        dfLogEntryColumnList.addAll(dataflowLogEventColumnList);
 
         // reset model columns with LFE columns
-        List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
-        LogEntryModel logEntryModel = getLogEntryModel();
-
-        logEntryModel.updateLogEntryColumnList(logEntryColumnList);
+        logEntryModel.updateLogEntryColumnList(dfLogEntryColumnList);
 
         lifeCycleEventMessageParser = new LifeCycleEventMessageParser();
 
@@ -58,17 +64,50 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
         return lifeCycleEventMessageParser;
     }
 
+    protected void processCloudKFieldMap(StringBuilder logEntryTextSB, Map<String, Object> fieldMap) {
+
+        String time = (String) fieldMap.get("@timestamp");
+        String thread = (String) fieldMap.get("thread_name");
+        String pegaThread = (String) fieldMap.get("pegathread");
+        String logger = (String) fieldMap.get("logger_name");
+        String logLevel = (String) fieldMap.get("level");
+        String correlationId = (String) fieldMap.get("CorrelationId");
+        String message = (String) fieldMap.get("message");
+
+        // (TIMESTAMP);
+        // (THREAD);
+        // (PEGATHREAD);
+        // (LOGGER);
+        // (LEVEL);
+        // (CORRELATIONID);
+        // (MESSAGE);
+
+        addLogEntryColumnValue(time);
+        addLogEntryColumnValue(thread);
+        addLogEntryColumnValue(pegaThread);
+        addLogEntryColumnValue(logger);
+        addLogEntryColumnValue(logLevel);
+        addLogEntryColumnValue(correlationId);
+        addLogEntryColumnValue(message);
+
+        logEntryTextSB.append(
+                String.format(V2_STR_FORMAT, time, thread, pegaThread, logger, logLevel, correlationId, message));
+    }
+
     @Override
     protected void buildLogEntry() {
 
         LogEntryModel logEntryModel = getLogEntryModel();
         AtomicInteger logEntryIndex = getLogEntryIndex();
+
         ArrayList<String> logEntryColumnValueList = getLogEntryColumnValueList();
         String logEntryText = getLogEntryText();
 
         if (logEntryColumnValueList.size() > 0) {
 
             logEntryIndex.incrementAndGet();
+
+            addLogEntryColumnValue(0, String.valueOf(logEntryIndex));
 
             int levelIndex = getLevelIndex();
             int timestampIndex = getTimestampIndex();
@@ -91,9 +130,9 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
             LogEntryKey logEntryKey = new LogEntryKey(logEntryIndex.intValue(), logEntryTime);
 
             String level = logEntryColumnValueList.get(levelIndex);
-            byte logLevelId = getLogLevelId(level.trim());
-
             String message = logEntryColumnValueList.get(messageIndex);
+
+            byte logLevelId = getLogLevelId(level.trim());
 
             LifeCycleEventMessageParser lifeCycleEventMessageParser;
             lifeCycleEventMessageParser = getLifeCycleEventMessageParser();
@@ -117,9 +156,6 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
 
                 logEntryColumnValueList.add(columnValue);
             }
-
-            // add all last otherwise messes up the indexes
-            logEntryColumnValueList.add(0, String.valueOf(logEntryIndex));
 
             Log4jLogEntry log4jLogEntry = new Log4jLogEntry(logEntryKey, logEntryColumnValueList, logEntryText, false,
                     logLevelId);

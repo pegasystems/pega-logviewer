@@ -9,8 +9,10 @@ import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.LifeCycleEventMess
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.PartitionStatusTransitionMessage;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.ProcessedRunConfigUpdateMessage;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.ProcessingThreadLifecycleMessage;
+import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.ResetStatisticsMessage;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.RetryContextMessage;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.RunStatusTransitionMessage;
+import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.TaskAssignedMessage;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.TaskRetryMessage;
 
 public class LifeCycleEventMessageParser {
@@ -34,28 +36,41 @@ public class LifeCycleEventMessageParser {
 
             switch (messageType) {
 
+            case ".FinalizationStatusChangeMessage":
+                lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, RunStatusTransitionMessage.class);
+                break;
+            case ".InitializationStatusChangeMessage":
+                lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, RunStatusTransitionMessage.class);
+                break;
             case ".IntentChangedMessage":
                 lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, IntentChangedMessage.class);
                 break;
             case ".PartitionStatusTransitionMessage":
                 lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, PartitionStatusTransitionMessage.class);
                 break;
+            case ".ProcessedRunConfigUpdateMessage":
+                lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, ProcessedRunConfigUpdateMessage.class);
+                break;
             case ".ProcessingThreadLifecycleMessage":
                 lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, ProcessingThreadLifecycleMessage.class);
+                break;
+            case ".ResetStatisticsMessage":
+                lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, ResetStatisticsMessage.class);
                 break;
             case ".RunStatusTransitionMessage":
                 lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, RunStatusTransitionMessage.class);
                 break;
-            case ".ProcessedRunConfigUpdateMessage":
-                lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, ProcessedRunConfigUpdateMessage.class);
+            case ".TaskAssignedMessage":
+                lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, TaskAssignedMessage.class);
                 break;
+            case ".TaskRetryMessage":
+                lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, TaskRetryMessage.class);
+                break;
+
             case ".retry.MaximumRetriesReachedMessage":
             case ".retry.RetriesStoppedMessage":
             case ".retry.RetryOperationMessage":
                 lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, RetryContextMessage.class);
-                break;
-            case ".TaskRetryMessage":
-                lifeCycleEventMessage = objectMapper.treeToValue(jsonNode, TaskRetryMessage.class);
                 break;
             default:
                 LOG.error("Unknown message type: " + messageType);

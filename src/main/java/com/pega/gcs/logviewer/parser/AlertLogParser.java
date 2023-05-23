@@ -27,7 +27,6 @@ import com.pega.gcs.logviewer.model.AlertLogEntry;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.LogEntryKey;
-import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.PALStatisticName;
 import com.pega.gcs.logviewer.model.alert.AlertMessageListProvider;
 
@@ -87,9 +86,13 @@ public class AlertLogParser extends LogParser {
 
             setupLogEntryColumnList(message);
 
-            List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
+            AlertLogEntryModel alertLogEntryModel = getLogEntryModel();
+            List<LogEntryColumn> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
 
-            if (logEntryColumnList != null) {
+            // LEM column list is never null
+            int logEntryColumnListSize = logEntryColumnList.size();
+
+            if (logEntryColumnListSize > 0) {
 
                 fullLogEntryTextSB.append(message);
 
@@ -105,13 +108,15 @@ public class AlertLogParser extends LogParser {
 
         setupLogEntryColumnList(line);
 
-        List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
+        AlertLogEntryModel alertLogEntryModel = getLogEntryModel();
+        List<LogEntryColumn> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
 
-        if (logEntryColumnList != null) {
+        // LEM column list is never null
+        int logEntryColumnListSize = logEntryColumnList.size();
+
+        if (logEntryColumnListSize > 0) {
 
             String[] fields = null;
-
-            int logEntryColumnListSize = logEntryColumnList.size();
 
             // logEntryColumnListSize has additional Line column
             if ((fullLogEntryTextSB.length() > 0) && (capturedColumnCount < (logEntryColumnListSize - 1))) {
@@ -135,9 +140,10 @@ public class AlertLogParser extends LogParser {
 
     private void setupLogEntryColumnList(String line) {
 
-        List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
+        AlertLogEntryModel alertLogEntryModel = getLogEntryModel();
+        List<LogEntryColumn> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
 
-        if ((line != null) && (!line.isEmpty()) && (logEntryColumnList == null)) {
+        if ((line != null) && (!line.isEmpty()) && ((logEntryColumnList == null) || (logEntryColumnList.isEmpty()))) {
 
             int oldStyleIndex = 0;
 
@@ -209,7 +215,6 @@ public class AlertLogParser extends LogParser {
 
                 LOG.info("logEntryColumnList: " + logEntryColumnList);
 
-                setLogEntryColumnList(logEntryColumnList);
                 alertLogEntryModel.updateLogEntryColumnList(logEntryColumnList);
             } else {
                 LOG.info("discarding line: " + line);
@@ -227,7 +232,7 @@ public class AlertLogParser extends LogParser {
     }
 
     @Override
-    public LogEntryModel getLogEntryModel() {
+    public AlertLogEntryModel getLogEntryModel() {
         return alertLogEntryModel;
     }
 
@@ -237,9 +242,10 @@ public class AlertLogParser extends LogParser {
 
         if (fullLogEntryTextSB.length() > 0) {
 
-            LogEntryModel logEntryModel = getLogEntryModel();
+            AlertLogEntryModel alertLogEntryModel = getLogEntryModel();
             AtomicInteger logEntryIndex = getLogEntryIndex();
-            List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
+
+            List<LogEntryColumn> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
 
             try {
 
@@ -261,7 +267,7 @@ public class AlertLogParser extends LogParser {
                     fields = logEntryText.split("\\*");
                 }
 
-                DateFormat modelDateFormat = logEntryModel.getModelDateFormat();
+                DateFormat modelDateFormat = alertLogEntryModel.getModelDateFormat();
                 String timestampStr = fields[timestampIndex];
                 long logEntryTime = -1;
 
