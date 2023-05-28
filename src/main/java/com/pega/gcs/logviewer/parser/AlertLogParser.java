@@ -76,32 +76,6 @@ public class AlertLogParser extends LogParser {
     }
 
     @Override
-    protected void parseV2(String line) {
-
-        Map<String, Object> fieldMap = getCloudKFieldMap(line);
-
-        if (fieldMap != null) {
-
-            String message = (String) fieldMap.get("message");
-
-            setupLogEntryColumnList(message);
-
-            AlertLogEntryModel alertLogEntryModel = getLogEntryModel();
-            List<LogEntryColumn> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
-
-            // LEM column list is never null
-            int logEntryColumnListSize = logEntryColumnList.size();
-
-            if (logEntryColumnListSize > 0) {
-
-                fullLogEntryTextSB.append(message);
-
-                buildLogEntry();
-            }
-        }
-    }
-
-    @Override
     protected void parseV1(String line) {
 
         line = getLineFromCloudK(line);
@@ -135,6 +109,53 @@ public class AlertLogParser extends LogParser {
             }
         } else {
             LOG.info("discarding empty line in the begining");
+        }
+    }
+
+    @Override
+    protected void parseV2(String line) {
+
+        Map<String, Object> fieldMap = getCloudKFieldMap(line);
+
+        if (fieldMap != null) {
+
+            String message = (String) fieldMap.get("message");
+
+            processClouldKMessage(message);
+        }
+    }
+
+    @Override
+    protected void parseV3(String line) {
+
+        Map<String, Object> fieldMap = getCloudKFieldMap(line);
+
+        if (fieldMap != null) {
+
+            @SuppressWarnings("unchecked")
+            Map<String, String> logMap = (Map<String, String>) fieldMap.get("log");
+
+            String message = (String) logMap.get("message");
+
+            processClouldKMessage(message);
+        }
+    }
+
+    private void processClouldKMessage(String message) {
+
+        setupLogEntryColumnList(message);
+
+        AlertLogEntryModel alertLogEntryModel = getLogEntryModel();
+        List<LogEntryColumn> logEntryColumnList = alertLogEntryModel.getLogEntryColumnList();
+
+        // LEM column list is never null
+        int logEntryColumnListSize = logEntryColumnList.size();
+
+        if (logEntryColumnListSize > 0) {
+
+            fullLogEntryTextSB.append(message);
+
+            buildLogEntry();
         }
     }
 

@@ -68,7 +68,7 @@ public class Log4jPatternParser extends LogParser {
 
     private static final int MATCHER_STR_LEN = 500;
 
-    private static final String V2_STR_FORMAT = "%s [%s] [%s] [%s] [%s] (%s) %s %s %s %s - %s";
+    private static final String V2_STR_FORMAT = "%s [%s] [%s] [%s] (%s) %s %s %s %s - %s";
 
     private String regExp;
 
@@ -541,85 +541,6 @@ public class Log4jPatternParser extends LogParser {
     }
 
     @Override
-    protected void parseV2(String line) {
-
-        StringBuilder logEntryTextSB = new StringBuilder();
-
-        Map<String, Object> fieldMap = getCloudKFieldMap(line);
-
-        if (fieldMap != null) {
-
-            processCloudKFieldMap(logEntryTextSB, fieldMap);
-
-            @SuppressWarnings("unchecked")
-            Map<String, String> exception = (Map<String, String>) fieldMap.get("exception");
-
-            if (exception != null) {
-
-                String stacktrace = exception.get("stacktrace");
-
-                if (stacktrace != null) {
-
-                    String[] stacktraceLines = stacktrace.split("\\n");
-
-                    for (String stacktraceLine : stacktraceLines) {
-
-                        logEntryTextSB.append(System.lineSeparator());
-                        logEntryTextSB.append(stacktraceLine);
-                        addAdditionalLine(stacktraceLine);
-                    }
-                }
-            }
-
-            logEntryText = logEntryTextSB.toString();
-
-            buildLogEntry();
-        }
-    }
-
-    protected void processCloudKFieldMap(StringBuilder logEntryTextSB, Map<String, Object> fieldMap) {
-
-        String time = (String) fieldMap.get("@timestamp");
-        String thread = (String) fieldMap.get("thread_name");
-        String pegaThread = (String) fieldMap.get("pegathread");
-        String tenantid = "";
-        String app = (String) fieldMap.get("app");
-        String logger = (String) fieldMap.get("logger_name");
-        String logLevel = (String) fieldMap.get("level");
-        String stack = (String) fieldMap.get("stack");
-        String requestorId = (String) fieldMap.get("RequestorId");
-        String userid = (String) fieldMap.get("userid");
-        String message = (String) fieldMap.get("message");
-
-        // (TIMESTAMP);
-        // (THREAD);
-        // (PEGATHREAD);
-        // (TENANTID);
-        // (APP);
-        // (LOGGER);
-        // (LEVEL);
-        // (STACK);
-        // (REQUESTORID);
-        // (USERID);
-        // (MESSAGE);
-
-        addLogEntryColumnValue(time);
-        addLogEntryColumnValue(thread);
-        addLogEntryColumnValue(pegaThread);
-        addLogEntryColumnValue(tenantid);
-        addLogEntryColumnValue(app);
-        addLogEntryColumnValue(logger);
-        addLogEntryColumnValue(logLevel);
-        addLogEntryColumnValue(stack);
-        addLogEntryColumnValue(requestorId);
-        addLogEntryColumnValue(userid);
-        addLogEntryColumnValue(message);
-
-        logEntryTextSB.append(String.format(V2_STR_FORMAT, time, thread, pegaThread, tenantid, app, logger, logLevel,
-                stack, requestorId, userid, message));
-    }
-
-    @Override
     protected void parseV1(String line) {
 
         line = getLineFromCloudK(line);
@@ -694,6 +615,42 @@ public class Log4jPatternParser extends LogParser {
         parseLine = null;
     }
 
+    @Override
+    protected void parseV2(String line) {
+
+        StringBuilder logEntryTextSB = new StringBuilder();
+
+        Map<String, Object> fieldMap = getCloudKFieldMap(line);
+
+        if (fieldMap != null) {
+
+            processCloudKLogMap(logEntryTextSB, fieldMap);
+
+            logEntryText = logEntryTextSB.toString();
+
+            buildLogEntry();
+        }
+    }
+
+    @Override
+    protected void parseV3(String line) {
+
+        StringBuilder logEntryTextSB = new StringBuilder();
+
+        Map<String, Object> fieldMap = getCloudKFieldMap(line);
+
+        if (fieldMap != null) {
+
+            Map<String, Object> logMap = (Map<String, Object>) fieldMap.get("log");
+
+            processCloudKLogMap(logEntryTextSB, logMap);
+
+            logEntryText = logEntryTextSB.toString();
+
+            buildLogEntry();
+        }
+    }
+
     // construct the last event when the are no more log lines
     @Override
     public void parseFinalInternal() {
@@ -720,27 +677,80 @@ public class Log4jPatternParser extends LogParser {
         additionalLines.clear();
     }
 
-    // protected String getMessageStr() {
-    //
-    // String message = null;
-    //
-    // ArrayList<String> logEntryColumnValueList = getLogEntryColumnValueList();
-    //
-    // CloudKVersion cloudKVersion = getCloudKVersion();
-    //
-    // if (CloudKVersion.V2.equals(cloudKVersion)) {
-    // message = logEntryColumnValueList.get(10);
-    // } else {
-    //
-    // int messageIndex = getMessageIndex();
-    //
-    // message = logEntryColumnValueList.get(messageIndex);
-    // }
-    //
-    // message = message.trim();
-    //
-    // return message;
-    // }
+    protected void processException(StringBuilder logEntryTextSB, Map<String, String> exceptionMap) {
+
+        if (exceptionMap != null) {
+
+            String stacktrace = (String) exceptionMap.get("stacktrace");
+
+            if (stacktrace != null) {
+
+                String[] stacktraceLines = stacktrace.split("\\n");
+
+                for (String stacktraceLine : stacktraceLines) {
+
+                    logEntryTextSB.append(System.lineSeparator());
+                    logEntryTextSB.append(stacktraceLine);
+                    addAdditionalLine(stacktraceLine);
+                }
+            }
+        }
+
+    }
+
+    protected void processCloudKLogMap(StringBuilder logEntryTextSB, Map<String, Object> logMap) {
+
+        String time = (String) logMap.get("@timestamp");
+        String thread = (String) logMap.get("thread_name");
+        String pegaThread = (String) logMap.get("pegathread");
+        String app = (String) logMap.get("app");
+        String logger = (String) logMap.get("logger_name");
+        String logLevel = (String) logMap.get("level");
+        String stack = (String) logMap.get("stack");
+        String requestorId = (String) logMap.get("RequestorId");
+        String userid = (String) logMap.get("userid");
+        String message = (String) logMap.get("message");
+        @SuppressWarnings("unchecked")
+        Map<String, String> exceptionMap = (Map<String, String>) logMap.get("exception");
+
+        // sometimes not all fields are present
+        thread = thread != null ? thread : "";
+        pegaThread = pegaThread != null ? pegaThread : "";
+        app = app != null ? app : "";
+        logger = logger != null ? logger : "";
+        logLevel = logLevel != null ? logLevel : "";
+        stack = stack != null ? stack : "";
+        requestorId = requestorId != null ? requestorId : "";
+        userid = userid != null ? userid : "";
+        message = message != null ? message : "";
+
+        // (TIMESTAMP);
+        // (THREAD);
+        // (PEGATHREAD);
+        // (APP);
+        // (LOGGER);
+        // (LEVEL);
+        // (STACK);
+        // (REQUESTORID);
+        // (USERID);
+        // (MESSAGE);
+
+        addLogEntryColumnValue(time);
+        addLogEntryColumnValue(thread);
+        addLogEntryColumnValue(pegaThread);
+        addLogEntryColumnValue(app);
+        addLogEntryColumnValue(logger);
+        addLogEntryColumnValue(logLevel);
+        addLogEntryColumnValue(stack);
+        addLogEntryColumnValue(requestorId);
+        addLogEntryColumnValue(userid);
+        addLogEntryColumnValue(message);
+
+        logEntryTextSB.append(String.format(V2_STR_FORMAT, time, thread, pegaThread, app, logger, logLevel, stack,
+                requestorId, userid, message));
+
+        processException(logEntryTextSB, exceptionMap);
+    }
 
     protected void buildLogEntry() {
 

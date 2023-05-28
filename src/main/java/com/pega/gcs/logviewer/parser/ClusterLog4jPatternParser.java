@@ -20,13 +20,22 @@ public class ClusterLog4jPatternParser extends Log4jPatternParser {
 
     }
 
-    protected void processCloudKFieldMap(StringBuilder logEntryTextSB, Map<String, Object> fieldMap) {
+    @Override
+    protected void processCloudKLogMap(StringBuilder logEntryTextSB, Map<String, Object> logMap) {
 
-        String time = (String) fieldMap.get("@timestamp");
-        String thread = (String) fieldMap.get("thread_name");
-        String logger = (String) fieldMap.get("logger_name");
-        String logLevel = (String) fieldMap.get("level");
-        String message = (String) fieldMap.get("message");
+        String time = (String) logMap.get("@timestamp");
+        String thread = (String) logMap.get("thread_name");
+        String logger = (String) logMap.get("logger_name");
+        String logLevel = (String) logMap.get("level");
+        String message = (String) logMap.get("message");
+        @SuppressWarnings("unchecked")
+        Map<String, String> exceptionMap = (Map<String, String>) logMap.get("exception");
+
+        // sometimes not all fields are present
+        thread = thread != null ? thread : "";
+        logger = logger != null ? logger : "";
+        logLevel = logLevel != null ? logLevel : "";
+        message = message != null ? message : "";
 
         // (TIMESTAMP);
         // (THREAD);
@@ -41,6 +50,9 @@ public class ClusterLog4jPatternParser extends Log4jPatternParser {
         addLogEntryColumnValue(message);
 
         logEntryTextSB.append(String.format(V2_STR_FORMAT, time, thread, logger, logLevel, message));
+
+        processException(logEntryTextSB, exceptionMap);
+
     }
 
 }

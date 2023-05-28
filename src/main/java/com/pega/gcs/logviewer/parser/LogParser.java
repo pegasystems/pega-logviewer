@@ -57,6 +57,8 @@ public abstract class LogParser {
 
     protected abstract void parseV2(String line);
 
+    protected abstract void parseV3(String line);
+
     public abstract void parseFinalInternal();
 
     public abstract LogEntryModel getLogEntryModel();
@@ -78,7 +80,8 @@ public abstract class LogParser {
         // V0 - normal log entry but cloud/aws timestamp appended
         // V1 - cloudk Json entry
         // V2 - cloudk json entry
-        NULL, V0, V1, V2;
+        // V3 - cloudk json entry
+        NULL, V0, V1, V2, V3;
     }
 
     public LogParser(AbstractLogPattern abstractLogPattern, Charset charset, Locale locale) {
@@ -152,6 +155,9 @@ public abstract class LogParser {
             break;
         case V2:
             parseV2(line);
+            break;
+        case V3:
+            parseV3(line);
             break;
         default:
             parseV1(line);
@@ -328,7 +334,7 @@ public abstract class LogParser {
 
             logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayTimezone);
 
-        } else if (filename.toUpperCase().contains("DATAFLOW")) {
+        } else if ((filename.toUpperCase().contains("DATAFLOW")) && (!filename.toUpperCase().contains("PEGARULES"))) {
 
             Set<Log4jPattern> log4jPatternSet = log4jPatternManager.getDefaultDataflowLog4jPatternSet();
 
@@ -499,18 +505,22 @@ public abstract class LogParser {
 
                     Map<String, Object> fieldMap = objectMapper.readValue(logMessage, typeRef);
 
-                    Object value = fieldMap.get("@timestamp");
+                    Object timestampValue = fieldMap.get("@timestamp");
+                    Object logValue = fieldMap.get("log");
 
-                    if (value == null) {
+                    if ((timestampValue == null) && (logValue == null)) {
+
                         cloudKVersion = CloudKVersion.V1;
+
                     } else {
 
-                        cloudKVersion = CloudKVersion.V2;
+                        if (logValue == null) {
+                            cloudKVersion = CloudKVersion.V2;
+                        } else {
+                            cloudKVersion = CloudKVersion.V3;
+                        }
 
                         LogEntryModel logEntryModel = getLogEntryModel();
-
-                        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-                        logEntryModel.setModelDateFormat(dateFormat);
 
                         AbstractLogPattern abstractLogPattern = getLogPattern();
 
@@ -519,6 +529,11 @@ public abstract class LogParser {
                             List<LogEntryColumn> cloudKLogEventColumnList = null;
 
                             LogType logType = abstractLogPattern.getLogType();
+
+                            if (!LogType.PEGA_ALERT.equals(logType)) {
+                                DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+                                logEntryModel.setModelDateFormat(dateFormat);
+                            }
 
                             switch (logType) {
 
@@ -629,6 +644,7 @@ public abstract class LogParser {
             break;
 
         case V2:
+        case V3:
             lineFromCloudK = line;
             break;
 
