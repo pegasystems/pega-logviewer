@@ -11,7 +11,7 @@ public class HotfixIDComparator implements Comparator<String> {
 
     private static final Log4j2Helper LOG = new Log4j2Helper(HotfixIDComparator.class);
 
-    private Pattern hotfixIdPattern = Pattern.compile(".*-([a-zA-Z])?(\\d+)$");;
+    private Pattern hotfixIdPattern = Pattern.compile(".*-([a-zA-Z])?(\\d+)$");
 
     private Pattern getHotfixIdPattern() {
         return hotfixIdPattern;

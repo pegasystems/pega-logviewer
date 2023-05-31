@@ -23,4 +23,9 @@
 		files="report[\\/]alert[\\/]EVENTReportModel\.java" />
 	<suppress checks="AbbreviationAsWordInName"
 		files="report[\\/]alert[\\/]EVENTReportModelTest\.java" />
+	
+	<suppress checks="JavadocParagraph" 
+		files =".*\.java" 
+		lines="1-5" />
+ 
 </suppressions>
