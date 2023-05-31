@@ -52,9 +52,6 @@ public class HotfixTableModel extends FilterTableModel<HotfixEntryKey> {
 
     private TreeMap<HotfixEntryKey, HotfixEntry> hotfixEntryMap;
 
-    // map to work with bookmarks. Bookmarks are on hofixId string
-    private Map<String, HotfixEntryKey> hotfixIdEntryKeyMap;
-
     /*
      * this constructor is used by scanresult which get hotfix columns at runtime
      */
@@ -72,7 +69,6 @@ public class HotfixTableModel extends FilterTableModel<HotfixEntryKey> {
         this.visibleColumnList = visibleColumnList;
         this.hotfixColumnList = null;
         this.hotfixEntryMap = null;
-        this.hotfixIdEntryKeyMap = null;
 
         resetModel();
     }
@@ -90,7 +86,6 @@ public class HotfixTableModel extends FilterTableModel<HotfixEntryKey> {
         this.visibleColumnList = visibleColumnList;
         this.hotfixColumnList = hotfixColumnList;
         this.hotfixEntryMap = hotfixEntryMap;
-        this.hotfixIdEntryKeyMap = null;
 
         resetModel();
 
@@ -487,14 +482,6 @@ public class HotfixTableModel extends FilterTableModel<HotfixEntryKey> {
         return hotfixEntryMap;
     }
 
-    private Map<String, HotfixEntryKey> getHotfixIdEntryKeyMap() {
-
-        if (hotfixIdEntryKeyMap == null) {
-            hotfixIdEntryKeyMap = new HashMap<>();
-        }
-        return hotfixIdEntryKeyMap;
-    }
-
     public SearchData<HotfixEntryKey> getSearchData() {
         return searchData;
     }
@@ -513,8 +500,6 @@ public class HotfixTableModel extends FilterTableModel<HotfixEntryKey> {
         List<HotfixEntryKey> ftmEntryKeyList = getFtmEntryKeyList();
         ftmEntryKeyList.clear();
 
-        Map<String, HotfixEntryKey> hotfixIdEntryKeyMap = getHotfixIdEntryKeyMap();
-
         Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<HotfixEntryKey>>> columnFilterMap = getColumnFilterMap();
 
         for (HotfixEntryKey hotfixEntryKey : hotfixEntryMap.keySet()) {
@@ -522,10 +507,6 @@ public class HotfixTableModel extends FilterTableModel<HotfixEntryKey> {
             ftmEntryKeyList.add(hotfixEntryKey);
 
             HotfixEntry hotfixEntry = hotfixEntryMap.get(hotfixEntryKey);
-
-            String hotfixId = hotfixEntry.getHotfixId();
-
-            hotfixIdEntryKeyMap.put(hotfixId, hotfixEntryKey);
 
             Iterator<FilterColumn> fcIterator = columnFilterMap.keySet().iterator();
 

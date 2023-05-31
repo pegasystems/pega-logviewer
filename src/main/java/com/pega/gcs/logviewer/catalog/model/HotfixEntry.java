@@ -10,7 +10,6 @@ package com.pega.gcs.logviewer.catalog.model;
 import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -22,8 +21,6 @@ public class HotfixEntry implements Identifiable<HotfixEntryKey>, Comparable<Hot
 
     private HotfixEntryKey hotfixEntryKey;
 
-    private String hotfixId;
-
     private HotfixStatus hotfixStatus;
 
     private ProductInfo productInfo;
@@ -31,6 +28,10 @@ public class HotfixEntry implements Identifiable<HotfixEntryKey>, Comparable<Hot
     private boolean hybrid;
 
     private CriticalLevel criticalLevel;
+
+    private String packageDate;
+
+    private String jarsToRemove;
 
     private Color background;
 
@@ -45,18 +46,17 @@ public class HotfixEntry implements Identifiable<HotfixEntryKey>, Comparable<Hot
     private TreeSet<HotfixEntry> forwardHotfixEntrySet;
 
     // used in catalog scanner
-    public HotfixEntry(HotfixEntryKey hotfixEntryKey, String hotfixId, HotfixStatus hotfixStatus,
-            ProductInfo productInfo, boolean hybrid) {
-        this(hotfixEntryKey, hotfixId, hotfixStatus, productInfo, hybrid, null);
+    public HotfixEntry(HotfixEntryKey hotfixEntryKey, HotfixStatus hotfixStatus, ProductInfo productInfo,
+            boolean hybrid) {
+        this(hotfixEntryKey, hotfixStatus, productInfo, hybrid, null);
     }
 
     // used in compare to set diff color
-    public HotfixEntry(HotfixEntryKey hotfixEntryKey, String hotfixId, HotfixStatus hotfixStatus,
-            ProductInfo productInfo, boolean hybrid, Color background) {
+    public HotfixEntry(HotfixEntryKey hotfixEntryKey, HotfixStatus hotfixStatus, ProductInfo productInfo,
+            boolean hybrid, Color background) {
         super();
 
         this.hotfixEntryKey = hotfixEntryKey;
-        this.hotfixId = hotfixId;
         this.hotfixStatus = hotfixStatus;
         this.productInfo = productInfo;
         this.hybrid = hybrid;
@@ -66,37 +66,12 @@ public class HotfixEntry implements Identifiable<HotfixEntryKey>, Comparable<Hot
 
         hotfixRecordEntryList = new ArrayList<>();
 
-        Comparator<HotfixEntry> dependencyComparator = new Comparator<HotfixEntry>() {
+        backwardHotfixEntrySet = new TreeSet<>();
 
-            @Override
-            public int compare(HotfixEntry o1, HotfixEntry o2) {
-
-                int compare = 0;
-                HotfixEntryKey o1HotfixEntryKey = o1.getKey();
-                HotfixEntryKey o2HotfixEntryKey = o2.getKey();
-
-                if ((o1HotfixEntryKey != null) && (o2HotfixEntryKey != null)) {
-
-                    compare = o1HotfixEntryKey.getHotfixNumber().compareTo(o2HotfixEntryKey.getHotfixNumber());
-
-                } else {
-
-                    HotfixIDComparator hotfixIDComparator = new HotfixIDComparator();
-
-                    String o1HotfixId = o1.getHotfixId();
-                    String o2HotfixId = o2.getHotfixId();
-
-                    compare = hotfixIDComparator.compare(o1HotfixId, o2HotfixId);
-                }
-
-                return compare;
-            }
-        };
-
-        backwardHotfixEntrySet = new TreeSet<>(dependencyComparator);
-        forwardHotfixEntrySet = new TreeSet<>(dependencyComparator);
+        forwardHotfixEntrySet = new TreeSet<>();
     }
 
+    // should only be unsed in compare task
     public void setHotfixEntryKey(HotfixEntryKey hotfixEntryKey) {
         this.hotfixEntryKey = hotfixEntryKey;
     }
@@ -145,6 +120,22 @@ public class HotfixEntry implements Identifiable<HotfixEntryKey>, Comparable<Hot
         setBackground(null);
     }
 
+    public String getPackageDate() {
+        return packageDate;
+    }
+
+    public void setPackageDate(String packageDate) {
+        this.packageDate = packageDate;
+    }
+
+    public String getJarsToRemove() {
+        return jarsToRemove;
+    }
+
+    public void setJarsToRemove(String jarsToRemove) {
+        this.jarsToRemove = jarsToRemove;
+    }
+
     public List<HotfixRecordEntry> getHotfixRecordEntryList() {
         return hotfixRecordEntryList;
     }
@@ -158,8 +149,6 @@ public class HotfixEntry implements Identifiable<HotfixEntryKey>, Comparable<Hot
         StringBuilder builder = new StringBuilder();
         builder.append("HotfixEntry [hotfixEntryKey=");
         builder.append(hotfixEntryKey);
-        builder.append(", hotfixId=");
-        builder.append(hotfixId);
         builder.append(", hotfixStatus=");
         builder.append(hotfixStatus);
         builder.append(", productInfo=");
@@ -175,10 +164,6 @@ public class HotfixEntry implements Identifiable<HotfixEntryKey>, Comparable<Hot
     @Override
     public HotfixEntryKey getKey() {
         return hotfixEntryKey;
-    }
-
-    public String getHotfixId() {
-        return hotfixId;
     }
 
     public HotfixStatus getHotfixStatus() {
@@ -285,19 +270,12 @@ public class HotfixEntry implements Identifiable<HotfixEntryKey>, Comparable<Hot
         HotfixEntryKey thisHotfixEntryKey = getKey();
         HotfixEntryKey otherHotfixEntryKey = other.getKey();
 
-        if ((thisHotfixEntryKey != null) && (otherHotfixEntryKey != null)) {
+        HotfixIDComparator hotfixIDComparator = new HotfixIDComparator();
 
-            compare = thisHotfixEntryKey.compareTo(otherHotfixEntryKey);
+        String thisHotfixId = thisHotfixEntryKey.getHotfixId();
+        String otherHotfixId = otherHotfixEntryKey.getHotfixId();
 
-        } else {
-
-            HotfixIDComparator hotfixIDComparator = new HotfixIDComparator();
-
-            String thisHotfixId = getHotfixId();
-            String otherHotfixId = other.getHotfixId();
-
-            compare = hotfixIDComparator.compare(thisHotfixId, otherHotfixId);
-        }
+        compare = hotfixIDComparator.compare(thisHotfixId, otherHotfixId);
 
         return compare;
 
@@ -310,13 +288,12 @@ public class HotfixEntry implements Identifiable<HotfixEntryKey>, Comparable<Hot
         if (hotfixColumn.equals(HotfixColumn.ID)) {
 
             HotfixEntryKey hotfixEntryKey = getKey();
-            Integer key = hotfixEntryKey.getKey();
-
-            hotfixdata = key.toString();
+            hotfixdata = hotfixEntryKey.getKey().toString();
 
         } else if (hotfixColumn.equals(HotfixColumn.HOTFIX_ID)) {
 
-            hotfixdata = getHotfixId();
+            HotfixEntryKey hotfixEntryKey = getKey();
+            hotfixdata = hotfixEntryKey.getHotfixId();
 
         } else if (hotfixColumn.equals(HotfixColumn.HOTFIX_STATUS)) {
 
@@ -329,6 +306,14 @@ public class HotfixEntry implements Identifiable<HotfixEntryKey>, Comparable<Hot
             ProductInfo productInfo = getProductInfo();
 
             hotfixdata = (productInfo != null) ? productInfo.getProductInfoStr() : null;
+
+        } else if (hotfixColumn.equals(HotfixColumn.PACKAGE_DATE)) {
+
+            hotfixdata = getPackageDate();
+
+        } else if (hotfixColumn.equals(HotfixColumn.JARS_TO_REMOVE)) {
+
+            hotfixdata = getJarsToRemove();
 
         } else if (hotfixColumn.equals(HotfixColumn.CRITICAL_LEVEL)) {
 

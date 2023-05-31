@@ -703,6 +703,7 @@ public class Log4jPatternParser extends LogParser {
         String time = (String) logMap.get("@timestamp");
         String thread = (String) logMap.get("thread_name");
         String pegaThread = (String) logMap.get("pegathread");
+        String tenantId = (String) logMap.get("tenantid");
         String app = (String) logMap.get("app");
         String logger = (String) logMap.get("logger_name");
         String logLevel = (String) logMap.get("level");
@@ -716,6 +717,7 @@ public class Log4jPatternParser extends LogParser {
         // sometimes not all fields are present
         thread = thread != null ? thread : "";
         pegaThread = pegaThread != null ? pegaThread : "";
+        tenantId = tenantId != null ? tenantId : "";
         app = app != null ? app : "";
         logger = logger != null ? logger : "";
         logLevel = logLevel != null ? logLevel : "";
@@ -727,6 +729,7 @@ public class Log4jPatternParser extends LogParser {
         // (TIMESTAMP);
         // (THREAD);
         // (PEGATHREAD);
+        // (TENANTID);
         // (APP);
         // (LOGGER);
         // (LEVEL);
@@ -738,6 +741,7 @@ public class Log4jPatternParser extends LogParser {
         addLogEntryColumnValue(time);
         addLogEntryColumnValue(thread);
         addLogEntryColumnValue(pegaThread);
+        addLogEntryColumnValue(tenantId);
         addLogEntryColumnValue(app);
         addLogEntryColumnValue(logger);
         addLogEntryColumnValue(logLevel);

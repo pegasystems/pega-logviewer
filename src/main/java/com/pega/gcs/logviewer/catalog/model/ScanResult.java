@@ -122,7 +122,9 @@ public class ScanResult {
         int productLabelIndex = hotfixColumnList.indexOf(HotfixColumn.PRODUCT_LABEL);
 
         // Processing installed hotfixDataMap
-        Map<String, HotfixEntry> hotfixIdMap = new HashMap<>();
+
+        // ordering the map based on Hfix id
+        Map<String, Integer> hotfixIdIndexMap = new TreeMap<>(new HotfixIDComparator());
 
         for (Integer index : hotfixDataMap.keySet()) {
 
@@ -131,7 +133,20 @@ public class ScanResult {
             String hotfixId = recordDataList.get(hotfixIdIndex);
             hotfixId = hotfixId.toUpperCase();
 
-            HotfixEntry hotfixEntry = hotfixIdMap.get(hotfixId);
+            hotfixIdIndexMap.put(hotfixId, index);
+        }
+
+        AtomicInteger hotfixEntryIndex = new AtomicInteger(0);
+
+        Map<String, HotfixEntry> hotfixIdEntryMap = new HashMap<>();
+
+        for (String hotfixId : hotfixIdIndexMap.keySet()) {
+
+            Integer index = hotfixIdIndexMap.get(hotfixId);
+
+            List<String> recordDataList = hotfixDataMap.get(index);
+
+            HotfixEntry hotfixEntry = hotfixIdEntryMap.get(hotfixId);
 
             if (hotfixEntry == null) {
 
@@ -147,10 +162,13 @@ public class ScanResult {
                 // making sure same ProductInfo object is set into every HotfixEntry.
                 ProductInfo productInfo = getProductInfo(hfixProductVersionLabel);
 
-                // key will be generated in postProcessHotfixIdMap
-                hotfixEntry = new HotfixEntry(null, hotfixId, hotfixStatus, productInfo, hybrid, null);
+                int id = hotfixEntryIndex.incrementAndGet();
 
-                hotfixIdMap.put(hotfixId, hotfixEntry);
+                HotfixEntryKey hotfixEntryKey = new HotfixEntryKey(id, hotfixId);
+
+                hotfixEntry = new HotfixEntry(hotfixEntryKey, hotfixStatus, productInfo, hybrid, null);
+
+                hotfixIdEntryMap.put(hotfixId, hotfixEntry);
 
                 List<String> hotfixIdList = productInfoHotfixIdMap.get(productInfo);
 
@@ -165,7 +183,7 @@ public class ScanResult {
 
             } else {
 
-                hotfixEntry = hotfixIdMap.get(hotfixId);
+                hotfixEntry = hotfixIdEntryMap.get(hotfixId);
             }
 
             HotfixRecordEntry hotfixRecordEntry = new HotfixRecordEntry(index, recordDataList);
@@ -200,19 +218,23 @@ public class ScanResult {
                                 .getHotfixEntryDataListMapForProductRelease(catalogProductName, productVersion);
 
                         if (hotfixEntryDataListMap != null) {
-                            List<String> catalogHotfiIdList = new ArrayList<>(hotfixEntryDataListMap.keySet());
+                            List<String> catalogHotfixIdList = new ArrayList<>(hotfixEntryDataListMap.keySet());
 
                             if (installedHotfixIdList != null) {
-                                catalogHotfiIdList.removeAll(installedHotfixIdList);
+                                catalogHotfixIdList.removeAll(installedHotfixIdList);
                             }
 
-                            for (String hotfixId : catalogHotfiIdList) {
+                            Collections.sort(catalogHotfixIdList, new HotfixIDComparator());
+
+                            for (String hotfixId : catalogHotfixIdList) {
 
                                 // TODO evaluate hybrid for not installed list?
                                 boolean hybrid = false;
 
-                                // key will be generated in postProcessHotfixIdMap
-                                HotfixEntry hotfixEntry = new HotfixEntry(null, hotfixId, HotfixStatus.NOT_INSTALLED,
+                                int id = hotfixEntryIndex.incrementAndGet();
+                                HotfixEntryKey hotfixEntryKey = new HotfixEntryKey(id, hotfixId);
+
+                                HotfixEntry hotfixEntry = new HotfixEntry(hotfixEntryKey, HotfixStatus.NOT_INSTALLED,
                                         productInfo, hybrid, null);
 
                                 notInstalledHotfixIdMap.put(hotfixId, hotfixEntry);
@@ -236,7 +258,7 @@ public class ScanResult {
         }
 
         // postProcessing
-        postProcessHotfixIdMap(hotfixIdMap, notInstalledHotfixIdMap);
+        postProcessHotfixIdMap(hotfixIdEntryMap, notInstalledHotfixIdMap);
     }
 
     private ProductInfo getProductInfo(String hfixProductVersionLabel) {
@@ -293,30 +315,14 @@ public class ScanResult {
         changeKeyInstalledHotfixIdMap.clear();
         changeKeyNotInstalledHotfixIdMap.clear();
 
-        List<String> hotfixIdList = new ArrayList<>(hotfixIdMap.keySet());
-        List<String> notInstalledHotfixIdList = new ArrayList<>(notInstalledHotfixIdMap.keySet());
+        installedHotfixCount = hotfixIdMap.size();
+        notInstalledHotfixCount = notInstalledHotfixIdMap.size();
 
-        installedHotfixCount = hotfixIdList.size();
-        notInstalledHotfixCount = notInstalledHotfixIdList.size();
-
-        // order hotfixIds to generate HotfixEntryKey in that order
-        HotfixIDComparator hotfixIDComparator = new HotfixIDComparator();
-
-        Collections.sort(hotfixIdList, hotfixIDComparator);
-        Collections.sort(notInstalledHotfixIdList, hotfixIDComparator);
-
-        AtomicInteger hotfixEntryIndex = new AtomicInteger(0);
-
-        for (String hotfixId : hotfixIdList) {
+        for (String hotfixId : hotfixIdMap.keySet()) {
 
             HotfixEntry hotfixEntry = hotfixIdMap.get(hotfixId);
 
-            int id = hotfixEntryIndex.incrementAndGet();
-
-            HotfixEntryKey hotfixEntryKey = new HotfixEntryKey(id, hotfixId);
-
-            hotfixEntry.setHotfixEntryKey(hotfixEntryKey);
-
+            HotfixEntryKey hotfixEntryKey = hotfixEntry.getKey();
             scanResultHotfixEntryMap.put(hotfixEntryKey, hotfixEntry);
 
             organiseHotfixEntry(hotfixEntry, changeKeyInstalledHotfixIdMap, hotfixColumnList);
@@ -325,15 +331,11 @@ public class ScanResult {
 
         List<HotfixColumn> catalogHotfixColumnList = HotfixColumn.getCatalogHotfixColumnList();
 
-        for (String hotfixId : notInstalledHotfixIdList) {
+        for (String hotfixId : notInstalledHotfixIdMap.keySet()) {
 
             HotfixEntry hotfixEntry = notInstalledHotfixIdMap.get(hotfixId);
 
-            int id = hotfixEntryIndex.incrementAndGet();
-
-            HotfixEntryKey hotfixEntryKey = new HotfixEntryKey(id, hotfixId);
-
-            hotfixEntry.setHotfixEntryKey(hotfixEntryKey);
+            HotfixEntryKey hotfixEntryKey = hotfixEntry.getKey();
 
             notInstalledHotfixEntryMap.put(hotfixEntryKey, hotfixEntry);
 
@@ -378,7 +380,7 @@ public class ScanResult {
         List<HotfixEntrySort> schemaChangeKeySortList = new ArrayList<>(); // SCHEMA_CHANGE_KEY
         List<HotfixRecordEntry> otherSortList = new ArrayList<>();
 
-        String hotfixId = hotfixEntry.getHotfixId();
+        String hotfixId = hotfixEntry.getKey().getHotfixId();
 
         List<HotfixRecordEntry> hotfixRecordEntryList = hotfixEntry.getHotfixRecordEntryList();
 

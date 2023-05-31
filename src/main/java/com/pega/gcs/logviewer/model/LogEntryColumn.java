@@ -195,6 +195,7 @@ public class LogEntryColumn extends DefaultTableColumn {
         cloudKLogEventColumnList.add(TIMESTAMP);
         cloudKLogEventColumnList.add(THREAD);
         cloudKLogEventColumnList.add(PEGATHREAD);
+        cloudKLogEventColumnList.add(TENANTID);
         cloudKLogEventColumnList.add(APP);
         cloudKLogEventColumnList.add(LOGGER);
         cloudKLogEventColumnList.add(LEVEL);

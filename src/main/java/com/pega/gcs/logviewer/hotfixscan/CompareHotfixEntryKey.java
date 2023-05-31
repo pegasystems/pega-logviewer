@@ -11,8 +11,8 @@ public class CompareHotfixEntryKey extends HotfixEntryKey {
 
     private int compareId;
 
-    public CompareHotfixEntryKey(int compareId, int id, Integer hotfixNumber) {
-        super(id, hotfixNumber);
+    public CompareHotfixEntryKey(int compareId, int id, String hotfixId) {
+        super(id, hotfixId);
         this.compareId = compareId;
     }
 

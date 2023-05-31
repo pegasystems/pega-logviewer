@@ -40,8 +40,10 @@ public class HotfixColumn extends DefaultTableColumn {
     public static final HotfixColumn SCHEMA_CHANGE_KEY        = new HotfixColumn("SCHEMA CHANGE KEY"        , 200 , SwingConstants.LEFT   , false, "Schema Change DADT Key"  , "pxDADTKey"           );
     public static final HotfixColumn SCHEMA_CHANGE_TABLE_NAME = new HotfixColumn("SCHEMA CHANGE TABLE NAME" , 200 , SwingConstants.LEFT   , false, "Schema Change Table Name", "pxTableName"         );
     public static final HotfixColumn CRITICAL_LEVEL           = new HotfixColumn("CRITICAL LEVEL"           , 150 , SwingConstants.CENTER , true , "Critical Level"          , ""                    );
-    public static final HotfixColumn HYBRID                   = new HotfixColumn("HYBRID"                   , 100 , SwingConstants.CENTER , true ,  "Hybrid"                  , ""                    );
-
+    public static final HotfixColumn HYBRID                   = new HotfixColumn("HYBRID"                   , 100 , SwingConstants.CENTER , true , "Hybrid"                  , ""                    );
+    public static final HotfixColumn PACKAGE_DATE             = new HotfixColumn("PACKAGE DATE"             , 150 , SwingConstants.CENTER , true , "Package Date"            , ""                    );
+    public static final HotfixColumn JARS_TO_REMOVE           = new HotfixColumn("JARS TO REMOVE"           , 300 , SwingConstants.CENTER , true , "Jars To Remove"          , ""                    );
+    
     public static final HotfixColumn INSTANCE                 = new HotfixColumn("INSTANCE"                 , 500 , SwingConstants.LEFT   , false, "Instance"                , ""                    );
     public static final HotfixColumn CONTAINER                = new HotfixColumn("CONTAINER"                , 200 , SwingConstants.LEFT   , false, "Container"               , ""                    );
     public static final HotfixColumn REVISION                 = new HotfixColumn("REVISION"                 , 160 , SwingConstants.LEFT   , false, "Revision"                , ""                    );
@@ -160,6 +162,8 @@ public class HotfixColumn extends DefaultTableColumn {
         catalogHotfixColumnList.add(SCHEMA_CHANGE_KEY);
         catalogHotfixColumnList.add(SCHEMA_CHANGE_TABLE_NAME);
         catalogHotfixColumnList.add(CRITICAL_LEVEL);
+        catalogHotfixColumnList.add(PACKAGE_DATE);
+        catalogHotfixColumnList.add(JARS_TO_REMOVE);
 
         return catalogHotfixColumnList;
     }

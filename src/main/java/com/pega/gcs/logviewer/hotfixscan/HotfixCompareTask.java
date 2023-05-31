@@ -142,7 +142,7 @@ public class HotfixCompareTask extends SwingWorker<Void, String> {
 
                     boolean match;
 
-                    match = ((o1.getHotfixId().equals(o2.getHotfixId())))
+                    match = ((o1.getKey().getHotfixId().equals(o2.getKey().getHotfixId())))
                             && (o1.getHotfixStatus().equals(o2.getHotfixStatus()));
 
                     return match;
@@ -192,16 +192,16 @@ public class HotfixCompareTask extends SwingWorker<Void, String> {
                 case DELETE:
                     // Add compare type to OTHER List
                     // OTHER
-                    teKeyCompare = new CompareHotfixEntryKey(index, -1, -1);
-                    teCompare = new HotfixEntry(teKeyCompare, "", null, null, false, deleteColor);
+                    teKeyCompare = new CompareHotfixEntryKey(index, -1, "");
+                    teCompare = new HotfixEntry(teKeyCompare, null, null, false, deleteColor);
                     hotfixEntryMapRight.put(teKeyCompare, teCompare);
 
                     // THIS
                     teKeyThis = thisHotfixEntryKeyList.get(indexThis);
                     te = thisHotfixEntryList.get(indexThis);
                     int thisId = teKeyThis.getId();
-                    Integer thisHotfixNumber = teKeyThis.getHotfixNumber();
-                    teKey = new CompareHotfixEntryKey(index, thisId, thisHotfixNumber);
+                    String thisHotfixId = teKeyThis.getHotfixId();
+                    teKey = new CompareHotfixEntryKey(index, thisId, thisHotfixId);
                     te.setHotfixEntryKey(teKey);
                     hotfixEntryMapLeft.put(teKey, te);
                     indexThis++;
@@ -215,15 +215,15 @@ public class HotfixCompareTask extends SwingWorker<Void, String> {
                     teKeyOther = otherHotfixEntryKeyList.get(indexOther);
                     te = otherHotfixEntryList.get(indexOther);
                     int otherId = teKeyOther.getId();
-                    Integer otherHotfixNumber = teKeyOther.getHotfixNumber();
-                    teKey = new CompareHotfixEntryKey(index, otherId, otherHotfixNumber);
+                    String otherHotfixId = teKeyOther.getHotfixId();
+                    teKey = new CompareHotfixEntryKey(index, otherId, otherHotfixId);
                     te.setHotfixEntryKey(teKey);
                     hotfixEntryMapRight.put(teKey, te);
                     indexOther++;
 
                     // THIS
-                    teKeyCompare = new CompareHotfixEntryKey(index, -1, -1);
-                    teCompare = new HotfixEntry(teKeyCompare, "", null, null, false, insertColor);
+                    teKeyCompare = new CompareHotfixEntryKey(index, -1, "");
+                    teCompare = new HotfixEntry(teKeyCompare, null, null, false, insertColor);
                     hotfixEntryMapLeft.put(teKeyCompare, teCompare);
 
                     thisMarkerHotfixEntryKeyList.add(teKeyCompare);
@@ -234,8 +234,8 @@ public class HotfixCompareTask extends SwingWorker<Void, String> {
                     teKeyOther = otherHotfixEntryKeyList.get(indexOther);
                     te = otherHotfixEntryList.get(indexOther);
                     otherId = teKeyOther.getId();
-                    otherHotfixNumber = teKeyOther.getHotfixNumber();
-                    teKey = new CompareHotfixEntryKey(index, otherId, otherHotfixNumber);
+                    otherHotfixId = teKeyOther.getHotfixId();
+                    teKey = new CompareHotfixEntryKey(index, otherId, otherHotfixId);
                     te.setHotfixEntryKey(teKey);
                     hotfixEntryMapRight.put(teKey, te);
                     indexOther++;
@@ -244,8 +244,8 @@ public class HotfixCompareTask extends SwingWorker<Void, String> {
                     teKeyThis = thisHotfixEntryKeyList.get(indexThis);
                     te = thisHotfixEntryList.get(indexThis);
                     thisId = teKeyThis.getId();
-                    thisHotfixNumber = teKeyThis.getHotfixNumber();
-                    teKey = new CompareHotfixEntryKey(index, thisId, thisHotfixNumber);
+                    thisHotfixId = teKeyThis.getHotfixId();
+                    teKey = new CompareHotfixEntryKey(index, thisId, thisHotfixId);
                     te.setHotfixEntryKey(teKey);
                     hotfixEntryMapLeft.put(teKey, te);
                     indexThis++;

@@ -66,8 +66,8 @@ public class HotfixEntryDetailDialog extends JFrame {
 
     private JLabel navIndexJLabel;
 
-    protected HotfixEntryDetailDialog(HotfixEntryKey hotfixEntryKey, HotfixTable hotfixTable, ImageIcon appIcon, Component parent)
-            throws HeadlessException {
+    protected HotfixEntryDetailDialog(HotfixEntryKey hotfixEntryKey, HotfixTable hotfixTable, ImageIcon appIcon,
+            Component parent) throws HeadlessException {
 
         super();
 
@@ -79,9 +79,7 @@ public class HotfixEntryDetailDialog extends JFrame {
 
         String modelName = hotfixTableModel.getModelName();
 
-        HotfixEntry hotfixEntry = hotfixTableModel.getEventForKey(hotfixEntryKey);
-
-        String hotfixId = hotfixEntry.getHotfixId();
+        String hotfixId = hotfixEntryKey.getHotfixId();
 
         StringBuilder titleSB = new StringBuilder();
 

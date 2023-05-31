@@ -18,7 +18,7 @@ public class HotfixEntryKey implements Comparable<HotfixEntryKey>, Identifiable<
 
     private int id;
 
-    private Integer hotfixNumber;
+    private String hotfixId;
 
     // for kyro
     @SuppressWarnings("unused")
@@ -29,28 +29,20 @@ public class HotfixEntryKey implements Comparable<HotfixEntryKey>, Identifiable<
     public HotfixEntryKey(int id, String hotfixId) {
         super();
         this.id = id;
-
-        String hotfixId1NumberPart = hotfixId.split("-", 0)[1];
-
-        this.hotfixNumber = Integer.parseInt(hotfixId1NumberPart);
-    }
-
-    protected HotfixEntryKey(int id, Integer hotfixNumber) {
-        this.id = id;
-        this.hotfixNumber = hotfixNumber;
+        this.hotfixId = hotfixId;
     }
 
     public int getId() {
         return id;
     }
 
-    public Integer getHotfixNumber() {
-        return hotfixNumber;
+    public String getHotfixId() {
+        return hotfixId;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(hotfixNumber, id);
+        return Objects.hash(hotfixId, id);
     }
 
     @Override
@@ -70,14 +62,12 @@ public class HotfixEntryKey implements Comparable<HotfixEntryKey>, Identifiable<
 
         HotfixEntryKey other = (HotfixEntryKey) obj;
 
-        return Objects.equals(hotfixNumber, other.hotfixNumber) && id == other.id;
+        return Objects.equals(hotfixId, other.hotfixId) && id == other.id;
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("HFIX-");
-        sb.append(hotfixNumber);
-        return sb.toString();
+        return hotfixId;
     }
 
     @Override
