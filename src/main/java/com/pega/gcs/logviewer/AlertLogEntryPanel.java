@@ -44,7 +44,6 @@ import com.pega.gcs.logviewer.alert.AlertLogEntryPanelUtil;
 import com.pega.gcs.logviewer.model.AlertLogEntry;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
-import com.pega.gcs.logviewer.model.LogEntryData;
 import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.alert.AlertMessageList.AlertMessage;
 import com.pega.gcs.logviewer.model.alert.AlertMessageListProvider;
@@ -60,7 +59,9 @@ public class AlertLogEntryPanel extends JPanel {
     private AlertLogEntry alertLogEntry;
 
     // multiple usages hence extract it once
-    private LogEntryData logEntryData;
+    private ArrayList<String> logEntryValueList;
+
+    private String logEntryText;
 
     private Charset charset;
 
@@ -80,7 +81,8 @@ public class AlertLogEntryPanel extends JPanel {
         this.alertLogEntry = alertLogEntry;
         this.charset = charset;
 
-        this.logEntryData = alertLogEntry.getLogEntryData();
+        this.logEntryValueList = alertLogEntry.getLogEntryValueList();
+        this.logEntryText = alertLogEntry.getLogEntryText();
 
         this.alertLogEntryModel = alertLogEntryModel;
 
@@ -222,6 +224,14 @@ public class AlertLogEntryPanel extends JPanel {
         alertTabbedPane.addChangeListener(changeListener);
     }
 
+    private ArrayList<String> getLogEntryValueList() {
+        return logEntryValueList;
+    }
+
+    private String getLogEntryText() {
+        return logEntryText;
+    }
+
     private JTabbedPane getAlertTabbedPane() {
 
         if (alertTabbedPane == null) {
@@ -274,7 +284,7 @@ public class AlertLogEntryPanel extends JPanel {
         List<AlertLogEntryPanelTableData> dataList = new ArrayList<AlertLogEntryPanelTableData>();
         List<AlertLogEntryPanelTableData> longDataList = new ArrayList<AlertLogEntryPanelTableData>();
 
-        List<String> logEntryValueList = logEntryData.getLogEntryValueList();
+        List<String> logEntryValueList = getLogEntryValueList();
 
         LogEntryModel logEntryModel = getAlertLogEntryModel();
         List<LogEntryColumn> logEntryColumnList = logEntryModel.getLogEntryColumnList();
@@ -470,7 +480,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         if (columnIndex != -1) {
 
-            List<String> logEntryValueList = logEntryData.getLogEntryValueList();
+            List<String> logEntryValueList = getLogEntryValueList();
 
             String palData = logEntryValueList.get(columnIndex);
 
@@ -579,7 +589,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         if (columnIndex != -1) {
 
-            List<String> logEntryValueList = logEntryData.getLogEntryValueList();
+            List<String> logEntryValueList = getLogEntryValueList();
 
             String traceListData = logEntryValueList.get(columnIndex);
 
@@ -661,7 +671,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         if (columnIndex != -1) {
 
-            List<String> logEntryValueList = logEntryData.getLogEntryValueList();
+            List<String> logEntryValueList = getLogEntryValueList();
 
             String prStacktraceData = logEntryValueList.get(columnIndex);
 
@@ -734,7 +744,7 @@ public class AlertLogEntryPanel extends JPanel {
 
         if (columnIndex != -1) {
 
-            List<String> logEntryValueList = logEntryData.getLogEntryValueList();
+            List<String> logEntryValueList = getLogEntryValueList();
 
             String parameterPageData = logEntryValueList.get(columnIndex);
 
@@ -802,7 +812,9 @@ public class AlertLogEntryPanel extends JPanel {
 
     private JComponent getRawTextComponent() {
 
-        JPanel rawTextJPanel = new LogEntryPanel(logEntryData.getLogEntryText(), charset);
+        String logEntryText = getLogEntryText();
+
+        JPanel rawTextJPanel = new LogEntryPanel(logEntryText, charset);
 
         return rawTextJPanel;
     }

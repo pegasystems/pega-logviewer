@@ -55,7 +55,7 @@ public abstract class LogEntry implements Identifiable<LogEntryKey>, Serializabl
         return logEntryKey;
     }
 
-    public LogEntryData getLogEntryData() {
+    private LogEntryData getLogEntryData() {
 
         LogEntryData logEntryData = null;
 
@@ -68,7 +68,7 @@ public abstract class LogEntry implements Identifiable<LogEntryKey>, Serializabl
         return logEntryData;
     }
 
-    protected void setLogEntryData(LogEntryData logEntryData) {
+    private void setLogEntryData(LogEntryData logEntryData) {
         try {
             compressedLogEntryData = KryoSerializer.compress(logEntryData);
         } catch (Exception e) {
@@ -76,6 +76,9 @@ public abstract class LogEntry implements Identifiable<LogEntryKey>, Serializabl
         }
     }
 
+    /**
+     * Expensive operation: performs decompression.
+     */
     public ArrayList<String> getLogEntryValueList() {
 
         ArrayList<String> logEntryValueList = null;
@@ -89,6 +92,9 @@ public abstract class LogEntry implements Identifiable<LogEntryKey>, Serializabl
         return logEntryValueList;
     }
 
+    /**
+     * Expensive operation: performs decompression.
+     */
     public String getLogEntryText() {
 
         String logEntryText = null;

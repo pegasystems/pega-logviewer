@@ -3,9 +3,9 @@ import net.ltgt.gradle.errorprone.CheckSeverity
 plugins {
     id 'java'
     id 'application'
-    id 'net.ltgt.errorprone'        version '3.0.1'
-    id 'com.github.spotbugs'        version '5.0.13'
-    id 'nebula.release'             version '17.1.0'
+    id 'net.ltgt.errorprone'        version '3.1.0'
+    id 'com.github.spotbugs'        version '5.1.2'
+    id 'nebula.release'             version '17.2.2'
 }
 
 group = 'com.pega.gcs'
@@ -26,23 +26,23 @@ repositories {
 
 dependencies {
 
-    errorprone("com.google.errorprone:error_prone_core:2.18.0")
+    errorprone("com.google.errorprone:error_prone_core:2.21.1")
 
     implementation 'gnu.getopt:java-getopt:1.0.13'
     implementation 'org.jfree:jfreechart:1.5.4'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.0'
-    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.15.0'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.15.2'
     implementation 'com.fasterxml.woodstox:woodstox-core:6.5.1'
     implementation 'org.codehaus.woodstox:stax2-api:4.2.1'
     implementation 'org.apache.poi:poi-ooxml:5.2.3'
 
     // Java 11 changes
     implementation 'jakarta.xml.bind:jakarta.xml.bind-api:4.0.0'
-    implementation 'com.sun.xml.bind:jaxb-impl:4.0.2'
+    implementation 'com.sun.xml.bind:jaxb-impl:4.0.3'
     
-    implementation 'com.github.pegasystems:fringeutils-common:v3.4.4'
+    implementation 'com.github.pegasystems:fringeutils-common:v3.4.6'
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.0'
 }
 
 java {
@@ -56,7 +56,7 @@ application {
                                     'XXX_SET_USER_DIR_XXX',
                                     '-Dfile.encoding=UTF-8',
                                     '-Xms1G',
-                                    '-Xmx2G',
+                                    '-Xmx4G',
                                     '-XX:+UseG1GC',
                                     '-XX:+UseStringDeduplication'
                                 ]

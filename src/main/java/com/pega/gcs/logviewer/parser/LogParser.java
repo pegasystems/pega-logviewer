@@ -78,10 +78,11 @@ public abstract class LogParser {
     protected enum CloudKVersion {
         // NULL - normal log entry
         // V0 - normal log entry but cloud/aws timestamp appended
+        // DOCKER - pod json logs
         // V1 - cloudk Json entry
         // V2 - cloudk json entry
         // V3 - cloudk json entry
-        NULL, V0, V1, V2, V3;
+        NULL, V0, DOCKER, V1, V2, V3;
     }
 
     public LogParser(AbstractLogPattern abstractLogPattern, Charset charset, Locale locale) {
@@ -144,7 +145,7 @@ public abstract class LogParser {
 
     public void parse(String line) {
 
-        CloudKVersion cloudKVersion = getCloudKVersion(line);
+        CloudKVersion cloudKVersion = getOrSetCloudKVersion(line);
 
         switch (cloudKVersion) {
 
@@ -491,7 +492,7 @@ public abstract class LogParser {
         return cloudKVersion;
     }
 
-    protected CloudKVersion getCloudKVersion(String line) {
+    protected CloudKVersion getOrSetCloudKVersion(String line) {
 
         if (cloudKVersion == null) {
 
@@ -611,7 +612,7 @@ public abstract class LogParser {
 
         String lineFromCloudK = null;
 
-        CloudKVersion cloudKVersion = getCloudKVersion(line);
+        CloudKVersion cloudKVersion = getOrSetCloudKVersion(line);
 
         switch (cloudKVersion) {
 

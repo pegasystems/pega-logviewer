@@ -555,13 +555,11 @@ public class Log4jLogEntryModel extends LogEntryModel {
 
                 LogEntryKey logEntryKey = logEntry.getKey();
 
-                LogEntryData logEntryData = logEntry.getLogEntryData();
-
-                ArrayList<String> logEntryValueList = logEntryData.getLogEntryValueList();
-
-                String logEntryDateStr = logEntryValueList.get(timestampColumnIndex);
-
                 try {
+
+                    ArrayList<String> logEntryValueList = logEntry.getLogEntryValueList();
+
+                    String logEntryDateStr = logEntryValueList.get(timestampColumnIndex);
 
                     // Recalculating time when timezone becomes known
                     Date logEntryDate = modelDateFormat.parse(logEntryDateStr);
@@ -585,7 +583,7 @@ public class Log4jLogEntryModel extends LogEntryModel {
                     }
 
                 } catch (ParseException pe) {
-                    LOG.info("Date parse error: " + logEntryDateStr);
+                    LOG.info("Date parse error: " + logEntryKey);
                 }
 
             }

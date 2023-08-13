@@ -306,6 +306,9 @@ public abstract class AlertMessageReportModel extends FilterTableModel<AlertMess
         return maxRangeValue;
     }
 
+    /**
+     * When logEntryValueList is null, it will be extracted from the alertLogEntry.
+     */
     public void processAlertLogEntry(AlertLogEntry alertLogEntry, ArrayList<String> logEntryValueList) {
 
         double observedKPI = alertLogEntry.getObservedKPI();
@@ -317,6 +320,11 @@ public abstract class AlertMessageReportModel extends FilterTableModel<AlertMess
         String alertMessageReportEntryKey = null;
 
         try {
+
+            // logEntryValueList is only only during initial loading of log file, for filtered table need to extract it again.
+            if (logEntryValueList == null) {
+                logEntryValueList = alertLogEntry.getLogEntryValueList();
+            }
 
             alertMessageReportEntryKey = getAlertMessageReportEntryKey(logEntryValueList);
 

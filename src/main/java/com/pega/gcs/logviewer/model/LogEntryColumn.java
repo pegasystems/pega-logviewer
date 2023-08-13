@@ -20,25 +20,25 @@ public class LogEntryColumn extends DefaultTableColumn {
     // CHECKSTYLE:OFF
     //                                                                                                        displayName         prefColumnWidth    horizontalAlignment visibleColumn filterable
     public static final LogEntryColumn ALERTNUMBER           = new LogEntryColumn("ALERTNUMBER"             , "Alert Number"             , 100 , SwingConstants.CENTER , true  , false );
-    public static final LogEntryColumn APP                   = new LogEntryColumn("APP"                     , "App"                      , 120 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn APP                   = new LogEntryColumn("APP"                     , "App"                      , 70 , SwingConstants.CENTER , true  , true  );
     public static final LogEntryColumn INTERACTIONNUMBER     = new LogEntryColumn("INTERACTIONNUMBER"       , "Interaction Number"       , 100 , SwingConstants.CENTER , true  , true  );
     public static final LogEntryColumn LASTINPUT             = new LogEntryColumn("LASTINPUT"               , "Last Input"               , 200 , SwingConstants.CENTER , true  , false );
     public static final LogEntryColumn LASTSTEP              = new LogEntryColumn("LASTSTEP"                , "Last Step"                , 200 , SwingConstants.CENTER , true  , false );
     public static final LogEntryColumn LEVEL                 = new LogEntryColumn("LEVEL"                   , "Level"                    , 70  , SwingConstants.CENTER , true  , true  );
     public static final LogEntryColumn LINE                  = new LogEntryColumn("LINE"                    , "Line"                     , 70  , SwingConstants.CENTER , true  , false );
     public static final LogEntryColumn LOGGER                = new LogEntryColumn("LOGGER"                  , "Logger"                   , 200 , SwingConstants.CENTER , true  , true  );
-    public static final LogEntryColumn MESSAGE               = new LogEntryColumn("MESSAGE"                 , "Message"                  , 700 , SwingConstants.LEFT   , true  , false );
+    public static final LogEntryColumn MESSAGE               = new LogEntryColumn("MESSAGE"                 , "Message"                  , 900 , SwingConstants.LEFT   , true  , false );
     public static final LogEntryColumn MESSAGEID             = new LogEntryColumn("MESSAGEID"               , "Message Id"               , 100 , SwingConstants.CENTER , true  , true  );
     public static final LogEntryColumn NODEID                = new LogEntryColumn("NODEID"                  , "Node Id"                  , 200 , SwingConstants.CENTER , true  , true  );
     public static final LogEntryColumn OBSERVEDKPI           = new LogEntryColumn("OBSERVEDKPI"             , "Observed KPI"             , 90  , SwingConstants.CENTER , true  , false );
-    public static final LogEntryColumn PEGATHREAD            = new LogEntryColumn("PEGATHREAD"              , "Pega Thread"              , 110 , SwingConstants.CENTER , true  , true  );
-    public static final LogEntryColumn REQUESTORID           = new LogEntryColumn("REQUESTORID"             , "Requestor Id"             , 220 , SwingConstants.CENTER , true  , true  );
-    public static final LogEntryColumn STACK                 = new LogEntryColumn("STACK"                   , "Stack"                    , 170 , SwingConstants.CENTER , true  , true  );
-    public static final LogEntryColumn TENANTID              = new LogEntryColumn("TENANTID"                , "Tenant Id"                , 70  , SwingConstants.CENTER , true  , false );
-    public static final LogEntryColumn THREAD                = new LogEntryColumn("THREAD"                  , "Thread"                   , 150 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn PEGATHREAD            = new LogEntryColumn("PEGATHREAD"              , "Pega Thread"              , 70  , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn REQUESTORID           = new LogEntryColumn("REQUESTORID"             , "Requestor Id"             , 70  , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn STACK                 = new LogEntryColumn("STACK"                   , "Stack"                    , 70  , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn TENANTID              = new LogEntryColumn("TENANTID"                , "Tenant Id"                , 50  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn THREAD                = new LogEntryColumn("THREAD"                  , "Thread"                   , 110 , SwingConstants.CENTER , true  , true  );
     public static final LogEntryColumn THRESHOLDKPI          = new LogEntryColumn("THRESHOLDKPI"            , "Threshold KPI"            , 110 , SwingConstants.CENTER , true  , false );
     public static final LogEntryColumn TIMESTAMP             = new LogEntryColumn("TIMESTAMP"               , "Timestamp"                , 160 , SwingConstants.CENTER , true  , false );
-    public static final LogEntryColumn USERID                = new LogEntryColumn("USERID"                  , "User Id"                  , 200 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn USERID                = new LogEntryColumn("USERID"                  , "User Id"                  , 70  , SwingConstants.CENTER , true  , true  );
     public static final LogEntryColumn ALERTTYPE             = new LogEntryColumn("ALERTTYPE"               , "Alert Type"               , 77  , SwingConstants.CENTER , false , false );
     public static final LogEntryColumn AUDITCORRELATION1     = new LogEntryColumn("AUDITCORRELATION1"       , "Audit Correlation 1"      , 147 , SwingConstants.CENTER , false , false );
     public static final LogEntryColumn AUDITCORRELATION2     = new LogEntryColumn("AUDITCORRELATION2"       , "Audit Correlation 2"      , 147 , SwingConstants.CENTER , false , false );
@@ -71,7 +71,7 @@ public class LogEntryColumn extends DefaultTableColumn {
     public static final LogEntryColumn TRACELIST             = new LogEntryColumn("TRACELIST"               , "Trace List"               , 77  , SwingConstants.CENTER , false , false );
     public static final LogEntryColumn VERSION               = new LogEntryColumn("VERSION"                 , "Version"                  , 54  , SwingConstants.CENTER , false , false );
     public static final LogEntryColumn WORKPOOL              = new LogEntryColumn("WORKPOOL"                , "Workpool"                 , 62  , SwingConstants.CENTER , false , false );
-    public static final LogEntryColumn CORRELATIONID         = new LogEntryColumn("CORRELATIONID"           , "CorrelationID"            , 220 , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn CORRELATIONID         = new LogEntryColumn("CORRELATIONID"           , "CorrelationID"            , 70  , SwingConstants.CENTER , true  , true  );
     public static final LogEntryColumn CLIENTPAGELOADID      = new LogEntryColumn("CLIENTPAGELOADID"        , "ClientPageLoadId"         , 54  , SwingConstants.CENTER , false , false );
     public static final LogEntryColumn ISSTATELESSAPP        = new LogEntryColumn("ISSTATELESSAPP"          , "Stateless Application"    , 54  , SwingConstants.CENTER , false , false );
     public static final LogEntryColumn CLIENTREQUESTID       = new LogEntryColumn("CLIENTREQUESTID"         , "Client Request ID"        , 220 , SwingConstants.CENTER , true  , true  );
@@ -201,6 +201,7 @@ public class LogEntryColumn extends DefaultTableColumn {
         cloudKLogEventColumnList.add(LEVEL);
         cloudKLogEventColumnList.add(STACK);
         cloudKLogEventColumnList.add(REQUESTORID);
+        cloudKLogEventColumnList.add(CORRELATIONID);
         cloudKLogEventColumnList.add(USERID);
         cloudKLogEventColumnList.add(MESSAGE);
 

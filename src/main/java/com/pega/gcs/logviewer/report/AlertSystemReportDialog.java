@@ -26,9 +26,11 @@ import com.pega.gcs.fringecommon.guiutilities.NavigationTableController;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.LogTable;
 import com.pega.gcs.logviewer.LogTableModel;
+import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryKey;
-import com.pega.gcs.logviewer.model.LogEntryModel;
 import com.pega.gcs.logviewer.model.LogSeriesCollection;
+import com.pega.gcs.logviewer.model.alert.AlertMessageListProvider;
+import com.pega.gcs.logviewer.report.alert.AlertMessageReportModel;
 import com.pega.gcs.logviewer.report.alert.AlertSummaryJPanel;
 import com.pega.gcs.logviewer.report.alert.AlertTypeSummaryJPanel;
 
@@ -75,11 +77,15 @@ public class AlertSystemReportDialog extends SystemReportDialog {
             navigationTableController = getNavigationTableController();
 
             LogTableModel logTableModel = getLogTableModel();
-            LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
+            AlertLogEntryModel alertLogEntryModel = (AlertLogEntryModel) logTableModel.getLogEntryModel();
             Locale locale = logTableModel.getLocale();
+            boolean isAnyColumnFiltered = logTableModel.isAnyColumnFiltered();
 
             Set<LogSeriesCollection> logTimeSeriesCollectionSet;
-            logTimeSeriesCollectionSet = logEntryModel.getLogTimeSeriesCollectionSet(false, locale);
+            logTimeSeriesCollectionSet = alertLogEntryModel.getLogTimeSeriesCollectionSet(isAnyColumnFiltered, locale);
+
+            Map<Integer, AlertMessageReportModel> alertMessageReportModelMap;
+            alertMessageReportModelMap = alertLogEntryModel.getFilteredAlertMessageReportModelMap(isAnyColumnFiltered, locale);
 
             // creating before as AlertTypeSummaryJPanel uses this for setting
             // up mouse listener
@@ -106,13 +112,18 @@ public class AlertSystemReportDialog extends SystemReportDialog {
 
                 LogSeriesCollection ltsc = ltscIt.next();
 
-                String ltsName = ltsc.getName();
+                String messageId = ltsc.getName();
 
-                JPanel alertJPanel = new AlertSummaryJPanel(ltsc, logTable, navigationTableController);
+                Integer alertId = AlertMessageListProvider.getInstance().getAlertId(messageId);
 
-                GUIUtilities.addTab(reportTabbedPane, alertJPanel, ltsName, labelDim);
+                AlertMessageReportModel alertMessageReportModel = alertMessageReportModelMap.get(alertId);
 
-                alertMessageTabComponentMap.put(ltsName, alertJPanel);
+                JPanel alertJPanel = new AlertSummaryJPanel(ltsc, alertMessageReportModel, logTable,
+                        navigationTableController);
+
+                GUIUtilities.addTab(reportTabbedPane, alertJPanel, messageId, labelDim);
+
+                alertMessageTabComponentMap.put(messageId, alertJPanel);
             }
         } catch (Exception e) {
             LOG.error("Error building overview tabs.", e);

@@ -21,7 +21,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
@@ -60,7 +59,6 @@ import com.pega.gcs.logviewer.LogTable;
 import com.pega.gcs.logviewer.LogTableModel;
 import com.pega.gcs.logviewer.LogViewerUtil;
 import com.pega.gcs.logviewer.model.AlertBoxAndWhiskerItem;
-import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.AlertLogTimeSeries;
 import com.pega.gcs.logviewer.model.LogEntry;
 import com.pega.gcs.logviewer.model.LogEntryKey;
@@ -87,7 +85,8 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
 
     private List<IntervalMarker> manualIntervalMarkerList;
 
-    public AlertSummaryJPanel(LogSeriesCollection logTimeSeriesCollection, LogTable logTable,
+    public AlertSummaryJPanel(LogSeriesCollection logTimeSeriesCollection,
+            AlertMessageReportModel alertMessageReportModel, LogTable logTable,
             NavigationTableController<LogEntryKey> navigationTableController) {
 
         super();
@@ -132,7 +131,8 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
         JPanel generalJPanel = getGeneralJPanel(alertMessageId);
         JPanel boxAndWhiskerStatisticsJPanel = getMainBoxAndWhiskerStatisticsJPanel(logTimeSeriesCollection);
 
-        JSplitPane alertChartAndTableSplitPane = getAlertChartAndTableSplitPane(logTimeSeriesCollection);
+        JSplitPane alertChartAndTableSplitPane = getAlertChartAndTableSplitPane(logTimeSeriesCollection,
+                alertMessageReportModel);
 
         add(generalJPanel, gbc1);
         add(boxAndWhiskerStatisticsJPanel, gbc2);
@@ -299,10 +299,11 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
         return statisticsValueJPanel;
     }
 
-    private JSplitPane getAlertChartAndTableSplitPane(LogSeriesCollection logTimeSeriesCollection) {
+    private JSplitPane getAlertChartAndTableSplitPane(LogSeriesCollection logTimeSeriesCollection,
+            AlertMessageReportModel alertMessageReportModel) {
 
         JPanel chartAndWiskerJPanel = getChartAndWhiskerJPanel(logTimeSeriesCollection);
-        JPanel alertMessageReportJPanel = getAlertMessageReportJPanel(logTimeSeriesCollection);
+        JPanel alertMessageReportJPanel = getAlertMessageReportJPanel(alertMessageReportModel);
 
         JSplitPane alertChartAndTableSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, chartAndWiskerJPanel,
                 alertMessageReportJPanel);
@@ -527,68 +528,53 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
         return customChartPanel;
     }
 
-    private JPanel getAlertMessageReportJPanel(LogSeriesCollection logTimeSeriesCollection) {
+    private JPanel getAlertMessageReportJPanel(AlertMessageReportModel alertMessageReportModel) {
 
         JPanel alertMessageReportJPanel = new JPanel();
 
         alertMessageReportJPanel.setLayout(new GridBagLayout());
 
-        String messageId = logTimeSeriesCollection.getName();
+        if (alertMessageReportModel != null) {
 
-        Integer alertId = AlertMessageListProvider.getInstance().getAlertId(messageId);
+            GridBagConstraints gbc1 = new GridBagConstraints();
+            gbc1.gridx = 0;
+            gbc1.gridy = 0;
+            gbc1.weightx = 1.0D;
+            gbc1.weighty = 1.0D;
+            gbc1.fill = GridBagConstraints.BOTH;
+            gbc1.anchor = GridBagConstraints.NORTHWEST;
+            gbc1.insets = new Insets(0, 0, 0, 0);
 
-        if (alertId != null) {
+            GridBagConstraints gbc2 = new GridBagConstraints();
+            gbc2.gridx = 0;
+            gbc2.gridy = 1;
+            gbc2.weightx = 1.0D;
+            gbc2.weighty = 0.0D;
+            gbc2.fill = GridBagConstraints.BOTH;
+            gbc2.anchor = GridBagConstraints.NORTHWEST;
+            gbc2.insets = new Insets(0, 0, 0, 0);
 
             LogTableModel logTableModel = (LogTableModel) logTable.getModel();
 
-            AlertLogEntryModel alertLogEntryModel = (AlertLogEntryModel) logTableModel.getLogEntryModel();
+            String alertModelName = logTableModel.getModelName();
 
-            Map<Integer, AlertMessageReportModel> alertMessageReportModelMap;
-            alertMessageReportModelMap = alertLogEntryModel.getAlertMessageReportModelMap();
+            AlertMessageReportTableMouseListener alertMessageReportTableMouseListener;
+            alertMessageReportTableMouseListener = new AlertMessageReportTableMouseListener(logTableModel,
+                    navigationTableController, this);
 
-            AlertMessageReportModel alertMessageReportModel = alertMessageReportModelMap.get(alertId);
+            AlertMessageReportTable alertMessageReportTable = new AlertMessageReportTable(alertModelName,
+                    alertMessageReportModel);
 
-            if (alertMessageReportModel != null) {
+            alertMessageReportTable.setAlertMessageReportTableMouseListener(alertMessageReportTableMouseListener);
 
-                GridBagConstraints gbc1 = new GridBagConstraints();
-                gbc1.gridx = 0;
-                gbc1.gridy = 0;
-                gbc1.weightx = 1.0D;
-                gbc1.weighty = 1.0D;
-                gbc1.fill = GridBagConstraints.BOTH;
-                gbc1.anchor = GridBagConstraints.NORTHWEST;
-                gbc1.insets = new Insets(0, 0, 0, 0);
+            JScrollPane alertMessageReportTableScrollPane = new JScrollPane(alertMessageReportTable);
 
-                GridBagConstraints gbc2 = new GridBagConstraints();
-                gbc2.gridx = 0;
-                gbc2.gridy = 1;
-                gbc2.weightx = 1.0D;
-                gbc2.weighty = 0.0D;
-                gbc2.fill = GridBagConstraints.BOTH;
-                gbc2.anchor = GridBagConstraints.NORTHWEST;
-                gbc2.insets = new Insets(0, 0, 0, 0);
+            alertMessageReportJPanel.add(alertMessageReportTableScrollPane, gbc1);
 
-                String alertModelName = logTableModel.getModelName();
+            String noteText = "Double click on a row to see list of alerts for the selected key.";
 
-                AlertMessageReportTableMouseListener alertMessageReportTableMouseListener;
-                alertMessageReportTableMouseListener = new AlertMessageReportTableMouseListener(logTableModel,
-                        navigationTableController, this);
-
-                AlertMessageReportTable alertMessageReportTable = new AlertMessageReportTable(alertModelName,
-                        alertMessageReportModel);
-
-                alertMessageReportTable.setAlertMessageReportTableMouseListener(alertMessageReportTableMouseListener);
-
-                JScrollPane alertMessageReportTableScrollPane = new JScrollPane(alertMessageReportTable);
-
-                alertMessageReportJPanel.add(alertMessageReportTableScrollPane, gbc1);
-
-                String noteText = "Double click on a row to see list of alerts for the selected key.";
-
-                NoteJPanel noteJPanel = new NoteJPanel(noteText, 1);
-                alertMessageReportJPanel.add(noteJPanel, gbc2);
-            }
-
+            NoteJPanel noteJPanel = new NoteJPanel(noteText, 1);
+            alertMessageReportJPanel.add(noteJPanel, gbc2);
         }
 
         alertMessageReportJPanel.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1));

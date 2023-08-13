@@ -64,9 +64,11 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
         return lifeCycleEventMessageParser;
     }
 
-    protected void processCloudKFieldMap(StringBuilder logEntryTextSB, Map<String, Object> fieldMap) {
+    @Override
+    protected void processCloudKLogMap(String time, StringBuilder logEntryTextSB, Map<String, Object> fieldMap) {
 
-        String time = (String) fieldMap.get("@timestamp");
+        // in older version, time is also present in the parent structure.
+        // String time = (String) logMap.get("@timestamp");
         String thread = (String) fieldMap.get("thread_name");
         String pegaThread = (String) fieldMap.get("pegathread");
         String logger = (String) fieldMap.get("logger_name");

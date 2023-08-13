@@ -11,7 +11,7 @@ import com.pega.gcs.logviewer.logfile.Log4jPattern;
 public class ClusterLog4jPatternParser extends Log4jPatternParser {
 
     // 2023-05-11 06:29:30,274 (.DataFlowDiagnosticsFileLogger) INFO -
-    private static final String V2_STR_FORMAT = "%s [%s] (%s) %s - %s";
+    private static final String V2_STR_FORMAT = "%s [%s] (%s) %s - ";
 
     public ClusterLog4jPatternParser(Log4jPattern log4jPattern, Charset charset, Locale locale,
             TimeZone displayTimezone) {
@@ -21,9 +21,10 @@ public class ClusterLog4jPatternParser extends Log4jPatternParser {
     }
 
     @Override
-    protected void processCloudKLogMap(StringBuilder logEntryTextSB, Map<String, Object> logMap) {
+    protected void processCloudKLogMap(String time, StringBuilder logEntryTextSB, Map<String, Object> logMap) {
 
-        String time = (String) logMap.get("@timestamp");
+        // in older version, time is also present in the parent structure.
+        // String time = (String) logMap.get("@timestamp");
         String thread = (String) logMap.get("thread_name");
         String logger = (String) logMap.get("logger_name");
         String logLevel = (String) logMap.get("level");
@@ -47,11 +48,16 @@ public class ClusterLog4jPatternParser extends Log4jPatternParser {
         addLogEntryColumnValue(thread);
         addLogEntryColumnValue(logger);
         addLogEntryColumnValue(logLevel);
-        addLogEntryColumnValue(message);
 
-        logEntryTextSB.append(String.format(V2_STR_FORMAT, time, thread, logger, logLevel, message));
+        logEntryTextSB.append(String.format(V2_STR_FORMAT, time, thread, logger, logLevel));
 
-        processException(logEntryTextSB, exceptionMap);
+        String messageFirstLine = processMessage(message);
+
+        addLogEntryColumnValue(messageFirstLine);
+
+        logEntryTextSB.append(messageFirstLine);
+
+        processException(exceptionMap);
 
     }
 

@@ -68,7 +68,9 @@ public class Log4jPatternParser extends LogParser {
 
     private static final int MATCHER_STR_LEN = 500;
 
-    private static final String V2_STR_FORMAT = "%s [%s] [%s] [%s] (%s) %s %s %s %s - %s";
+    // not including MESSAGE as its processed separately
+    // TIMESTAMP [THREAD] [PEGATHREAD] [TENANTID] [APP] (LOGGER) LEVEL STACK REQUESTORID CORRELATIONID USERID -
+    private static final String V2_STR_FORMAT = "%s [%s] [%s] [%s] (%s) %s %s %s %s %s - ";
 
     private String regExp;
 
@@ -624,7 +626,9 @@ public class Log4jPatternParser extends LogParser {
 
         if (fieldMap != null) {
 
-            processCloudKLogMap(logEntryTextSB, fieldMap);
+            String time = (String) fieldMap.get("@timestamp");
+
+            processCloudKLogMap(time, logEntryTextSB, fieldMap);
 
             logEntryText = logEntryTextSB.toString();
 
@@ -641,9 +645,10 @@ public class Log4jPatternParser extends LogParser {
 
         if (fieldMap != null) {
 
+            String time = (String) fieldMap.get("time");
             Map<String, Object> logMap = (Map<String, Object>) fieldMap.get("log");
 
-            processCloudKLogMap(logEntryTextSB, logMap);
+            processCloudKLogMap(time, logEntryTextSB, logMap);
 
             logEntryText = logEntryTextSB.toString();
 
@@ -677,30 +682,10 @@ public class Log4jPatternParser extends LogParser {
         additionalLines.clear();
     }
 
-    protected void processException(StringBuilder logEntryTextSB, Map<String, String> exceptionMap) {
+    protected void processCloudKLogMap(String time, StringBuilder logEntryTextSB, Map<String, Object> logMap) {
 
-        if (exceptionMap != null) {
-
-            String stacktrace = (String) exceptionMap.get("stacktrace");
-
-            if (stacktrace != null) {
-
-                String[] stacktraceLines = stacktrace.split("\\n");
-
-                for (String stacktraceLine : stacktraceLines) {
-
-                    logEntryTextSB.append(System.lineSeparator());
-                    logEntryTextSB.append(stacktraceLine);
-                    addAdditionalLine(stacktraceLine);
-                }
-            }
-        }
-
-    }
-
-    protected void processCloudKLogMap(StringBuilder logEntryTextSB, Map<String, Object> logMap) {
-
-        String time = (String) logMap.get("@timestamp");
+        // in older version, time is also present in the parent structure.
+        // String time = (String) logMap.get("@timestamp");
         String thread = (String) logMap.get("thread_name");
         String pegaThread = (String) logMap.get("pegathread");
         String tenantId = (String) logMap.get("tenantid");
@@ -709,6 +694,7 @@ public class Log4jPatternParser extends LogParser {
         String logLevel = (String) logMap.get("level");
         String stack = (String) logMap.get("stack");
         String requestorId = (String) logMap.get("RequestorId");
+        String correlationId = (String) logMap.get("CorrelationId");
         String userid = (String) logMap.get("userid");
         String message = (String) logMap.get("message");
         @SuppressWarnings("unchecked")
@@ -723,6 +709,7 @@ public class Log4jPatternParser extends LogParser {
         logLevel = logLevel != null ? logLevel : "";
         stack = stack != null ? stack : "";
         requestorId = requestorId != null ? requestorId : "";
+        correlationId = correlationId != null ? correlationId : "";
         userid = userid != null ? userid : "";
         message = message != null ? message : "";
 
@@ -735,6 +722,7 @@ public class Log4jPatternParser extends LogParser {
         // (LEVEL);
         // (STACK);
         // (REQUESTORID);
+        // (CORRELATIONID);
         // (USERID);
         // (MESSAGE);
 
@@ -747,13 +735,68 @@ public class Log4jPatternParser extends LogParser {
         addLogEntryColumnValue(logLevel);
         addLogEntryColumnValue(stack);
         addLogEntryColumnValue(requestorId);
+        addLogEntryColumnValue(correlationId);
         addLogEntryColumnValue(userid);
-        addLogEntryColumnValue(message);
 
         logEntryTextSB.append(String.format(V2_STR_FORMAT, time, thread, pegaThread, app, logger, logLevel, stack,
-                requestorId, userid, message));
+                requestorId, correlationId, userid));
 
-        processException(logEntryTextSB, exceptionMap);
+        String messageFirstLine = processMessage(message);
+
+        addLogEntryColumnValue(messageFirstLine);
+
+        logEntryTextSB.append(messageFirstLine);
+
+        processException(exceptionMap);
+    }
+
+    // Message string has multiple lines, return the first line to add to column and add remaining lines to additional lines
+    protected String processMessage(String message) {
+
+        String firstLine = null;
+
+        String[] messageLines = message.split("\\n");
+
+        boolean first = true;
+
+        for (String line : messageLines) {
+
+            if (first) {
+                firstLine = line;
+                first = false;
+            } else {
+                // additional lines are appended to full log text in buildLogEntry
+                // logEntryTextSB.append(System.lineSeparator());
+                // logEntryTextSB.append(line);
+
+                addAdditionalLine(line);
+            }
+        }
+
+        return firstLine;
+    }
+
+    protected void processException(Map<String, String> exceptionMap) {
+
+        if (exceptionMap != null) {
+
+            String stacktrace = (String) exceptionMap.get("stacktrace");
+
+            if (stacktrace != null) {
+
+                String[] stacktraceLines = stacktrace.split("\\n");
+
+                for (String stacktraceLine : stacktraceLines) {
+
+                    // additional lines are appended to full log text in buildLogEntry
+                    // logEntryTextSB.append(System.lineSeparator());
+                    // logEntryTextSB.append(stacktraceLine);
+
+                    addAdditionalLine(stacktraceLine);
+                }
+            }
+        }
+
     }
 
     protected void buildLogEntry() {
@@ -1154,7 +1197,12 @@ public class Log4jPatternParser extends LogParser {
                 hazelcastMembershipList.add(hazelcastMembership);
             }
 
-            logEntryIndex.addAndGet(additionalLines.size());
+            // Match log file line numbers with Log Entry line number.
+            CloudKVersion cloudKVersion = getCloudKVersion();
+
+            if ((cloudKVersion.equals(CloudKVersion.NULL)) || (cloudKVersion.equals(CloudKVersion.V0))) {
+                logEntryIndex.addAndGet(additionalLines.size());
+            }
 
             log4jLogEntryModel.addLogEntry(log4jLogEntry, logEntryColumnValueList, getCharset(), getLocale());
 

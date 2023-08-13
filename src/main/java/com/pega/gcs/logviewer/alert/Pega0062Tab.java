@@ -151,7 +151,15 @@ public class Pega0062Tab extends JPanel {
 
         String stageId = (String) stageMetric.get("stageId");
         String stageName = (String) stageMetric.get("stageName");
-        double movingAverage = (double) stageMetric.get("movingAverage");
+        Object movingAverageObject = stageMetric.get("movingAverage");
+
+        double movingAverage = -1d;
+
+        if (movingAverageObject instanceof Map) {
+            movingAverage = (double) ((Map<String, Object>) stageMetric.get("movingAverage")).get("value");
+        } else if (movingAverageObject instanceof Double) {
+            movingAverage = (double) stageMetric.get("movingAverage");
+        }
         int recordsIn = (int) stageMetric.get("recordsIn");
         int recordsOut = (int) stageMetric.get("recordsOut");
         int errorsCount = (int) stageMetric.get("errorsCount");
