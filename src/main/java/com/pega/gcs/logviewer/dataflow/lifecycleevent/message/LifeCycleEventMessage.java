@@ -3,19 +3,17 @@ package com.pega.gcs.logviewer.dataflow.lifecycleevent.message;
 
 import java.awt.Color;
 import java.io.Serializable;
-import java.text.DateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.logviewer.dataflow.lifecycleevent.LifeCycleEventTableModel;
+import com.pega.gcs.logviewer.LogViewerUtil;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
 
 public abstract class LifeCycleEventMessage implements Serializable {
 
     private static final long serialVersionUID = 840279671030822460L;
-
-    private static final Log4j2Helper LOG = new Log4j2Helper(LifeCycleEventMessage.class);
 
     private String type;
 
@@ -78,14 +76,15 @@ public abstract class LifeCycleEventMessage implements Serializable {
         this.searchFound = searchFound;
     }
 
-    public String getColumnValueForLifeCycleEventColumn(LogEntryColumn lifeCycleEventColumn) {
+    public String getColumnValueForLifeCycleEventColumn(LogEntryColumn lifeCycleEventColumn,
+            DateTimeFormatter displayDateTimeFormatter, ZoneId displayZoneId) {
 
         String value = null;
 
         if (lifeCycleEventColumn.equals(LogEntryColumn.MESSAGEID)) {
             value = getMessageId();
         } else if (lifeCycleEventColumn.equals(LogEntryColumn.TIMESTAMP)) {
-            value = getDisplayTimestamp();
+            value = LogViewerUtil.getFormattedTimeStr(getTimestamp(), displayDateTimeFormatter, displayZoneId);
         } else if (lifeCycleEventColumn.equals(LogEntryColumn.EVENT_TYPE)) {
             value = getType();
         } else if (lifeCycleEventColumn.equals(LogEntryColumn.SENDER_NODE_ID)) {
@@ -112,20 +111,6 @@ public abstract class LifeCycleEventMessage implements Serializable {
         }
 
         return value;
-    }
-
-    public String getDisplayTimestamp() {
-
-        String timestampStr = "";
-
-        try {
-            DateFormat df = LifeCycleEventTableModel.getDisplayDateFormat();
-            timestampStr = df.format(timestamp);
-        } catch (Exception e) {
-            LOG.error("Error formatting timestamp: " + timestamp, e);
-        }
-
-        return timestampStr;
     }
 
 }

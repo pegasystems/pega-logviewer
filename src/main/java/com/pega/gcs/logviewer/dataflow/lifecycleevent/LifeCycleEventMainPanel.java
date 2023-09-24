@@ -13,6 +13,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.time.ZoneId;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -30,6 +31,7 @@ import com.pega.gcs.fringecommon.guiutilities.bookmark.BookmarkContainer;
 import com.pega.gcs.fringecommon.guiutilities.bookmark.BookmarkModel;
 import com.pega.gcs.fringecommon.guiutilities.search.SearchData;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.logviewer.LogTableModel;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.view.LifeCycleEventsTableView;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.view.LifeCycleEventsView;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
@@ -64,7 +66,11 @@ public class LifeCycleEventMainPanel extends JPanel {
 
         RecentFile recentFile = recentFileContainer.getRecentFile(lifeCycleEventFile, charset);
 
-        lifeCycleEventTableModel = new LifeCycleEventTableModel(recentFile, searchData);
+        String zoneIdStr = (String) recentFile.getAttribute(LogTableModel.RECENT_KEY_ZONEID);
+
+        ZoneId displayZoneId = (zoneIdStr != null) ? ZoneId.of(zoneIdStr) : null;
+
+        lifeCycleEventTableModel = new LifeCycleEventTableModel(recentFile, searchData, displayZoneId);
 
         // not moving bookmark loading to end of file load
 

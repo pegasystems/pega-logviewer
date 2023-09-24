@@ -9,12 +9,12 @@ package com.pega.gcs.logviewer;
 
 import java.beans.PropertyChangeSupport;
 import java.nio.charset.Charset;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
@@ -45,6 +45,8 @@ public class LogTableModel extends FilterTableModel<LogEntryKey> {
     private static final long serialVersionUID = 7355840960429067165L;
 
     private static final Log4j2Helper LOG = new Log4j2Helper(LogTableModel.class);
+
+    public static final String RECENT_KEY_ZONEID = "zoneid";
 
     private LogEntryModel logEntryModel;
 
@@ -234,20 +236,24 @@ public class LogTableModel extends FilterTableModel<LogEntryKey> {
         return abstractLogPattern;
     }
 
-    public TimeZone getLogTimeZone() {
+    public ZoneId getZoneId() {
 
-        TimeZone timeZone = null;
+        ZoneId zoneId = null;
 
         RecentFile recentFile = getRecentFile();
 
         if (recentFile != null) {
-            timeZone = (TimeZone) recentFile.getAttribute(RecentFile.KEY_TIMEZONE);
+
+            String zoneIdStr = (String) recentFile.getAttribute(RECENT_KEY_ZONEID);
+
+            zoneId = (zoneIdStr != null) ? ZoneId.of(zoneIdStr) : null;
+
         }
 
-        return timeZone;
+        return zoneId;
     }
 
-    public void updateRecentFile(String charset, Locale locale, TimeZone timeZone) {
+    public void updateRecentFile(String charset, Locale locale, ZoneId zoneId) {
 
         LogEntryModel lem = getLogEntryModel();
 
@@ -262,10 +268,10 @@ public class LogTableModel extends FilterTableModel<LogEntryKey> {
             recentFile.setAttribute(RecentFile.KEY_LOCALE, locale);
         }
 
-        if (timeZone != null) {
-            recentFile.setAttribute(RecentFile.KEY_TIMEZONE, timeZone);
+        if (zoneId != null) {
+            recentFile.setAttribute(RECENT_KEY_ZONEID, zoneId.getId());
 
-            lem.setDisplayDateFormatTimeZone(timeZone);
+            lem.setDisplayZoneId(zoneId);
         }
 
         fireTableDataChanged();

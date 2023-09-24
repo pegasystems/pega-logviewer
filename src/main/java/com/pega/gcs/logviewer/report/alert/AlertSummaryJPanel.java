@@ -15,12 +15,13 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.io.File;
-import java.text.DateFormat;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
 import javax.swing.BorderFactory;
 import javax.swing.JComponent;
@@ -333,7 +334,8 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
         LogTableModel logTableModel = (LogTableModel) logTable.getModel();
         LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-        DateFormat modelDateFormat = logEntryModel.getModelDateFormat();
+        ZoneId modelZoneId = logEntryModel.getModelZoneId();
+        TimeZone modelTimeZone = TimeZone.getTimeZone(modelZoneId);
 
         CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
         DateAxis domainAxis = logEntryModel.getDomainAxis();
@@ -357,7 +359,7 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
         Locale locale = logTableModel.getLocale();
 
         // empty plot to re-adjust time domain
-        XYPlot logXYPlot = LogViewerUtil.getLogXYPlot(lowerDomainRange, upperDomainRange, modelDateFormat, locale);
+        XYPlot logXYPlot = LogViewerUtil.getLogXYPlot(lowerDomainRange, upperDomainRange, modelTimeZone, locale);
 
         combinedDomainXYPlot.add(logXYPlot);
         logXYPlot.setWeight(0);
@@ -367,7 +369,7 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
         categoryPlot.setRangeCrosshairVisible(false);
         categoryPlot.setRangeCrosshairLockedOnData(false);
 
-        LogViewerUtil.updatePlots(lscXYPlot, categoryPlot, logSeriesCollection, modelDateFormat, locale, false);
+        LogViewerUtil.updatePlots(lscXYPlot, categoryPlot, logSeriesCollection, modelTimeZone, locale, false);
 
         JPanel chartPanel = getChartPanel();
 
@@ -790,7 +792,6 @@ public class AlertSummaryJPanel extends JPanel implements ListSelectionListener 
         return dssValueJPanel;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void valueChanged(ListSelectionEvent listSelectionEvent) {
 

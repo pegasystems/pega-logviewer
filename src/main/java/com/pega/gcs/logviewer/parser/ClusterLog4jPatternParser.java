@@ -2,9 +2,9 @@
 package com.pega.gcs.logviewer.parser;
 
 import java.nio.charset.Charset;
+import java.time.ZoneId;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 
 import com.pega.gcs.logviewer.logfile.Log4jPattern;
 
@@ -13,10 +13,9 @@ public class ClusterLog4jPatternParser extends Log4jPatternParser {
     // 2023-05-11 06:29:30,274 (.DataFlowDiagnosticsFileLogger) INFO -
     private static final String V2_STR_FORMAT = "%s [%s] (%s) %s - ";
 
-    public ClusterLog4jPatternParser(Log4jPattern log4jPattern, Charset charset, Locale locale,
-            TimeZone displayTimezone) {
+    public ClusterLog4jPatternParser(Log4jPattern log4jPattern, Charset charset, Locale locale, ZoneId displayZoneId) {
 
-        super(log4jPattern, charset, locale, displayTimezone);
+        super(log4jPattern, charset, locale, displayZoneId);
 
     }
 

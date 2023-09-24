@@ -13,8 +13,11 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Shape;
 import java.awt.geom.Ellipse2D;
-import java.text.DateFormat;
 import java.text.NumberFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
@@ -132,7 +135,7 @@ public class LogViewerUtil {
     // in case of combined plots this will become sub plot hence we don't need
     // domain axis for every sub plots, hence will be passing null.
     public static void updatePlots(XYPlot xyPlot, CategoryPlot categoryPlot, LogSeriesCollection logSeriesCollection,
-            DateFormat modelDateFormat, Locale locale, boolean notify) {
+            TimeZone modelTimeZone, Locale locale, boolean notify) {
 
         String logSeriesCollectionName = logSeriesCollection.getName();
         Collection<LogSeries> logSeriesList = logSeriesCollection.getLogSeriesList();
@@ -151,7 +154,6 @@ public class LogViewerUtil {
 
         xyLineAndShapeRenderer.setDefaultToolTipGenerator(toolTipGenerator);
 
-        TimeZone modelTimeZone = modelDateFormat.getTimeZone();
         NumberFormat numberFormat = NumberFormat.getInstance(locale);
 
         TimeSeriesCollection timeSeriesCollection = new TimeSeriesCollection(modelTimeZone);
@@ -242,7 +244,7 @@ public class LogViewerUtil {
     }
 
     public static void updatePlots(XYPlot xyPlot, CategoryPlot categoryPlot, LogTimeSeries logTimeSeries,
-            DateFormat modelDateFormat, Locale locale, boolean notify, boolean autoRange, double minRangeValue,
+            TimeZone modelTimeZone, Locale locale, boolean notify, boolean autoRange, double minRangeValue,
             double maxRangeValue) {
 
         String logTimeSeriesName = logTimeSeries.getName();
@@ -261,7 +263,6 @@ public class LogViewerUtil {
 
         xyLineAndShapeRenderer.setDefaultToolTipGenerator(toolTipGenerator);
 
-        TimeZone modelTimeZone = modelDateFormat.getTimeZone();
         NumberFormat numberFormat = NumberFormat.getInstance(locale);
 
         TimeSeriesCollection timeSeriesCollection = new TimeSeriesCollection(modelTimeZone);
@@ -389,7 +390,7 @@ public class LogViewerUtil {
         return categoryPlot;
     }
 
-    public static XYPlot getLogXYPlot(long lowerDomainRange, long upperDomainRange, DateFormat modelDateFormat,
+    public static XYPlot getLogXYPlot(long lowerDomainRange, long upperDomainRange, TimeZone modelTimeZone,
             Locale locale) {
 
         Date lowerDomainDate = new Date(lowerDomainRange);
@@ -397,23 +398,21 @@ public class LogViewerUtil {
 
         LOG.debug("getLogXYPlot lowerDomainDate: " + lowerDomainDate + " upperDomainDate: " + upperDomainDate);
 
-        TimeZone timeZone = modelDateFormat.getTimeZone();
-
         TimeSeries ts = new TimeSeries("Log Time Series");
         RegularTimePeriod rtp;
         TimeSeriesDataItem tsdi;
 
         // add lower range
-        rtp = new Millisecond(lowerDomainDate, timeZone, locale);
+        rtp = new Millisecond(lowerDomainDate, modelTimeZone, locale);
         tsdi = new TimeSeriesDataItem(rtp, 0);
         ts.add(tsdi);
 
         // add upper range
-        rtp = new Millisecond(upperDomainDate, timeZone, locale);
+        rtp = new Millisecond(upperDomainDate, modelTimeZone, locale);
         tsdi = new TimeSeriesDataItem(rtp, 0);
         ts.add(tsdi);
 
-        TimeSeriesCollection tsc = new TimeSeriesCollection(timeZone);
+        TimeSeriesCollection tsc = new TimeSeriesCollection(modelTimeZone);
         tsc.addSeries(ts);
 
         XYPlot logXYPlot = new XYPlot();
@@ -443,5 +442,24 @@ public class LogViewerUtil {
                 }
             }
         }
+    }
+
+    public static long getTimeMillis(String timeString, DateTimeFormatter dateTimeFormatter, ZoneId zoneId) {
+
+        ZonedDateTime zonedDateTime = ZonedDateTime.parse(timeString, dateTimeFormatter.withZone(zoneId));
+
+        long timeMillis = zonedDateTime.toInstant().toEpochMilli();
+
+        return timeMillis;
+    }
+
+    public static String getFormattedTimeStr(long timeMillis, DateTimeFormatter dateTimeFormatter, ZoneId zoneId) {
+
+        Instant instant = Instant.ofEpochMilli(timeMillis);
+        ZonedDateTime zonedDateTime = ZonedDateTime.ofInstant(instant, zoneId);
+
+        String formattedTimeStr = dateTimeFormatter.format(zonedDateTime);
+
+        return formattedTimeStr;
     }
 }

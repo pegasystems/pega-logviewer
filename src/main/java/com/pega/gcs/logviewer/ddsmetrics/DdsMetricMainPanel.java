@@ -15,6 +15,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.nio.charset.Charset;
+import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -242,12 +243,12 @@ public class DdsMetricMainPanel extends JPanel {
 
                     String origCharsetName = logTableModel.getCharset().name();
                     Locale origLocale = logTableModel.getLocale();
-                    TimeZone origTimezone = logTableModel.getLogTimeZone();
+                    ZoneId origZoneId = logTableModel.getZoneId();
 
                     ChartTablePanelSettingDialog chartTablePanelSettingDialog;
 
                     chartTablePanelSettingDialog = new ChartTablePanelSettingDialog(origCharsetName, origLocale,
-                            origTimezone, BaseFrame.getAppIcon(), DdsMetricMainPanel.this);
+                            origZoneId, BaseFrame.getAppIcon(), DdsMetricMainPanel.this);
 
                     boolean settingUpdated = chartTablePanelSettingDialog.isSettingUpdated();
 
@@ -255,9 +256,9 @@ public class DdsMetricMainPanel extends JPanel {
 
                         String selectedCharsetName = chartTablePanelSettingDialog.getSelectedCharsetName();
                         Locale locale = chartTablePanelSettingDialog.getSelectedLocale();
-                        TimeZone timezone = chartTablePanelSettingDialog.getSelectedTimeZone();
+                        ZoneId zoneId = chartTablePanelSettingDialog.getSelectedZoneId();
 
-                        logTableModel.updateRecentFile(selectedCharsetName, locale, timezone);
+                        logTableModel.updateRecentFile(selectedCharsetName, locale, zoneId);
 
                         if (origCharsetName.equals(selectedCharsetName)) {
 
@@ -562,13 +563,13 @@ public class DdsMetricMainPanel extends JPanel {
 
         Charset charset = logTableModel.getCharset();
         Locale locale = logTableModel.getLocale();
-        TimeZone timeZone = logTableModel.getLogTimeZone();
+        ZoneId zoneId = logTableModel.getZoneId();
         Long fileSize = logTableModel.getFileSize();
 
-        String timezoneStr = null;
+        String zoneIdStr = null;
 
-        if (timeZone != null) {
-            timezoneStr = timeZone.getDisplayName(timeZone.useDaylightTime(), TimeZone.SHORT);
+        if (zoneId != null) {
+            zoneIdStr = zoneId.getId();
         }
 
         String fileSizeStr = null;
@@ -579,7 +580,7 @@ public class DdsMetricMainPanel extends JPanel {
 
         charsetLabel.setText(charset.name());
         localeLabel.setText(locale.toString());
-        timezoneLabel.setText(timezoneStr);
+        timezoneLabel.setText(zoneIdStr);
         fileSizeLabel.setText(fileSizeStr);
 
     }

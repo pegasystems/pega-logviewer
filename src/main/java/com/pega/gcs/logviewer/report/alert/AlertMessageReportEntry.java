@@ -57,7 +57,7 @@ public class AlertMessageReportEntry implements Comparable<AlertMessageReportEnt
         return alertLogEntryAlertKeyValueMap.get(alertLogEntryKey);
     }
 
-    public void addAlertLogEntry(AlertLogEntry alertLogEntry, TimeZone timezone, Locale locale) {
+    public void addAlertLogEntry(AlertLogEntry alertLogEntry, TimeZone modelTimezone, Locale locale) {
 
         LogEntryKey logEntryKey = alertLogEntry.getKey();
         double alertLogEntryValue = alertLogEntry.getObservedKPI();
@@ -67,7 +67,7 @@ public class AlertMessageReportEntry implements Comparable<AlertMessageReportEnt
         long logEntryTime = logEntryKey.getTimestamp();
 
         RegularTimePeriod regularTimePeriod;
-        regularTimePeriod = new Millisecond(new Date(logEntryTime), timezone, locale);
+        regularTimePeriod = new Millisecond(new Date(logEntryTime), modelTimezone, locale);
 
         TimeSeriesDataItem timeSeriesDataItem;
         timeSeriesDataItem = new TimeSeriesDataItem(regularTimePeriod, alertLogEntryValue);

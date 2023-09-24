@@ -17,7 +17,7 @@ import java.awt.Insets;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.io.File;
-import java.text.DateFormat;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.TimeZone;
 
 import javax.swing.BorderFactory;
 import javax.swing.JCheckBox;
@@ -356,7 +357,6 @@ public class ChartAndLegendPanel extends JPanel implements ListSelectionListener
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void valueChanged(ListSelectionEvent listSelectionEvent) {
 
@@ -617,7 +617,6 @@ public class ChartAndLegendPanel extends JPanel implements ListSelectionListener
         return legendHeaderCountJPanel;
     }
 
-    @SuppressWarnings("unchecked")
     private void refreshChart(LogTableModel logTableModel) {
 
         try {
@@ -626,7 +625,9 @@ public class ChartAndLegendPanel extends JPanel implements ListSelectionListener
 
             LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-            DateFormat modelDateFormat = logEntryModel.getModelDateFormat();
+            ZoneId modelZoneId = logEntryModel.getModelZoneId();
+            TimeZone modelTimeZone = TimeZone.getTimeZone(modelZoneId);
+
             Locale locale = logTableModel.getLocale();
 
             JPanel legendPanel = getLegendPanel();
@@ -653,7 +654,7 @@ public class ChartAndLegendPanel extends JPanel implements ListSelectionListener
                 long lowerDomainRange = logEntryModel.getLowerDomainRange();
                 long upperDomainRange = logEntryModel.getUpperDomainRange();
 
-                logXYPlot = LogViewerUtil.getLogXYPlot(lowerDomainRange, upperDomainRange, modelDateFormat, locale);
+                logXYPlot = LogViewerUtil.getLogXYPlot(lowerDomainRange, upperDomainRange, modelTimeZone, locale);
 
                 combinedDomainXYPlot.add(logXYPlot);
                 xyPlotMap.put("LogXYPlot", logXYPlot);
@@ -754,7 +755,7 @@ public class ChartAndLegendPanel extends JPanel implements ListSelectionListener
                     // categoryPlot.setWeight(0);
                 }
 
-                LogViewerUtil.updatePlots(xyPlot, /* categoryPlot */ null, logSeriesCollection, modelDateFormat, locale,
+                LogViewerUtil.updatePlots(xyPlot, /* categoryPlot */ null, logSeriesCollection, modelTimeZone, locale,
                         false);
 
                 lsccbp.updatelogSeriesCounts(logSeriesList);

@@ -5,11 +5,11 @@ import java.awt.Color;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +21,7 @@ import javax.swing.text.html.HTMLEditorKit;
 import javax.swing.text.html.StyleSheet;
 
 import com.pega.gcs.fringecommon.utilities.FileUtilities;
+import com.pega.gcs.logviewer.LogViewerUtil;
 
 public class Pega0062Tab extends JPanel {
 
@@ -32,12 +33,17 @@ public class Pega0062Tab extends JPanel {
 
     private StyleSheet styleSheet;
 
-    private DateFormat displayDateFormat;
+    private DateTimeFormatter displayDateTimeFormatter;
 
-    public Pega0062Tab(ArrayList<Map<String, Object>> stageMetricsList, DateFormat displayDateFormat) {
+    private ZoneId displayZoneId;
+
+    public Pega0062Tab(ArrayList<Map<String, Object>> stageMetricsList, DateTimeFormatter displayDateTimeFormatter,
+            ZoneId displayZoneId) {
+
         super();
 
-        this.displayDateFormat = displayDateFormat;
+        this.displayDateTimeFormatter = displayDateTimeFormatter;
+        this.displayZoneId = displayZoneId;
 
         this.styleSheet = FileUtilities.getStyleSheet(this.getClass(), "styles.css");
 
@@ -120,8 +126,12 @@ public class Pega0062Tab extends JPanel {
 
     }
 
-    private DateFormat getDisplayDateFormat() {
-        return displayDateFormat;
+    private DateTimeFormatter getDisplayDateTimeFormatter() {
+        return displayDateTimeFormatter;
+    }
+
+    private ZoneId getDisplayZoneId() {
+        return displayZoneId;
     }
 
     private StyleSheet getStyleSheet() {
@@ -536,7 +546,10 @@ public class Pega0062Tab extends JPanel {
             stageRecordHtmlSB.append("</td>");
 
             stageRecordHtmlSB.append("<td class=\"valueColumnCenter\">");
-            stageRecordHtmlSB.append(getFormattedDateData(lastRecordTimestamp));
+            ZoneId displayZoneId = getDisplayZoneId();
+            DateTimeFormatter displayDateTimeFormatter = getDisplayDateTimeFormatter();
+            stageRecordHtmlSB.append(
+                    LogViewerUtil.getFormattedTimeStr(lastRecordTimestamp, displayDateTimeFormatter, displayZoneId));
             stageRecordHtmlSB.append("</td>");
 
             stageRecordHtmlSB.append("<td class=\"valueColumnRightIndent\">");
@@ -623,18 +636,4 @@ public class Pega0062Tab extends JPanel {
 
     }
 
-    private String getFormattedDateData(Long timestamp) {
-
-        String dateStr = "";
-
-        if (timestamp > 0) {
-
-            DateFormat displayDateFormat = getDisplayDateFormat();
-
-            dateStr = displayDateFormat.format(new Date(timestamp));
-        }
-
-        return dateStr;
-
-    }
 }

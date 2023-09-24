@@ -80,6 +80,12 @@ public class Log4jPatternManager {
         log4jPattern = logPatternFactory.getLog4jPattern(LogType.PEGA_RULES, name, patStr, false);
         addToLog4jPatternTypeMap(log4jPattern);
 
+        // Kakfa
+        name = "Kafka";
+        patStr = "[%d] %p [%t]%m (%c)%n";
+        log4jPattern = logPatternFactory.getLog4jPattern(LogType.PEGA_RULES, name, patStr, false);
+        addToLog4jPatternTypeMap(log4jPattern);
+
         // CUSTOM1
         // name = "CUSTOM1";
         // patternString = "%d{dd HH:mm:ss,SSS} [%20.20t] [%10.10X{pegathread}] [%20.20X{app}] (%80.80c{3}) %-5p %X{stack} %X{userid} -

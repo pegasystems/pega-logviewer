@@ -5,11 +5,11 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
 import java.io.File;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
@@ -33,7 +33,6 @@ import org.jfree.data.gantt.TaskSeriesCollection;
 import org.jfree.data.gantt.XYTaskDataset;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
-import com.pega.gcs.fringecommon.utilities.DateTimeUtilities;
 import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.logviewer.CustomChartPanel;
 import com.pega.gcs.logviewer.LogViewerUtil;
@@ -147,11 +146,12 @@ public class PartitionsChartPanel extends JPanel {
         long lowerDomainRange = lifeCycleEventTableModel.getLowerDomainRange();
         long upperDomainRange = lifeCycleEventTableModel.getUpperDomainRange();
 
-        DateFormat dateFormat = new SimpleDateFormat(DateTimeUtilities.DATEFORMAT_ISO8601);
+        ZoneId displayZoneId = lifeCycleEventTableModel.getDisplayZoneId();
+        TimeZone modelTimeZone = TimeZone.getTimeZone(displayZoneId);
 
         Locale locale = lifeCycleEventTableModel.getLocale();
 
-        XYPlot dummyXYPlot = LogViewerUtil.getLogXYPlot(lowerDomainRange, upperDomainRange, dateFormat, locale);
+        XYPlot dummyXYPlot = LogViewerUtil.getLogXYPlot(lowerDomainRange, upperDomainRange, modelTimeZone, locale);
 
         combinedDomainXYPlot.add(dummyXYPlot);
 

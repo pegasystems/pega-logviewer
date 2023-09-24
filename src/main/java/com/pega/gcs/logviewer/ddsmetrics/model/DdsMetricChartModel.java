@@ -2,13 +2,13 @@
 package com.pega.gcs.logviewer.ddsmetrics.model;
 
 import java.nio.charset.Charset;
-import java.text.DateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.TreeMap;
 
 import com.pega.gcs.logviewer.model.LogEntry;
@@ -22,9 +22,9 @@ public class DdsMetricChartModel extends LogEntryModel {
 
     private Map<String, DdsMetricTableInfo> tableinfoMap;
 
-    public DdsMetricChartModel(DateFormat dateFormat, TimeZone displayTimezone) {
+    public DdsMetricChartModel(DateTimeFormatter modelDateTimeFormatter, ZoneId modelZoneId, ZoneId displayZoneId) {
 
-        super(dateFormat, displayTimezone);
+        super(modelDateTimeFormatter, modelZoneId, displayZoneId);
 
         tableinfoMap = new TreeMap<>();
 

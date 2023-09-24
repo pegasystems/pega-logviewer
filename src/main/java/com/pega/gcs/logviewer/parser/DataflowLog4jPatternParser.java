@@ -2,17 +2,16 @@
 package com.pega.gcs.logviewer.parser;
 
 import java.nio.charset.Charset;
-import java.text.DateFormat;
-import java.text.ParseException;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.logviewer.LogViewerUtil;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.LifeCycleEventMessageParser;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.message.LifeCycleEventMessage;
 import com.pega.gcs.logviewer.logfile.Log4jPattern;
@@ -33,10 +32,9 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
 
     private LifeCycleEventMessageParser lifeCycleEventMessageParser;
 
-    public DataflowLog4jPatternParser(Log4jPattern log4jPattern, Charset charset, Locale locale,
-            TimeZone displayTimezone) {
+    public DataflowLog4jPatternParser(Log4jPattern log4jPattern, Charset charset, Locale locale, ZoneId displayZoneId) {
 
-        super(log4jPattern, charset, locale, displayTimezone);
+        super(log4jPattern, charset, locale, displayZoneId);
 
         // log4j related columns
         LogEntryModel logEntryModel = getLogEntryModel();
@@ -117,15 +115,15 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
 
             String timestampStr = logEntryColumnValueList.get(timestampIndex);
 
-            DateFormat modelDateFormat = logEntryModel.getModelDateFormat();
+            DateTimeFormatter modelDateTimeFormatter = logEntryModel.getModelDateTimeFormatter();
+            ZoneId modelZoneId = logEntryModel.getModelZoneId();
 
             long logEntryTime = -1;
             try {
 
-                Date logEntryDate = modelDateFormat.parse(timestampStr);
-                logEntryTime = logEntryDate.getTime();
+                logEntryTime = LogViewerUtil.getTimeMillis(timestampStr, modelDateTimeFormatter, modelZoneId);
 
-            } catch (ParseException e) {
+            } catch (Exception e) {
                 LOG.error("Error parsing line: [" + logEntryIndex + "] logentry: [" + logEntryText + "]", e);
             }
 
@@ -153,7 +151,8 @@ public class DataflowLog4jPatternParser extends Log4jPatternParser {
                 String columnValue = null;
 
                 if (lifeCycleEventMessage != null) {
-                    columnValue = lifeCycleEventMessage.getColumnValueForLifeCycleEventColumn(lfeCol);
+                    columnValue = lifeCycleEventMessage.getColumnValueForLifeCycleEventColumn(lfeCol,
+                            modelDateTimeFormatter, modelZoneId);
                 }
 
                 logEntryColumnValueList.add(columnValue);

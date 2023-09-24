@@ -53,7 +53,7 @@ java {
 application {
     mainClassName = 'com.pega.gcs.logviewer.LogViewer'
     applicationDefaultJvmArgs = [
-                                    'XXX_SET_USER_DIR_XXX',
+                                    '-Duser.dir=XXX_SET_USER_DIR_XXX',
                                     '-Dfile.encoding=UTF-8',
                                     '-Xms1G',
                                     '-Xmx4G',
@@ -96,8 +96,8 @@ task copyLicense(type: Copy) {
 // set user.dir to the distribution directory
 startScripts {
     doLast {
-        unixScript.text = unixScript.text.replace('XXX_SET_USER_DIR_XXX', '-Duser.dir=$APP_HOME')
-        windowsScript.text = windowsScript.text.replace('XXX_SET_USER_DIR_XXX', '-Duser.dir=%APP_HOME%')
+        unixScript.text = unixScript.text.replace('XXX_SET_USER_DIR_XXX', "'\$APP_HOME'")
+        windowsScript.text = windowsScript.text.replace('XXX_SET_USER_DIR_XXX', '%APP_HOME%')
     }
 }
 

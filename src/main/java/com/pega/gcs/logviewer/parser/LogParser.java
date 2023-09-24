@@ -8,8 +8,9 @@
 package com.pega.gcs.logviewer.parser;
 
 import java.nio.charset.Charset;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,7 +18,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -47,9 +47,11 @@ public abstract class LogParser {
 
     private Locale locale;
 
-    private DateFormat dateFormat;
+    private ZoneId modelZoneId;
 
-    // private List<LogEntryColumn> logEntryColumnList;
+    private ZoneId displayZoneId;
+
+    private DateTimeFormatter modelDateTimeFormatter;
 
     private AtomicInteger logEntryIndex;
 
@@ -85,14 +87,15 @@ public abstract class LogParser {
         NULL, V0, DOCKER, V1, V2, V3;
     }
 
-    public LogParser(AbstractLogPattern abstractLogPattern, Charset charset, Locale locale) {
+    public LogParser(AbstractLogPattern abstractLogPattern, Charset charset, Locale locale, ZoneId displayZoneId) {
 
-        this.dateFormat = null;
         this.abstractLogPattern = abstractLogPattern;
         this.charset = charset;
         this.locale = locale;
+        this.displayZoneId = displayZoneId;
 
-        // this.logEntryColumnList = null;
+        this.modelZoneId = null;
+        this.modelDateTimeFormatter = null;
 
         this.logEntryIndex = new AtomicInteger(0);
 
@@ -123,21 +126,29 @@ public abstract class LogParser {
         return locale;
     }
 
-    public DateFormat getDateFormat() {
-        return dateFormat;
+    protected ZoneId getDisplayZoneId() {
+        return displayZoneId;
     }
 
-    protected void setDateFormat(DateFormat dateFormat) {
-        this.dateFormat = dateFormat;
+    protected void setDisplayZoneId(ZoneId displayZoneId) {
+        this.displayZoneId = displayZoneId;
     }
 
-    // protected List<LogEntryColumn> getLogEntryColumnList() {
-    // return logEntryColumnList;
-    // }
-    //
-    // protected void setLogEntryColumnList(List<LogEntryColumn> logEntryColumnList) {
-    // this.logEntryColumnList = logEntryColumnList;
-    // }
+    protected ZoneId getModelZoneId() {
+        return modelZoneId;
+    }
+
+    protected void setModelZoneId(ZoneId modelZoneId) {
+        this.modelZoneId = modelZoneId;
+    }
+
+    protected DateTimeFormatter getModelDateTimeFormatter() {
+        return modelDateTimeFormatter;
+    }
+
+    protected void setModelDateTimeFormatter(DateTimeFormatter modelDateTimeFormatter) {
+        this.modelDateTimeFormatter = modelDateTimeFormatter;
+    }
 
     protected AtomicInteger getLogEntryIndex() {
         return logEntryIndex;
@@ -267,16 +278,16 @@ public abstract class LogParser {
 
             LOG.info("Using Timestamp format: " + quoteTimeStamp);
 
-            DateFormat dateFormat = new SimpleDateFormat(quoteTimeStamp);
+            DateTimeFormatter modelDateTimeFormatter = DateTimeFormatter.ofPattern(quoteTimeStamp);
 
             if (timeZoneStr != null) {
 
-                TimeZone tz = TimeZone.getTimeZone(timeZoneStr);
-                dateFormat.setTimeZone(tz);
+                ZoneId modelZoneId = ZoneId.of(timeZoneStr);
+
+                setModelZoneId(modelZoneId);
             }
 
-            setDateFormat(dateFormat);
-
+            setModelDateTimeFormatter(modelDateTimeFormatter);
         }
 
         return timeStampFormat;
@@ -307,7 +318,7 @@ public abstract class LogParser {
     }
 
     public static LogParser getLogParser(String filename, List<String> readLineList, Charset charset, Locale locale,
-            TimeZone displayTimezone) {
+            ZoneId displayZoneId) {
 
         LogParser logParser = null;
 
@@ -318,7 +329,7 @@ public abstract class LogParser {
 
             AlertLogPattern alertLogPattern = LogPatternFactory.getInstance().getAlertLogPattern();
 
-            AlertLogParser alertLogParser = new AlertLogParser(alertLogPattern, charset, locale);
+            AlertLogParser alertLogParser = new AlertLogParser(alertLogPattern, charset, locale, displayZoneId);
 
             int rowCount = tryLogParser(alertLogParser, readLineList);
 
@@ -333,19 +344,19 @@ public abstract class LogParser {
 
             Set<Log4jPattern> log4jPatternSet = log4jPatternManager.getDefaultClusterLog4jPatternSet();
 
-            logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayTimezone);
+            logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayZoneId);
 
         } else if ((filename.toUpperCase().contains("DATAFLOW")) && (!filename.toUpperCase().contains("PEGARULES"))) {
 
             Set<Log4jPattern> log4jPatternSet = log4jPatternManager.getDefaultDataflowLog4jPatternSet();
 
-            logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayTimezone);
+            logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayZoneId);
 
         } else if (filename.toUpperCase().contains("DDSMETRICS")) {
 
             Set<Log4jPattern> log4jPatternSet = log4jPatternManager.getDefaultDdsMetricLog4jPatternSet();
 
-            logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayTimezone);
+            logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayZoneId);
         }
 
         // check if a PegaRules log file
@@ -353,7 +364,7 @@ public abstract class LogParser {
 
             Set<Log4jPattern> pegaRulesLog4jPatternSet = log4jPatternManager.getDefaultRulesLog4jPatternSet();
 
-            logParser = getLog4jParser(readLineList, pegaRulesLog4jPatternSet, charset, locale, displayTimezone);
+            logParser = getLog4jParser(readLineList, pegaRulesLog4jPatternSet, charset, locale, displayZoneId);
         }
 
         // TODO other log file types
@@ -362,7 +373,7 @@ public abstract class LogParser {
     }
 
     public static LogParser getLogParserFromPattern(AbstractLogPattern abstractLogPattern, Charset charset,
-            Locale locale, TimeZone displayTimezone) {
+            Locale locale, ZoneId displayZoneId) {
 
         LogParser logParser = null;
 
@@ -371,22 +382,22 @@ public abstract class LogParser {
         switch (logType) {
 
         case PEGA_ALERT:
-            logParser = new AlertLogParser((AlertLogPattern) abstractLogPattern, charset, locale);
+            logParser = new AlertLogParser((AlertLogPattern) abstractLogPattern, charset, locale, displayZoneId);
             break;
         case PEGA_RULES:
-            logParser = new Log4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale, displayTimezone);
+            logParser = new Log4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale, displayZoneId);
             break;
         case PEGA_CLUSTER:
             logParser = new ClusterLog4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale,
-                    displayTimezone);
+                    displayZoneId);
             break;
         case PEGA_DATAFLOW:
             logParser = new DataflowLog4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale,
-                    displayTimezone);
+                    displayZoneId);
             break;
         case PEGA_DDSMETRIC:
             logParser = new DdsMetricLog4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale,
-                    displayTimezone);
+                    displayZoneId);
             break;
         default:
             break;
@@ -399,13 +410,13 @@ public abstract class LogParser {
     // implementing other types like WAS, WLS
     // with 8.6 changes, multiple patterns are now matching , hence selecting a pattern that returns the max nos of rows.
     public static LogParser getLog4jParser(List<String> readLineList, Set<Log4jPattern> log4jPatternSet,
-            Charset charset, Locale locale, TimeZone displayTimezone) {
+            Charset charset, Locale locale, ZoneId displayZoneId) {
 
         LogParser logParser = null;
 
         for (Log4jPattern log4jPattern : log4jPatternSet) {
 
-            LogParser currentLogParser = getLogParserFromPattern(log4jPattern, charset, locale, displayTimezone);
+            LogParser currentLogParser = getLogParserFromPattern(log4jPattern, charset, locale, displayZoneId);
 
             int rowCount = tryLogParser(currentLogParser, readLineList);
 
@@ -532,8 +543,22 @@ public abstract class LogParser {
                             LogType logType = abstractLogPattern.getLogType();
 
                             if (!LogType.PEGA_ALERT.equals(logType)) {
-                                DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-                                logEntryModel.setModelDateFormat(dateFormat);
+
+                                String cloudKTimestampPattern;
+
+                                cloudKTimestampPattern = "yyyy-MM-dd'T'HH:mm:ss[.SSSSSSSSS][.SSSSSSSS][.SSSSSSS][.SSSSSS][.SSS]X";
+
+                                ZoneId modelZoneId = ZoneOffset.UTC;
+                                ZoneId displayZoneId = ZoneOffset.UTC;
+                                DateTimeFormatter modelDateTimeFormatter = DateTimeFormatter
+                                        .ofPattern(cloudKTimestampPattern);
+                                setModelZoneId(modelZoneId);
+                                setDisplayZoneId(displayZoneId);
+                                setModelDateTimeFormatter(modelDateTimeFormatter);
+
+                                logEntryModel.setModelZoneId(modelZoneId);
+                                logEntryModel.setDisplayZoneId(displayZoneId);
+                                logEntryModel.setModelDateTimeFormatter(modelDateTimeFormatter);
                             }
 
                             switch (logType) {

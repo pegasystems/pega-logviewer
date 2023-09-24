@@ -21,10 +21,11 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.nio.charset.Charset;
-import java.text.DateFormat;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
@@ -523,12 +524,13 @@ public class AlertMessageReportEntryFrame extends JFrame {
 
         Locale locale = logTableModel.getLocale();
 
-        AlertLogEntryModel alertLogEntryModel = (AlertLogEntryModel) logTableModel.getLogEntryModel();
+        AlertLogEntryModel logEntryModel = (AlertLogEntryModel) logTableModel.getLogEntryModel();
 
-        DateFormat modelDateFormat = alertLogEntryModel.getModelDateFormat();
+        ZoneId modelZoneId = logEntryModel.getModelZoneId();
+        TimeZone modelTimeZone = TimeZone.getTimeZone(modelZoneId);
 
         CombinedDomainXYPlot combinedDomainXYPlot = getCombinedDomainXYPlot();
-        DateAxis domainAxis = alertLogEntryModel.getDomainAxis();
+        DateAxis domainAxis = logEntryModel.getDomainAxis();
 
         try {
             combinedDomainXYPlot.setDomainAxis((DateAxis) domainAxis.clone());
@@ -544,11 +546,11 @@ public class AlertMessageReportEntryFrame extends JFrame {
 
         combinedDomainXYPlot.add(lsXYPlot);
 
-        long lowerDomainRange = alertLogEntryModel.getLowerDomainRange();
-        long upperDomainRange = alertLogEntryModel.getUpperDomainRange();
+        long lowerDomainRange = logEntryModel.getLowerDomainRange();
+        long upperDomainRange = logEntryModel.getUpperDomainRange();
 
         // empty plot to re-adjust time domain
-        XYPlot logXYPlot = LogViewerUtil.getLogXYPlot(lowerDomainRange, upperDomainRange, modelDateFormat, locale);
+        XYPlot logXYPlot = LogViewerUtil.getLogXYPlot(lowerDomainRange, upperDomainRange, modelTimeZone, locale);
 
         combinedDomainXYPlot.add(logXYPlot);
         logXYPlot.setWeight(0);
@@ -565,7 +567,7 @@ public class AlertMessageReportEntryFrame extends JFrame {
         double minRangeValue = alertMessageReportModel.getMinRangeValue();
         double maxRangeValue = alertMessageReportModel.getMaxRangeValue();
 
-        LogViewerUtil.updatePlots(lsXYPlot, categoryPlot, alertLogTimeSeries, modelDateFormat, locale, false, autoRange,
+        LogViewerUtil.updatePlots(lsXYPlot, categoryPlot, alertLogTimeSeries, modelTimeZone, locale, false, autoRange,
                 minRangeValue, maxRangeValue);
 
         JPanel chartPanel = getChartPanel();
@@ -1077,7 +1079,6 @@ public class AlertMessageReportEntryFrame extends JFrame {
 
     private void updateOutliers(DefaultListModel<AlertReportListEntry> defaultListModel) {
 
-        @SuppressWarnings("unchecked")
         List<Number> outliersList = alertMessageReportEntry.getAlertBoxAndWhiskerItem().getOutliers();
 
         List<LogEntryKey> alertLogEntryKeyList = alertMessageReportEntry.getAlertLogEntryKeyList();

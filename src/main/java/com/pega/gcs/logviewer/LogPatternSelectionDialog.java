@@ -18,6 +18,7 @@ import java.awt.LayoutManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.nio.charset.Charset;
+import java.time.ZoneId;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -64,21 +65,21 @@ public class LogPatternSelectionDialog extends JDialog {
 
     private Locale locale;
 
-    private TimeZone displayTimezone;
+    private ZoneId displayZoneId;
 
     private JTextField logPatternTextField;
 
     private JComboBox<String> log4jPatternComboBox;
 
-    public LogPatternSelectionDialog(List<String> readLineList, Charset charset, Locale locale,
-            TimeZone displayTimezone, ImageIcon appIcon, Component parent) {
+    public LogPatternSelectionDialog(List<String> readLineList, Charset charset, Locale locale, ZoneId displayZoneId,
+            ImageIcon appIcon, Component parent) {
 
         super();
 
         this.readLineList = readLineList;
         this.charset = charset;
         this.locale = locale;
-        this.displayTimezone = displayTimezone;
+        this.displayZoneId = displayZoneId;
 
         this.logParser = null;
 
@@ -373,7 +374,7 @@ public class LogPatternSelectionDialog extends JDialog {
                         log4jPatternSet.add(log4jPattern);
 
                         LogParser logParser = LogParser.getLog4jParser(getReadLineList(), log4jPatternSet, charset,
-                                locale, displayTimezone);
+                                locale, displayZoneId);
 
                         if (logParser != null) {
                             setLogParser(logParser);

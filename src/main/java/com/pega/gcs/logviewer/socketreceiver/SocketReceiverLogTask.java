@@ -4,10 +4,10 @@ package com.pega.gcs.logviewer.socketreceiver;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.nio.charset.Charset;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.swing.JLabel;
@@ -82,14 +82,14 @@ public class SocketReceiverLogTask extends SwingWorker<LogParser, ReadCounterTas
         AbstractLogPattern abstractLogPattern = logTableModel.getLogPattern();
         Charset charset = logTableModel.getCharset();
         Locale locale = logTableModel.getLocale();
-        TimeZone displayTimezone = logTableModel.getLogTimeZone();
+        ZoneId displayZoneId = logTableModel.getZoneId();
 
-        LogParser logParser = LogParser.getLogParserFromPattern(abstractLogPattern, charset, locale, displayTimezone);
+        LogParser logParser = LogParser.getLogParserFromPattern(abstractLogPattern, charset, locale, displayZoneId);
 
         updateLogTableModel(logParser);
 
-        LOG.info("SocketReceiverLogTask - Using Charset: " + charset + " Locale: " + locale + " Display Timezone: "
-                + displayTimezone);
+        LOG.info("SocketReceiverLogTask - Using Charset: " + charset + " Locale: " + locale + " Display ZoneId: "
+                + displayZoneId);
 
         FileReadTaskInfo fileReadTaskInfo = new FileReadTaskInfo(0, 0);
         EventReadTaskInfo eventReadTaskInfo = new EventReadTaskInfo(0, 0);
