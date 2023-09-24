@@ -10,11 +10,11 @@ package com.pega.gcs.logviewer;
 import java.awt.Component;
 import java.io.File;
 import java.nio.charset.Charset;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.TimeZone;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -140,14 +140,14 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
 
         Charset charset = logTableModel.getCharset();
         Locale locale = logTableModel.getLocale();
-        TimeZone displayTimezone = logTableModel.getLogTimeZone();
+        ZoneId displayZoneId = logTableModel.getZoneId();
 
         String filePath = logTableModel.getFilePath();
 
         File logFile = new File(filePath);
 
-        LOG.info("LogFileLoadTask - Using Charset: " + charset + " Locale: " + locale + " Display Timezone: "
-                + displayTimezone);
+        LOG.info("LogFileLoadTask - Using Charset: " + charset + " Locale: " + locale + " Display ZoneId: "
+                + displayZoneId);
         LOG.info("LogFileLoadTask - Loading file: " + logFile);
 
         FileReadTaskInfo fileReadTaskInfo = new FileReadTaskInfo(0, 0);
@@ -261,7 +261,7 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
 
                                     if (readLineList.size() >= 200) {
                                         logParser = getLogParser(logFile.getName(), readLineList, charset, locale,
-                                                displayTimezone);
+                                                displayZoneId);
 
                                         if (logParser == null) {
                                             cancel(true);
@@ -296,7 +296,7 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
                         // in case the number of line in the file is less than 100, the logParser would not have initialised.
                         if ((!isCancelled()) && (logParser == null)) {
 
-                            logParser = getLogParser(logFile.getName(), readLineList, charset, locale, displayTimezone);
+                            logParser = getLogParser(logFile.getName(), readLineList, charset, locale, displayZoneId);
 
                             if (logParser == null) {
                                 cancel(true);
@@ -477,9 +477,9 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
 
             LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
 
-            TimeZone displayDateFormatTimeZone = logEntryModel.getDisplayDateFormatTimeZone();
+            ZoneId displayZoneId = logEntryModel.getDisplayZoneId();
 
-            recentFile.setAttribute(RecentFile.KEY_TIMEZONE, displayDateFormatTimeZone);
+            recentFile.setAttribute(LogTableModel.RECENT_KEY_ZONEID, displayZoneId.getId());
         }
     }
 
@@ -558,17 +558,17 @@ public class LogFileLoadTask extends SwingWorker<LogParser, ReadCounterTaskInfo>
     // }
 
     private LogParser getLogParser(String fileName, List<String> readLineList, Charset charset, Locale locale,
-            TimeZone displayTimezone) {
+            ZoneId displayZoneId) {
 
         LogParser aiLogParser;
 
-        aiLogParser = LogParser.getLogParser(fileName, readLineList, charset, locale, displayTimezone);
+        aiLogParser = LogParser.getLogParser(fileName, readLineList, charset, locale, displayZoneId);
 
         if (aiLogParser == null) {
             // ask user for pattern
             // open dialog to user
-            LogPatternSelectionDialog lpsd = new LogPatternSelectionDialog(readLineList, charset, locale,
-                    displayTimezone, BaseFrame.getAppIcon(), parent);
+            LogPatternSelectionDialog lpsd = new LogPatternSelectionDialog(readLineList, charset, locale, displayZoneId,
+                    BaseFrame.getAppIcon(), parent);
 
             lpsd.setVisible(true);
 

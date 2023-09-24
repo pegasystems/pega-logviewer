@@ -9,7 +9,8 @@ package com.pega.gcs.logviewer.model;
 
 import java.awt.Color;
 import java.nio.charset.Charset;
-import java.text.DateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -50,9 +51,9 @@ public class AlertLogEntryModel extends LogEntryModel {
 
     private Map<String, LogSeriesCollection> overallLogTimeSeriesCollectionMap;
 
-    public AlertLogEntryModel(DateFormat dateFormat) {
+    public AlertLogEntryModel(DateTimeFormatter modelDateTimeFormatter, ZoneId modelZoneId, ZoneId displayZoneId) {
 
-        super(dateFormat);
+        super(modelDateTimeFormatter, modelZoneId, displayZoneId);
 
         Comparator<PALStatisticName> comparator = new Comparator<PALStatisticName>() {
 
@@ -137,8 +138,8 @@ public class AlertLogEntryModel extends LogEntryModel {
         // logEntryTime can be -1 in case of corrupted log file
         if (logEntryTime != -1) {
 
-            DateFormat modelDateFormat = getModelDateFormat();
-            TimeZone timezone = modelDateFormat.getTimeZone();
+            ZoneId modelZoneId = getModelZoneId();
+            TimeZone modelTimeZone = TimeZone.getTimeZone(modelZoneId);
 
             boolean showCount = true;
 
@@ -151,14 +152,14 @@ public class AlertLogEntryModel extends LogEntryModel {
             boolean isCritical = Severity.CRITICAL.equals(alertMessage.getSeverity());
 
             processAlertLogTimeSeries(logTimeSeriesCollectionMap, alertMessage, messageId, logEntryTime, observedKPI,
-                    showCount, isCritical, timezone, locale);
+                    showCount, isCritical, modelTimeZone, locale);
 
         }
     }
 
     private void processAlertLogTimeSeries(Map<String, LogSeriesCollection> logTimeSeriesCollectionMap,
             AlertMessage alertMessage, String logSeriesCollectionName, long logEntryTime, double timeSeriesValue,
-            boolean showCount, boolean defaultShowLogTimeSeries, TimeZone timezone, Locale locale) {
+            boolean showCount, boolean defaultShowLogTimeSeries, TimeZone modelTimeZone, Locale locale) {
 
         LogSeriesCollection logSeriesCollection;
         logSeriesCollection = logTimeSeriesCollectionMap.get(logSeriesCollectionName);
@@ -169,7 +170,7 @@ public class AlertLogEntryModel extends LogEntryModel {
         }
 
         RegularTimePeriod regularTimePeriod;
-        regularTimePeriod = new Millisecond(new Date(logEntryTime), timezone, locale);
+        regularTimePeriod = new Millisecond(new Date(logEntryTime), modelTimeZone, locale);
 
         TimeSeriesDataItem timeSeriesDataItem;
         timeSeriesDataItem = new TimeSeriesDataItem(regularTimePeriod, timeSeriesValue);

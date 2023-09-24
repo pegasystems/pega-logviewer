@@ -9,8 +9,8 @@ package com.pega.gcs.logviewer.report.alert;
 
 import java.awt.Color;
 import java.awt.Component;
-import java.text.DateFormat;
 import java.text.NumberFormat;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -360,10 +360,10 @@ public abstract class AlertMessageReportModel extends FilterTableModel<AlertMess
 
         AlertLogEntryModel alertLogEntryModel = getAlertLogEntryModel();
 
-        DateFormat modelDateFormat = alertLogEntryModel.getModelDateFormat();
-        TimeZone timezone = modelDateFormat.getTimeZone();
+        ZoneId modelZoneId = alertLogEntryModel.getModelZoneId();
+        TimeZone modelTimeZone = TimeZone.getTimeZone(modelZoneId);
 
-        alertMessageReportEntry.addAlertLogEntry(alertLogEntry, timezone, locale);
+        alertMessageReportEntry.addAlertLogEntry(alertLogEntry, modelTimeZone, locale);
 
         // Performance issue: moving out to postProcess to process on every parseFinal calls.
         // sort to rearrange based on 5point summary

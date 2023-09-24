@@ -8,12 +8,12 @@
 package com.pega.gcs.logviewer.parser;
 
 import java.nio.charset.Charset;
-import java.text.DateFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -22,6 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.logviewer.LogViewerUtil;
 import com.pega.gcs.logviewer.logfile.AlertLogPattern;
 import com.pega.gcs.logviewer.model.AlertLogEntry;
 import com.pega.gcs.logviewer.model.AlertLogEntryModel;
@@ -53,21 +54,25 @@ public class AlertLogParser extends LogParser {
 
     private Pattern alertDatePattern;
 
-    public AlertLogParser(AlertLogPattern alertLogPattern, Charset charset, Locale locale) {
+    public AlertLogParser(AlertLogPattern alertLogPattern, Charset charset, Locale locale, ZoneId displayZoneId) {
 
-        super(alertLogPattern, charset, locale);
+        super(alertLogPattern, charset, locale, displayZoneId);
 
         alertVersion = -1;
 
         fullLogEntryTextSB = new StringBuilder();
         capturedColumnCount = 0;
 
+        // this sets the parsers model zone id and model datetimeformatter
         getTimeStampFormat("%d{}{GMT}");
 
         String threadRegEx = "(\\d{4}-\\d{2}-\\d{2}[ ]\\d{2}:\\d{2}:\\d{2},\\d{3}[ ]GMT)";
         alertDatePattern = Pattern.compile(threadRegEx);
 
-        alertLogEntryModel = new AlertLogEntryModel(getDateFormat());
+        DateTimeFormatter modelDateTimeFormatter = getModelDateTimeFormatter();
+        ZoneId modelZoneId = getModelZoneId();
+
+        alertLogEntryModel = new AlertLogEntryModel(modelDateTimeFormatter, modelZoneId, displayZoneId);
     }
 
     @Override
@@ -288,14 +293,17 @@ public class AlertLogParser extends LogParser {
                     fields = logEntryText.split("\\*");
                 }
 
-                DateFormat modelDateFormat = alertLogEntryModel.getModelDateFormat();
+                DateTimeFormatter modelDateTimeFormatter = alertLogEntryModel.getModelDateTimeFormatter();
+                ZoneId modelZoneId = alertLogEntryModel.getModelZoneId();
+
                 String timestampStr = fields[timestampIndex];
                 long logEntryTime = -1;
 
                 try {
-                    Date logEntryDate = modelDateFormat.parse(timestampStr);
-                    logEntryTime = logEntryDate.getTime();
-                } catch (ParseException pe) {
+
+                    logEntryTime = LogViewerUtil.getTimeMillis(timestampStr, modelDateTimeFormatter, modelZoneId);
+
+                } catch (Exception pe) {
 
                     LOG.error("Error parsing line: [" + logEntryIndex + "] logentry: [" + logEntryText + "]", pe);
 
@@ -308,13 +316,14 @@ public class AlertLogParser extends LogParser {
                         timestampStr = alertDateMatcher.group(count);
 
                         try {
-                            Date logEntryDate = modelDateFormat.parse(timestampStr);
-                            logEntryTime = logEntryDate.getTime();
-                        } catch (ParseException pe2) {
+
+                            logEntryTime = LogViewerUtil.getTimeMillis(timestampStr, modelDateTimeFormatter,
+                                    modelZoneId);
+
+                        } catch (Exception pe2) {
                             LOG.error("not able to parse [" + timestampStr + "]", pe2);
                         }
                     }
-
                 }
 
                 ArrayList<String> logEntryColumnValueList;

@@ -16,8 +16,10 @@ import java.awt.Insets;
 import java.awt.LayoutManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.time.ZoneId;
 import java.util.Locale;
-import java.util.TimeZone;
+import java.util.Set;
+import java.util.TreeSet;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -41,7 +43,7 @@ public class ChartTablePanelSettingDialog extends JDialog {
 
     private Locale fileLocale;
 
-    private TimeZone timezone;
+    private ZoneId zoneId;
 
     private boolean settingUpdated;
 
@@ -49,16 +51,16 @@ public class ChartTablePanelSettingDialog extends JDialog {
 
     private AutoCompleteJComboBox<Locale> fileLocaleComboBox;
 
-    private AutoCompleteJComboBox<String> timeZoneComboBox;
+    private AutoCompleteJComboBox<String> zoneIdComboBox;
 
-    public ChartTablePanelSettingDialog(String charsetName, Locale fileLocale, TimeZone timezone, ImageIcon appIcon,
+    public ChartTablePanelSettingDialog(String charsetName, Locale fileLocale, ZoneId zoneId, ImageIcon appIcon,
             Component parent) {
 
         super();
 
         this.charsetName = charsetName;
         this.fileLocale = fileLocale;
-        this.timezone = timezone;
+        this.zoneId = zoneId;
 
         this.settingUpdated = false;
 
@@ -90,8 +92,8 @@ public class ChartTablePanelSettingDialog extends JDialog {
         return fileLocale;
     }
 
-    private TimeZone getTimezone() {
-        return timezone;
+    private ZoneId getZoneId() {
+        return zoneId;
     }
 
     public boolean isSettingUpdated() {
@@ -120,13 +122,19 @@ public class ChartTablePanelSettingDialog extends JDialog {
         return fileLocaleComboBox;
     }
 
-    public AutoCompleteJComboBox<String> getTimeZoneComboBox() {
+    public AutoCompleteJComboBox<String> getZoneIdComboBox() {
 
-        if (timeZoneComboBox == null) {
-            timeZoneComboBox = GUIUtilities.getTimeZoneJComboBox();
+        if (zoneIdComboBox == null) {
+
+            Set<String> zoneIdSet = new TreeSet<>(ZoneId.getAvailableZoneIds());
+
+            String[] timeZoneArray = zoneIdSet.toArray(new String[zoneIdSet.size()]);
+
+            zoneIdComboBox = new AutoCompleteJComboBox<String>(timeZoneArray);
+
         }
 
-        return timeZoneComboBox;
+        return zoneIdComboBox;
     }
 
     private JPanel getMainPanel() {
@@ -208,16 +216,16 @@ public class ChartTablePanelSettingDialog extends JDialog {
         JLabel localeJLabel = new JLabel("Locale");
         JLabel timeZoneJLabel = new JLabel("Time Zone");
 
-        AutoCompleteJComboBox<String> charsetJComboBox = getCharsetComboBox();
-        AutoCompleteJComboBox<Locale> fileLocaleJComboBox = getFileLocaleComboBox();
-        AutoCompleteJComboBox<String> timeZoneJComboBox = getTimeZoneComboBox();
+        AutoCompleteJComboBox<String> charsetComboBox = getCharsetComboBox();
+        AutoCompleteJComboBox<Locale> fileLocaleComboBox = getFileLocaleComboBox();
+        AutoCompleteJComboBox<String> zoneIdComboBox = getZoneIdComboBox();
 
         settingsPanel.add(charsetJLabel, gbc1);
-        settingsPanel.add(charsetJComboBox, gbc2);
+        settingsPanel.add(charsetComboBox, gbc2);
         settingsPanel.add(localeJLabel, gbc3);
-        settingsPanel.add(fileLocaleJComboBox, gbc4);
+        settingsPanel.add(fileLocaleComboBox, gbc4);
         settingsPanel.add(timeZoneJLabel, gbc5);
-        settingsPanel.add(timeZoneJComboBox, gbc6);
+        settingsPanel.add(zoneIdComboBox, gbc6);
 
         Border loweredEtched = BorderFactory.createEtchedBorder(EtchedBorder.LOWERED);
 
@@ -267,13 +275,14 @@ public class ChartTablePanelSettingDialog extends JDialog {
 
             @Override
             public void actionPerformed(ActionEvent event) {
-                AutoCompleteJComboBox<String> charsetJComboBox = getCharsetComboBox();
-                AutoCompleteJComboBox<Locale> localeJComboBox = getFileLocaleComboBox();
-                AutoCompleteJComboBox<String> timeZoneJComboBox = getTimeZoneComboBox();
 
-                charsetJComboBox.setSelectedItem(getCharsetName());
-                localeJComboBox.setSelectedItem(getFileLocale());
-                timeZoneJComboBox.setSelectedItem(getTimezone().getID());
+                AutoCompleteJComboBox<String> charsetComboBox = getCharsetComboBox();
+                AutoCompleteJComboBox<Locale> localeComboBox = getFileLocaleComboBox();
+                AutoCompleteJComboBox<String> zoneIdComboBox = getZoneIdComboBox();
+
+                charsetComboBox.setSelectedItem(getCharsetName());
+                localeComboBox.setSelectedItem(getFileLocale());
+                zoneIdComboBox.setSelectedItem(getZoneId().getId());
             }
         });
 
@@ -296,17 +305,18 @@ public class ChartTablePanelSettingDialog extends JDialog {
 
         AutoCompleteJComboBox<String> charsetJComboBox = getCharsetComboBox();
         AutoCompleteJComboBox<Locale> localeJComboBox = getFileLocaleComboBox();
-        AutoCompleteJComboBox<String> timeZoneJComboBox = getTimeZoneComboBox();
+        AutoCompleteJComboBox<String> zoneIdComboBox = getZoneIdComboBox();
 
-        charsetJComboBox.setSelectedItem(charsetName);
-        localeJComboBox.setSelectedItem(fileLocale);
-        timeZoneJComboBox.setSelectedItem(timezone.getID());
+        charsetJComboBox.setSelectedItem(getCharsetName());
+        localeJComboBox.setSelectedItem(getFileLocale());
+        zoneIdComboBox.setSelectedItem(getZoneId().getId());
 
     }
 
     public String getSelectedCharsetName() {
 
         AutoCompleteJComboBox<String> charsetJComboBox = getCharsetComboBox();
+
         String selectedCharsetName = (String) charsetJComboBox.getSelectedItem();
 
         if ((selectedCharsetName == null) || ("".equals(selectedCharsetName))) {
@@ -317,6 +327,7 @@ public class ChartTablePanelSettingDialog extends JDialog {
     }
 
     public Locale getSelectedLocale() {
+
         AutoCompleteJComboBox<Locale> localeJComboBox = getFileLocaleComboBox();
 
         Locale locale = (Locale) localeJComboBox.getSelectedItem();
@@ -328,20 +339,21 @@ public class ChartTablePanelSettingDialog extends JDialog {
         return locale;
     }
 
-    public TimeZone getSelectedTimeZone() {
+    public ZoneId getSelectedZoneId() {
 
-        AutoCompleteJComboBox<String> timeZoneJComboBox = getTimeZoneComboBox();
+        AutoCompleteJComboBox<String> zoneIdComboBox = getZoneIdComboBox();
 
-        String tzId = (String) timeZoneJComboBox.getSelectedItem();
+        String zoneIdStr = (String) zoneIdComboBox.getSelectedItem();
 
-        TimeZone timeZone = null;
+        ZoneId zoneId = null;
 
-        if ((tzId == null) || ("".equals(tzId))) {
-            timeZone = this.timezone;
+        if ((zoneIdStr == null) || ("".equals(zoneIdStr))) {
+            zoneId = this.zoneId;
         } else {
-            timeZone = TimeZone.getTimeZone(tzId);
+            zoneId = ZoneId.of(zoneIdStr);
         }
 
-        return timeZone;
+        return zoneId;
     }
+
 }

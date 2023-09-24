@@ -9,11 +9,11 @@ package com.pega.gcs.logviewer.model;
 
 import java.awt.Font;
 import java.nio.charset.Charset;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -30,6 +30,7 @@ import com.pega.gcs.fringecommon.guiutilities.FilterColumn;
 import com.pega.gcs.fringecommon.guiutilities.FilterTableModel;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.DateTimeUtilities;
+import com.pega.gcs.logviewer.LogViewerUtil;
 
 public abstract class LogEntryModel {
 
@@ -37,9 +38,13 @@ public abstract class LogEntryModel {
 
     private static final int TABLE_DATA_LENGTH = 800;
 
-    private DateFormat modelDateFormat;
+    private ZoneId modelZoneId;
 
-    private DateFormat displayDateFormat;
+    private ZoneId displayZoneId;
+
+    private DateTimeFormatter modelDateTimeFormatter;
+
+    private DateTimeFormatter displayDateTimeFormatter;
 
     private ArrayList<LogEntryColumn> logEntryColumnList;
 
@@ -88,70 +93,58 @@ public abstract class LogEntryModel {
     protected abstract void postProcess(LogEntry logEntry, ArrayList<String> logEntryValueList, Charset charset,
             Locale locale);
 
-    public LogEntryModel(DateFormat dateFormat) {
-        this(dateFormat, dateFormat.getTimeZone());
-    }
+    public LogEntryModel(DateTimeFormatter modelDateTimeFormatter, ZoneId modelZoneId, ZoneId displayZoneId) {
 
-    public LogEntryModel(DateFormat dateFormat, TimeZone displayTimezone) {
-
-        this.modelDateFormat = dateFormat;
+        this.modelDateTimeFormatter = modelDateTimeFormatter;
+        this.modelZoneId = modelZoneId != null ? modelZoneId : ZoneOffset.UTC;
+        this.displayZoneId = displayZoneId != null ? displayZoneId : this.modelZoneId;
         this.lowerDomainRange = -1;
         this.upperDomainRange = -1;
         this.rebuildLogTimeSeriesCollectionSet = false;
 
         logEntryColumnList = new ArrayList<>();
 
-        displayDateFormat = new SimpleDateFormat(DateTimeUtilities.DATEFORMAT_ISO8601);
+        displayDateTimeFormatter = DateTimeFormatter.ofPattern(DateTimeUtilities.DATEFORMAT_ISO8601);
 
-        if (displayTimezone == null) {
-            displayTimezone = dateFormat.getTimeZone();
-        }
-
-        displayDateFormat.setTimeZone(displayTimezone);
-
+        TimeZone displayTimezone = TimeZone.getTimeZone(this.displayZoneId);
         updateDomainAxis(displayTimezone, null);
 
         resetModel();
 
     }
 
-    public DateFormat getModelDateFormat() {
-        return modelDateFormat;
+    public ZoneId getModelZoneId() {
+        return modelZoneId;
+    }
+
+    public DateTimeFormatter getModelDateTimeFormatter() {
+        return modelDateTimeFormatter;
     }
 
     // added for CloudK v2
-    public void setModelDateFormat(DateFormat modelDateFormat) {
-        this.modelDateFormat = modelDateFormat;
+    public void setModelDateTimeFormatter(DateTimeFormatter modelDateTimeFormatter) {
+        this.modelDateTimeFormatter = modelDateTimeFormatter;
     }
 
-    public void setModelDateFormatTimeZone(TimeZone modelTimeZone) {
-
-        DateFormat modelDateFormat = getModelDateFormat();
-
-        modelDateFormat.setTimeZone(modelTimeZone);
-
+    public void setModelZoneId(ZoneId modelZoneId) {
+        this.modelZoneId = modelZoneId;
     }
 
-    public DateFormat getDisplayDateFormat() {
-        return displayDateFormat;
+    public DateTimeFormatter getDisplayDateTimeFormatter() {
+        return displayDateTimeFormatter;
     }
 
-    public TimeZone getDisplayDateFormatTimeZone() {
-
-        DateFormat displayDateFormat = getDisplayDateFormat();
-
-        TimeZone displayDateFormatTimeZone = displayDateFormat.getTimeZone();
-
-        return displayDateFormatTimeZone;
+    public ZoneId getDisplayZoneId() {
+        return displayZoneId;
     }
 
-    public void setDisplayDateFormatTimeZone(TimeZone displayTimeZone) {
+    public void setDisplayZoneId(ZoneId displayZoneId) {
 
-        DateFormat displayDateFormat = getDisplayDateFormat();
+        this.displayZoneId = displayZoneId;
 
-        displayDateFormat.setTimeZone(displayTimeZone);
+        TimeZone displayTimezone = TimeZone.getTimeZone(displayZoneId);
 
-        updateDomainAxis(displayTimeZone, null);
+        updateDomainAxis(displayTimezone, null);
 
         // rebuild graphs
         setRebuildLogTimeSeriesCollectionSet(true);
@@ -447,9 +440,17 @@ public abstract class LogEntryModel {
 
     public int getLogEntryColumnIndex(LogEntryColumn logEntryColumn) {
 
+        int logEntryColumnIndex = -1;
+
         Map<LogEntryColumn, Integer> logEntryColumnIndexMap = getLogEntryColumnIndexMap();
 
-        return logEntryColumnIndexMap.get(logEntryColumn);
+        Integer logEntryColumnIndexInt = logEntryColumnIndexMap.get(logEntryColumn);
+
+        if (logEntryColumnIndexInt != null) {
+            logEntryColumnIndex = logEntryColumnIndexInt.intValue();
+        }
+
+        return logEntryColumnIndex;
     }
 
     public String getFormattedLogEntryValue(LogEntry logEntry, LogEntryColumn logEntryColumn) {
@@ -476,9 +477,10 @@ public abstract class LogEntryModel {
 
                     if (logEntryTime != -1) {
 
-                        DateFormat displayDateFormat = getDisplayDateFormat();
+                        ZoneId displayZoneId = getDisplayZoneId();
+                        DateTimeFormatter displayDateTimeFormatter = getDisplayDateTimeFormatter();
 
-                        text = displayDateFormat.format(new Date(logEntryTime));
+                        text = LogViewerUtil.getFormattedTimeStr(logEntryTime, displayDateTimeFormatter, displayZoneId);
                     }
                 } else {
 
@@ -540,9 +542,11 @@ public abstract class LogEntryModel {
 
         if (logEntryTime != -1) {
 
-            DateFormat displayDateFormat = getDisplayDateFormat();
+            ZoneId displayZoneId = getDisplayZoneId();
+            DateTimeFormatter displayDateTimeFormatter = getDisplayDateTimeFormatter();
 
-            logEntryTimeDisplayString = displayDateFormat.format(new Date(logEntryTime));
+            logEntryTimeDisplayString = LogViewerUtil.getFormattedTimeStr(logEntryTime, displayDateTimeFormatter,
+                    displayZoneId);
         }
 
         return logEntryTimeDisplayString;

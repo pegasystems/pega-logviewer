@@ -8,10 +8,9 @@
 package com.pega.gcs.logviewer.parser;
 
 import java.nio.charset.Charset;
-import java.text.DateFormat;
-import java.text.ParseException;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -31,6 +30,7 @@ import org.apache.logging.log4j.core.util.OptionConverter;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.DateTimeUtilities;
 import com.pega.gcs.fringecommon.utilities.TimeZoneUtil;
+import com.pega.gcs.logviewer.LogViewerUtil;
 import com.pega.gcs.logviewer.logfile.Log4jPattern;
 import com.pega.gcs.logviewer.logfile.LogPatternFactory;
 import com.pega.gcs.logviewer.model.HazelcastMemberInfo;
@@ -97,9 +97,6 @@ public class Log4jPatternParser extends LogParser {
     private int loggerIndex;
     private int messageIndex;
 
-    private TimeZone modelTimezone;
-    private TimeZone displayTimezone;
-
     private AtomicInteger systemStartCounter;
     private SystemStart systemStart;
 
@@ -110,11 +107,9 @@ public class Log4jPatternParser extends LogParser {
     private HazelcastMembership hazelcastMembership;
     private Boolean clusterMembershipManagerV84;
 
-    public Log4jPatternParser(Log4jPattern log4jPattern, Charset charset, Locale locale, TimeZone displayTimezone) {
+    public Log4jPatternParser(Log4jPattern log4jPattern, Charset charset, Locale locale, ZoneId displayZoneId) {
 
-        super(log4jPattern, charset, locale);
-
-        this.displayTimezone = displayTimezone;
+        super(log4jPattern, charset, locale, displayZoneId);
 
         parseLine = null;
         parseLineCount = 1;
@@ -123,8 +118,6 @@ public class Log4jPatternParser extends LogParser {
         timestampIndex = -1;
         loggerIndex = -1;
         messageIndex = -1;
-
-        modelTimezone = null;
 
         // System Start
         systemStartCounter = new AtomicInteger(0);
@@ -160,9 +153,13 @@ public class Log4jPatternParser extends LogParser {
 
         hzMemberspattern = Pattern.compile("Members \\[(.+?)\\] \\{");
 
+        // this sets the parsers model zone id and model datetimeformatter
         List<LogEntryColumn> logEntryColumnList = getLogEntryColumnsFromLog4jPattern();
 
-        log4jLogEntryModel = new Log4jLogEntryModel(getDateFormat(), displayTimezone);
+        DateTimeFormatter modelDateTimeFormatter = getModelDateTimeFormatter();
+        ZoneId modelZoneId = getModelZoneId();
+
+        log4jLogEntryModel = new Log4jLogEntryModel(modelDateTimeFormatter, modelZoneId, displayZoneId);
 
         log4jLogEntryModel.updateLogEntryColumnList(logEntryColumnList);
 
@@ -272,6 +269,7 @@ public class Log4jPatternParser extends LogParser {
             // DatePatternConverter
             case "Date":
 
+                // this sets the parsers model zone id and model datetimeformatter
                 format = getTimeStampFormat(logPatternStr);
                 format = format.replaceAll(Pattern.quote("+"), "[+]");
                 format = format.replaceAll(("[" + DateTimeUtilities.VALID_DATEFORMAT_CHARS + "]+"), "\\\\S+");
@@ -844,7 +842,9 @@ public class Log4jPatternParser extends LogParser {
 
                     sysdateEntry = true;
 
-                    if (modelTimezone == null) {
+                    ZoneId modelZoneId = getModelZoneId();
+
+                    if (modelZoneId == null) {
 
                         Matcher systemDateMatcher = systemDatepattern.matcher(message);
 
@@ -853,28 +853,43 @@ public class Log4jPatternParser extends LogParser {
                             String timezoneID = systemDateMatcher.group(1).trim();
                             LOG.info("Identified System Date timezone Id: " + timezoneID);
 
-                            modelTimezone = TimeZoneUtil.getTimeZoneFromAbbreviatedString(timezoneID);
+                            try {
+                                modelZoneId = ZoneId.of(timezoneID);
 
-                            if (modelTimezone == null) {
-
-                                TimeZone currTimezone = log4jLogEntryModel.getModelDateFormat().getTimeZone();
-
-                                LOG.error("Unable to detect timezone, using " + currTimezone,
-                                        new Exception("Unable to parse timezoneID: " + timezoneID));
-
-                                // modelTimezone = TimeZoneUtil.getTimeZoneFromAbbreviatedString("GMT");
-                                modelTimezone = TimeZone.getDefault();
-
-                            } else {
-                                LOG.info("Setting modelTimezone: " + modelTimezone);
+                                LOG.info("Setting Model Zone Id: " + modelZoneId);
+                            } catch (Exception e) {
+                                LOG.debug("Unable to detect Zone Id, using " + timezoneID, e);
                             }
 
-                            log4jLogEntryModel.setModelDateFormatTimeZone(modelTimezone);
+                            // try old method
+                            if (modelZoneId == null) {
+                                try {
+                                    TimeZone timeZone = TimeZoneUtil.getTimeZoneFromAbbreviatedString(timezoneID);
 
-                            if (displayTimezone == null) {
-                                log4jLogEntryModel.setDisplayDateFormatTimeZone(modelTimezone);
-                                LOG.info("Setting displayTimezone: " + displayTimezone);
+                                    modelZoneId = timeZone.toZoneId();
+
+                                    LOG.info("Setting Timezone Model Zone Id: " + modelZoneId);
+                                } catch (Exception e) {
+
+                                    LOG.error("Unable to detect timezone, using " + timezoneID, e);
+
+                                    modelZoneId = ZoneId.systemDefault();
+
+                                }
                             }
+
+                            setModelZoneId(modelZoneId);
+                            log4jLogEntryModel.setModelZoneId(modelZoneId);
+
+                            ZoneId displayZoneId = getDisplayZoneId();
+
+                            if (displayZoneId == null) {
+
+                                setDisplayZoneId(modelZoneId);
+                                log4jLogEntryModel.setDisplayZoneId(modelZoneId);
+                                LOG.info("Setting displayTimezone: " + modelZoneId);
+                            }
+
                         } else {
                             LOG.info("attempt to extract system date modelTimezone failed");
                         }
@@ -951,15 +966,15 @@ public class Log4jPatternParser extends LogParser {
 
             String timestampStr = logEntryColumnValueList.get(timestampIndex);
 
-            DateFormat modelDateFormat = log4jLogEntryModel.getModelDateFormat();
-
             long logEntryTime = -1;
+
             try {
+                DateTimeFormatter modelDateTimeFormatter = log4jLogEntryModel.getModelDateTimeFormatter();
+                ZoneId modelZoneId = log4jLogEntryModel.getModelZoneId();
 
-                Date logEntryDate = modelDateFormat.parse(timestampStr);
-                logEntryTime = logEntryDate.getTime();
+                logEntryTime = LogViewerUtil.getTimeMillis(timestampStr, modelDateTimeFormatter, modelZoneId);
 
-            } catch (ParseException e) {
+            } catch (Exception e) {
                 LOG.error("Error parsing line: [" + logEntryIndex + "] logentry: [" + logEntryText + "]", e);
             }
 

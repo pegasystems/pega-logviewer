@@ -2,8 +2,9 @@
 package com.pega.gcs.logviewer.dataflow.lifecycleevent;
 
 import java.awt.Font;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -11,7 +12,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -61,7 +61,13 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
     private SearchData<LifeCycleEventKey> searchData;
     private SearchModel<LifeCycleEventKey> searchModel;
 
-    private static DateFormat displayDateFormat;
+    private ZoneId modelZoneId;
+
+    private ZoneId displayZoneId;
+
+    private DateTimeFormatter modelDateTimeFormatter;
+
+    private DateTimeFormatter displayDateTimeFormatter;
 
     private DateAxis domainAxis;
 
@@ -75,16 +81,22 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
 
     private Map<String, TaskSeries> partitionTaskSeriesMap;
 
-    static {
-
-        displayDateFormat = new SimpleDateFormat(DateTimeUtilities.DATEFORMAT_ISO8601);
-
-        displayDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-    }
-
-    public LifeCycleEventTableModel(RecentFile recentFile, SearchData<LifeCycleEventKey> searchData) {
+    public LifeCycleEventTableModel(RecentFile recentFile, SearchData<LifeCycleEventKey> searchData,
+            ZoneId displayZoneId) {
 
         super(recentFile);
+
+        modelZoneId = ZoneOffset.UTC;
+        this.displayZoneId = displayZoneId;
+
+        if (this.displayZoneId == null) {
+            this.displayZoneId = modelZoneId;
+        }
+
+        modelDateTimeFormatter = DateTimeFormatter.ofPattern(DateTimeUtilities.DATEFORMAT_ISO8601);
+
+        displayDateTimeFormatter = DateTimeFormatter.ofPattern(DateTimeUtilities.DATEFORMAT_ISO8601);
+
         this.searchData = searchData;
 
         lifeCycleEventColumnList = new ArrayList<>();
@@ -113,8 +125,20 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
 
     }
 
-    public static DateFormat getDisplayDateFormat() {
-        return displayDateFormat;
+    private ZoneId getModelZoneId() {
+        return modelZoneId;
+    }
+
+    public ZoneId getDisplayZoneId() {
+        return displayZoneId;
+    }
+
+    private DateTimeFormatter getModelDateTimeFormatter() {
+        return modelDateTimeFormatter;
+    }
+
+    private DateTimeFormatter getDisplayDateTimeFormatter() {
+        return displayDateTimeFormatter;
     }
 
     private List<LogEntryColumn> getLifeCycleEventColumnList() {
@@ -461,7 +485,11 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
 
             LogEntryColumn lifeCycleEventColumn = getColumn(columnIndex);
 
-            columnValue = lifeCycleEventMessage.getColumnValueForLifeCycleEventColumn(lifeCycleEventColumn);
+            DateTimeFormatter displayDateTimeFormatter = getDisplayDateTimeFormatter();
+            ZoneId displayZoneId = getDisplayZoneId();
+
+            columnValue = lifeCycleEventMessage.getColumnValueForLifeCycleEventColumn(lifeCycleEventColumn,
+                    displayDateTimeFormatter, displayZoneId);
 
         }
 
@@ -606,6 +634,9 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
 
         if (lifeCycleEventMessage != null) {
 
+            DateTimeFormatter displayDateTimeFormatter = getDisplayDateTimeFormatter();
+            ZoneId displayZoneId = getDisplayZoneId();
+
             Map<FilterColumn, List<CheckBoxMenuItemPopupEntry<LifeCycleEventKey>>> columnFilterMap = getColumnFilterMap();
 
             Iterator<FilterColumn> fcIterator = columnFilterMap.keySet().iterator();
@@ -626,7 +657,8 @@ public class LifeCycleEventTableModel extends FilterTableModel<LifeCycleEventKey
                     columnFilterMap.put(filterColumn, columnFilterEntryList);
                 }
 
-                String columnValue = lifeCycleEventMessage.getColumnValueForLifeCycleEventColumn(lifeCycleEventColumn);
+                String columnValue = lifeCycleEventMessage.getColumnValueForLifeCycleEventColumn(lifeCycleEventColumn,
+                        displayDateTimeFormatter, displayZoneId);
 
                 if (columnValue == null) {
                     columnValue = FilterTableModel.NULL_STR;

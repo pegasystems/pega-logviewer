@@ -10,9 +10,9 @@ package com.pega.gcs.logviewer.model;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.nio.charset.Charset;
-import java.text.DateFormat;
 import java.text.NumberFormat;
-import java.text.ParseException;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -32,6 +32,7 @@ import org.jfree.data.time.RegularTimePeriod;
 import org.jfree.data.time.TimeSeriesDataItem;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
+import com.pega.gcs.logviewer.LogViewerUtil;
 
 public class Log4jLogEntryModel extends LogEntryModel {
 
@@ -79,9 +80,9 @@ public class Log4jLogEntryModel extends LogEntryModel {
 
     private MasterAgentSystemPattern masterAgentSystemPattern;
 
-    public Log4jLogEntryModel(DateFormat dateFormat, TimeZone displayTimezone) {
+    public Log4jLogEntryModel(DateTimeFormatter modelDateTimeFormatter, ZoneId modelZoneId, ZoneId displayZoneId) {
 
-        super(dateFormat, displayTimezone);
+        super(modelDateTimeFormatter, modelZoneId, displayZoneId);
 
         systemStartList = new ArrayList<>();
         hazelcastMembershipList = new ArrayList<>();
@@ -136,8 +137,8 @@ public class Log4jLogEntryModel extends LogEntryModel {
 
             if (sysdateEntry) {
 
-                DateFormat modelDateFormat = getModelDateFormat();
-                TimeZone timezone = modelDateFormat.getTimeZone();
+                ZoneId modelZoneId = getModelZoneId();
+                TimeZone modelTimeZone = TimeZone.getTimeZone(modelZoneId);
 
                 NumberFormat numberFormat = NumberFormat.getInstance(locale);
 
@@ -214,7 +215,7 @@ public class Log4jLogEntryModel extends LogEntryModel {
 
                                 processLogTimeSeries(logTimeSeriesCollectionMap, TSC_MEMORY, logEntryTime, totalMemory,
                                         timeSeriesName, color, thresholdMarker, showCount, defaultShowLogTimeSeries,
-                                        timezone, locale);
+                                        modelTimeZone, locale);
 
                             } catch (Exception e) {
                                 LOG.error("Error adding total memory to map:" + totalMemoryStr, e);
@@ -249,7 +250,7 @@ public class Log4jLogEntryModel extends LogEntryModel {
 
                                 processLogTimeSeries(logTimeSeriesCollectionMap, TSC_MEMORY, logEntryTime,
                                         timeSeriesValue, timeSeriesName, color, thresholdMarker, showCount,
-                                        defaultShowLogTimeSeries, timezone, locale);
+                                        defaultShowLogTimeSeries, modelTimeZone, locale);
 
                             } catch (Exception e) {
                                 LOG.error("Error adding free memory to map:" + freeMemoryStr, e);
@@ -273,7 +274,7 @@ public class Log4jLogEntryModel extends LogEntryModel {
 
                                 processLogTimeSeries(logTimeSeriesCollectionMap, timeSeriesName, logEntryTime, totalCPU,
                                         timeSeriesName, color, thresholdMarker, showCount, defaultShowLogTimeSeries,
-                                        timezone, locale);
+                                        modelTimeZone, locale);
 
                             } catch (Exception e) {
                                 LOG.error("Error adding total cpu to map:" + totalCPUStr, e);
@@ -297,7 +298,7 @@ public class Log4jLogEntryModel extends LogEntryModel {
 
                                 processLogTimeSeries(logTimeSeriesCollectionMap, timeSeriesName, logEntryTime,
                                         requestorCount, timeSeriesName, color, thresholdMarker, showCount,
-                                        defaultShowLogTimeSeries, timezone, locale);
+                                        defaultShowLogTimeSeries, modelTimeZone, locale);
 
                             } catch (Exception e) {
                                 LOG.error("Error adding requestor count to map:" + requestorCountStr, e);
@@ -321,7 +322,7 @@ public class Log4jLogEntryModel extends LogEntryModel {
 
                                 processLogTimeSeries(logTimeSeriesCollectionMap, timeSeriesName, logEntryTime,
                                         sharedPageMemory, timeSeriesName, color, thresholdMarker, showCount,
-                                        defaultShowLogTimeSeries, timezone, locale);
+                                        defaultShowLogTimeSeries, modelTimeZone, locale);
 
                             } catch (Exception e) {
                                 LOG.error("Error adding shared page memory to map:" + sharedPageMemoryStr, e);
@@ -345,7 +346,7 @@ public class Log4jLogEntryModel extends LogEntryModel {
 
                                 processLogTimeSeries(logTimeSeriesCollectionMap, timeSeriesName, logEntryTime,
                                         numberOfThreads, timeSeriesName, color, thresholdMarker, showCount,
-                                        defaultShowLogTimeSeries, timezone, locale);
+                                        defaultShowLogTimeSeries, modelTimeZone, locale);
 
                             } catch (Exception e) {
                                 LOG.error("Error adding number of threads to map:" + numberOfThreadsStr, e);
@@ -383,8 +384,8 @@ public class Log4jLogEntryModel extends LogEntryModel {
 
                 int messageIndex = getLogEntryColumnIndex(LogEntryColumn.MESSAGE);
 
-                DateFormat modelDateFormat = getModelDateFormat();
-                TimeZone timezone = modelDateFormat.getTimeZone();
+                ZoneId modelZoneId = getModelZoneId();
+                TimeZone modelTimeZone = TimeZone.getTimeZone(modelZoneId);
 
                 NumberFormat numberFormat = NumberFormat.getInstance(locale);
 
@@ -423,8 +424,8 @@ public class Log4jLogEntryModel extends LogEntryModel {
                                 Color color = null;
 
                                 processLogTimeSeries(logTimeSeriesCollectionMap, name, logEntryTime, customMeasure,
-                                        name, color, thresholdMarker, showCount, defaultShowLogTimeSeries, timezone,
-                                        locale);
+                                        name, color, thresholdMarker, showCount, defaultShowLogTimeSeries,
+                                        modelTimeZone, locale);
 
                             } catch (Exception e) {
                                 LOG.error("Error adding custom measure to map:" + customMeasureStr, e);
@@ -439,7 +440,7 @@ public class Log4jLogEntryModel extends LogEntryModel {
     private void processLogTimeSeries(Map<String, LogSeriesCollection> logTimeSeriesCollectionMap,
             String logSeriesCollectionName, long logEntryTime, double timeSeriesValue, String timeSeriesName,
             Color color, ValueMarker thresholdMarker, boolean showCount, boolean defaultShowLogTimeSeries,
-            TimeZone timezone, Locale locale) {
+            TimeZone modelTimeZone, Locale locale) {
 
         LogSeriesCollection logSeriesCollection;
         logSeriesCollection = logTimeSeriesCollectionMap.get(logSeriesCollectionName);
@@ -450,7 +451,7 @@ public class Log4jLogEntryModel extends LogEntryModel {
         }
 
         RegularTimePeriod regularTimePeriod;
-        regularTimePeriod = new Millisecond(new Date(logEntryTime), timezone, locale);
+        regularTimePeriod = new Millisecond(new Date(logEntryTime), modelTimeZone, locale);
 
         TimeSeriesDataItem timeSeriesDataItem;
         timeSeriesDataItem = new TimeSeriesDataItem(regularTimePeriod, timeSeriesValue);
@@ -527,17 +528,17 @@ public class Log4jLogEntryModel extends LogEntryModel {
     }
 
     @Override
-    public void setModelDateFormatTimeZone(TimeZone modelTimeZone) {
+    public void setModelZoneId(ZoneId modelZoneId) {
 
-        super.setModelDateFormatTimeZone(modelTimeZone);
+        super.setModelZoneId(modelZoneId);
 
-        LOG.info("Model timezone changed to " + modelTimeZone);
+        LOG.info("Model timezone changed to " + modelZoneId);
 
         Map<LogEntryColumn, Integer> logEntryColumnIndexMap = getLogEntryColumnIndexMap();
 
         int timestampColumnIndex = logEntryColumnIndexMap.get(LogEntryColumn.TIMESTAMP);
 
-        DateFormat modelDateFormat = getModelDateFormat();
+        DateTimeFormatter modelDateTimeFormatter = getModelDateTimeFormatter();
 
         if (timestampColumnIndex != -1) {
 
@@ -555,35 +556,27 @@ public class Log4jLogEntryModel extends LogEntryModel {
 
                 LogEntryKey logEntryKey = logEntry.getKey();
 
-                try {
+                ArrayList<String> logEntryValueList = logEntry.getLogEntryValueList();
 
-                    ArrayList<String> logEntryValueList = logEntry.getLogEntryValueList();
+                String logEntryDateStr = logEntryValueList.get(timestampColumnIndex);
 
-                    String logEntryDateStr = logEntryValueList.get(timestampColumnIndex);
+                // Recalculating time when timezone becomes known
+                long logEntryTime = LogViewerUtil.getTimeMillis(logEntryDateStr, modelDateTimeFormatter, modelZoneId);
 
-                    // Recalculating time when timezone becomes known
-                    Date logEntryDate = modelDateFormat.parse(logEntryDateStr);
+                logEntryKey.setTimestamp(logEntryTime);
 
-                    long logEntryTime = logEntryDate.getTime();
+                updatedLogEntryList.add(logEntry);
 
-                    logEntryKey.setTimestamp(logEntryTime);
+                if (lowerDomainRange == -1) {
+                    lowerDomainRange = logEntryTime - 1;
+                } else {
+                    lowerDomainRange = Math.min(lowerDomainRange, logEntryTime);
+                }
 
-                    updatedLogEntryList.add(logEntry);
-
-                    if (lowerDomainRange == -1) {
-                        lowerDomainRange = logEntryTime - 1;
-                    } else {
-                        lowerDomainRange = Math.min(lowerDomainRange, logEntryTime);
-                    }
-
-                    if (upperDomainRange == -1) {
-                        upperDomainRange = logEntryTime;
-                    } else {
-                        upperDomainRange = Math.max(upperDomainRange, logEntryTime);
-                    }
-
-                } catch (ParseException pe) {
-                    LOG.info("Date parse error: " + logEntryKey);
+                if (upperDomainRange == -1) {
+                    upperDomainRange = logEntryTime;
+                } else {
+                    upperDomainRange = Math.max(upperDomainRange, logEntryTime);
                 }
 
             }

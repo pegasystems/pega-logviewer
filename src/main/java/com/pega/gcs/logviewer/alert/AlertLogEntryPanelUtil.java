@@ -1,7 +1,8 @@
 
 package com.pega.gcs.logviewer.alert;
 
-import java.text.DateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -128,11 +129,13 @@ public class AlertLogEntryPanelUtil {
             String nodeMetricTitle = "Node Metrics";
             String nodeMetricData = patternMatcher.group(2).trim();
 
-            DateFormat displayDateFormat = alertLogEntryModel.getDisplayDateFormat();
+            DateTimeFormatter displayDateTimeFormatter = alertLogEntryModel.getDisplayDateTimeFormatter();
+            ZoneId displayZoneId = alertLogEntryModel.getDisplayZoneId();
 
-            JComponent dfMetricComponent = getPega0062Component(dfMetricData, displayDateFormat);
+            JComponent dfMetricComponent = getPega0062Component(dfMetricData, displayDateTimeFormatter, displayZoneId);
 
-            JComponent nodeMetricComponent = getPega0062Component(nodeMetricData, displayDateFormat);
+            JComponent nodeMetricComponent = getPega0062Component(nodeMetricData, displayDateTimeFormatter,
+                    displayZoneId);
 
             tabMap.put(dfMetricTitle, dfMetricComponent);
 
@@ -162,9 +165,10 @@ public class AlertLogEntryPanelUtil {
             String dfMetricTitle = "Strategy Metrics";
             String dfMetricData = patternMatcher.group(1).trim();
 
-            DateFormat displayDateFormat = alertLogEntryModel.getDisplayDateFormat();
+            DateTimeFormatter displayDateTimeFormatter = alertLogEntryModel.getDisplayDateTimeFormatter();
+            ZoneId displayZoneId = alertLogEntryModel.getDisplayZoneId();
 
-            JComponent dfMetricComponent = getPega0063Component(dfMetricData, displayDateFormat);
+            JComponent dfMetricComponent = getPega0063Component(dfMetricData, displayDateTimeFormatter, displayZoneId);
 
             tabMap.put(dfMetricTitle, dfMetricComponent);
 
@@ -173,7 +177,8 @@ public class AlertLogEntryPanelUtil {
         return tabMap;
     }
 
-    private JComponent getPega0062Component(String metricData, DateFormat displayDateFormat) {
+    private JComponent getPega0062Component(String metricData, DateTimeFormatter displayDateTimeFormatter,
+            ZoneId displayZoneId) {
 
         JComponent component = null;
 
@@ -190,7 +195,7 @@ public class AlertLogEntryPanelUtil {
             ArrayList<Map<String, Object>> stageMetricsList = (ArrayList<Map<String, Object>>) fieldMap
                     .get("stageMetrics");
 
-            Pega0062Tab pega0062Tab = new Pega0062Tab(stageMetricsList, displayDateFormat);
+            Pega0062Tab pega0062Tab = new Pega0062Tab(stageMetricsList, displayDateTimeFormatter, displayZoneId);
 
             JScrollPane scrollPane = new JScrollPane(pega0062Tab, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                     ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -206,7 +211,8 @@ public class AlertLogEntryPanelUtil {
         return component;
     }
 
-    private JComponent getPega0063Component(String metricData, DateFormat displayDateFormat) {
+    private JComponent getPega0063Component(String metricData, DateTimeFormatter displayDateTimeFormatter,
+            ZoneId displayZoneId) {
 
         JComponent component = null;
 
@@ -222,7 +228,7 @@ public class AlertLogEntryPanelUtil {
             ArrayList<Map<String, Object>> stageMetricsList = new ArrayList<>();
             stageMetricsList.add(fieldMap);
 
-            Pega0062Tab pega0062Tab = new Pega0062Tab(stageMetricsList, displayDateFormat);
+            Pega0062Tab pega0062Tab = new Pega0062Tab(stageMetricsList, displayDateTimeFormatter, displayZoneId);
 
             JScrollPane scrollPane = new JScrollPane(pega0062Tab, ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
                     ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
