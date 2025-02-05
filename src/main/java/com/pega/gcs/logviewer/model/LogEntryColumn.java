@@ -90,6 +90,35 @@ public class LogEntryColumn extends DefaultTableColumn {
     public static final LogEntryColumn THREAD_NAME           = new LogEntryColumn("THREAD NAME"             , "THREAD NAME"              , 300 , SwingConstants.CENTER , true  , true  );
     public static final LogEntryColumn EVENT                 = new LogEntryColumn("EVENT"                   , "EVENT"                    , 160 , SwingConstants.CENTER , true  , true  );
 
+    public static final LogEntryColumn START_TIME            = new LogEntryColumn("START_TIME"              ,"START_TIME"                , 160 , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn REQ_PATH              = new LogEntryColumn("REQ_PATH"                ,"REQ_PATH"                  , 500 , SwingConstants.LEFT   , true  , true  );
+    public static final LogEntryColumn RESPONSE_CODE         = new LogEntryColumn("RESPONSE_CODE"           ,"RESPONSE_CODE"             , 70  , SwingConstants.CENTER , true  , true  );
+    public static final LogEntryColumn RESPONSE_FLAGS        = new LogEntryColumn("RESPONSE_FLAGS"          ,"RESPONSE_FLAGS"            , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn RESPONSE_CODE_DETAILS = new LogEntryColumn("RESPONSE_CODE_DETAILS"   ,"RESPONSE_CODE_DETAILS"     , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn CONN_TERM_DETAILS     = new LogEntryColumn("CONN_TERM_DETAILS"       ,"CONN_TERM_DETAILS"         , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn US_TRANS_FAIL_REASON  = new LogEntryColumn("US_TRANS_FAIL_REASON"    ,"US_TRANS_FAIL_REASON"      , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn BYTES_RECEIVED        = new LogEntryColumn("BYTES_RECEIVED"          ,"BYTES_RECEIVED"            , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn BYTES_SENT            = new LogEntryColumn("BYTES_SENT"              ,"BYTES_SENT"                , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn DURATION              = new LogEntryColumn("DURATION"                ,"DURATION"                  , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn RESP_X_E_US_SERV_TIME = new LogEntryColumn("RESP_X_E_US_SERV_TIME"   ,"RESP_X_E_US_SERV_TIME"     , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn REQ_X_FORWARDED_FOR   = new LogEntryColumn("REQ_X_FORWARDED_FOR"     ,"REQ_X_FORWARDED_FOR"       , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn REQ_USER_AGENT        = new LogEntryColumn("REQ_USER_AGENT"          ,"REQ_USER_AGENT"            , 160 , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn REQ_X_REQUEST_ID      = new LogEntryColumn("REQ_X_REQUEST_ID"        ,"REQ_X_REQUEST_ID"          , 160 , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn REQ_AUTHORITY         = new LogEntryColumn("REQ_AUTHORITY"           ,"REQ_AUTHORITY"             , 160 , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn US_HOST               = new LogEntryColumn("US_HOST"                 ,"US_HOST"                   , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn US_CLUSTER            = new LogEntryColumn("US_CLUSTER"              ,"US_CLUSTER"                , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn US_LOCAL_ADDRESS      = new LogEntryColumn("US_LOCAL_ADDRESS"        ,"US_LOCAL_ADDRESS"          , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn DS_LOCAL_ADDRESS      = new LogEntryColumn("DS_LOCAL_ADDRESS"        ,"DS_LOCAL_ADDRESS"          , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn DS_REMOTE_ADDRESS     = new LogEntryColumn("DS_REMOTE_ADDRESS"       ,"DS_REMOTE_ADDRESS"         , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn REQUESTED_SERVER_NAME = new LogEntryColumn("REQUESTED_SERVER_NAME"   ,"REQUESTED_SERVER_NAME"     , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn ROUTE_NAME            = new LogEntryColumn("ROUTE_NAME"              ,"ROUTE_NAME"                , 70  , SwingConstants.CENTER , true  , false );
+
+    public static final LogEntryColumn REMOTE_HOST           = new LogEntryColumn("REMOTE_HOST"             ,"REMOTE_HOST"               , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn REMOTE_USERNAME       = new LogEntryColumn("REMOTE_USERNAME"         ,"REMOTE_USERNAME"           , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn REMOTE_USER           = new LogEntryColumn("REMOTE_USER"             ,"REMOTE_USER"               , 70  , SwingConstants.CENTER , true  , false );
+    public static final LogEntryColumn REQ_THREAD_NAME       = new LogEntryColumn("REQ_THREAD_NAME"         ,"REQ_THREAD_NAME"           , 70  , SwingConstants.CENTER , true  , false );
+
+
     // futureX keys are placeholder
     // CHECKSTYLE:ON
     // @formatter:on
@@ -168,9 +197,37 @@ public class LogEntryColumn extends DefaultTableColumn {
         logEntryColumnList.add(PARTITIONS);
         logEntryColumnList.add(THREAD_NAME);
         logEntryColumnList.add(EVENT);
+
+        logEntryColumnList.add(START_TIME);
+        logEntryColumnList.add(REQ_PATH);
+        logEntryColumnList.add(RESPONSE_CODE);
+        logEntryColumnList.add(RESPONSE_FLAGS);
+        logEntryColumnList.add(RESPONSE_CODE_DETAILS);
+        logEntryColumnList.add(CONN_TERM_DETAILS);
+        logEntryColumnList.add(US_TRANS_FAIL_REASON);
+        logEntryColumnList.add(BYTES_RECEIVED);
+        logEntryColumnList.add(BYTES_SENT);
+        logEntryColumnList.add(DURATION);
+        logEntryColumnList.add(RESP_X_E_US_SERV_TIME);
+        logEntryColumnList.add(REQ_X_FORWARDED_FOR);
+        logEntryColumnList.add(REQ_USER_AGENT);
+        logEntryColumnList.add(REQ_X_REQUEST_ID);
+        logEntryColumnList.add(REQ_AUTHORITY);
+        logEntryColumnList.add(US_HOST);
+        logEntryColumnList.add(US_CLUSTER);
+        logEntryColumnList.add(US_LOCAL_ADDRESS);
+        logEntryColumnList.add(DS_LOCAL_ADDRESS);
+        logEntryColumnList.add(DS_REMOTE_ADDRESS);
+        logEntryColumnList.add(REQUESTED_SERVER_NAME);
+        logEntryColumnList.add(ROUTE_NAME);
+
+        logEntryColumnList.add(REMOTE_HOST);
+        logEntryColumnList.add(REMOTE_USERNAME);
+        logEntryColumnList.add(REMOTE_USER);
+        logEntryColumnList.add(REQ_THREAD_NAME);
     }
 
-    private LogEntryColumn(String columnId, String displayName, int prefColumnWidth, int horizontalAlignment,
+    public LogEntryColumn(String columnId, String displayName, int prefColumnWidth, int horizontalAlignment,
             boolean visibleColumn, boolean filterable) {
 
         super(columnId, displayName, prefColumnWidth, horizontalAlignment, visibleColumn, filterable);
@@ -277,5 +334,47 @@ public class LogEntryColumn extends DefaultTableColumn {
         lifeCycleEventColumnList.add(EVENT);
 
         return lifeCycleEventColumnList;
+    }
+
+    public static List<LogEntryColumn> getCloudKIstioLogColumnList() {
+
+        List<LogEntryColumn> logEntryColumnList = new ArrayList<>();
+
+        logEntryColumnList.add(TIMESTAMP);
+        logEntryColumnList.add(START_TIME);
+        logEntryColumnList.add(REQ_PATH);
+        logEntryColumnList.add(RESPONSE_CODE);
+        logEntryColumnList.add(RESPONSE_FLAGS);
+        logEntryColumnList.add(RESPONSE_CODE_DETAILS);
+        logEntryColumnList.add(CONN_TERM_DETAILS);
+        logEntryColumnList.add(US_TRANS_FAIL_REASON);
+        logEntryColumnList.add(BYTES_RECEIVED);
+        logEntryColumnList.add(BYTES_SENT);
+        logEntryColumnList.add(DURATION);
+        logEntryColumnList.add(RESP_X_E_US_SERV_TIME);
+        logEntryColumnList.add(REQ_X_FORWARDED_FOR);
+        logEntryColumnList.add(REQ_USER_AGENT);
+        logEntryColumnList.add(REQ_X_REQUEST_ID);
+        logEntryColumnList.add(REQ_AUTHORITY);
+        logEntryColumnList.add(US_HOST);
+        logEntryColumnList.add(US_CLUSTER);
+        logEntryColumnList.add(US_LOCAL_ADDRESS);
+        logEntryColumnList.add(DS_LOCAL_ADDRESS);
+        logEntryColumnList.add(DS_REMOTE_ADDRESS);
+        logEntryColumnList.add(REQUESTED_SERVER_NAME);
+        logEntryColumnList.add(ROUTE_NAME);
+
+        return logEntryColumnList;
+    }
+
+    public static List<LogEntryColumn> getGenericCloudKLogColumnList() {
+
+        List<LogEntryColumn> genericCloudKLogColumnList = new ArrayList<>();
+
+        genericCloudKLogColumnList.add(LINE);
+        genericCloudKLogColumnList.add(TIMESTAMP);
+        genericCloudKLogColumnList.add(MESSAGE);
+
+        return genericCloudKLogColumnList;
     }
 }

@@ -76,7 +76,7 @@ public class LogMessagesExportDialog extends JDialog {
     private File logFile;
 
     public enum ParseOption {
-        DELIMITER, JSON
+        DELIMITER, JSON, XML
     }
 
     public LogMessagesExportDialog(LogTableModel logTableModel, ImageIcon appIcon, Component parent) {
@@ -136,24 +136,31 @@ public class LogMessagesExportDialog extends JDialog {
 
         if (logMessagesLoggerSelectPanel == null) {
 
+            List<CheckBoxMenuItemPopupEntry<LogEntryKey>> loggerColumnEntryList = new ArrayList<>();
+
             LogTableModel logTableModel = getLogTableModel();
 
             LogEntryModel logEntryModel = logTableModel.getLogEntryModel();
             Map<LogEntryColumn, Integer> logEntryColumnIndexMap = logEntryModel.getLogEntryColumnIndexMap();
 
-            int loggerColumnIndex = logEntryColumnIndexMap.get(LogEntryColumn.LOGGER);
+            Integer loggerColumnIndex = logEntryColumnIndexMap.get(LogEntryColumn.LOGGER);
 
-            Set<CheckBoxMenuItemPopupEntry<LogEntryKey>> loggerColumnEntrySet;
-            loggerColumnEntrySet = logTableModel.getColumnFilterEntrySet(loggerColumnIndex);
+            if (loggerColumnIndex != null) {
 
-            // making a copy
-            Kryo kryo = new Kryo();
+                Set<CheckBoxMenuItemPopupEntry<LogEntryKey>> loggerColumnEntrySet;
+                loggerColumnEntrySet = logTableModel.getColumnFilterEntrySet(loggerColumnIndex);
 
-            Set<CheckBoxMenuItemPopupEntry<LogEntryKey>> loggerColumnEntrySetCopy;
-            loggerColumnEntrySetCopy = kryo.copy(loggerColumnEntrySet);
+                // making a copy
+                Kryo kryo = new Kryo();
+                kryo.setRegistrationRequired(false);
+                kryo.register(TreeSet.class);
+                kryo.register(CheckBoxMenuItemPopupEntry.class);
 
-            List<CheckBoxMenuItemPopupEntry<LogEntryKey>> loggerColumnEntryList;
-            loggerColumnEntryList = new ArrayList<>(loggerColumnEntrySetCopy);
+                Set<CheckBoxMenuItemPopupEntry<LogEntryKey>> loggerColumnEntrySetCopy;
+                loggerColumnEntrySetCopy = kryo.copy(loggerColumnEntrySet);
+
+                loggerColumnEntryList.addAll(loggerColumnEntrySetCopy);
+            }
 
             logMessagesLoggerSelectPanel = new LogMessagesLoggerSelectPanel(loggerColumnEntryList);
 
@@ -582,17 +589,23 @@ public class LogMessagesExportDialog extends JDialog {
 
                 LogMessagesLoggerSelectPanel logMessagesLoggerSelectPanel = getLogMessagesLoggerSelectPanel();
 
-                List<CheckBoxMenuItemPopupEntry<LogEntryKey>> selectedLoggerColumnEntryList;
-                selectedLoggerColumnEntryList = logMessagesLoggerSelectPanel.getSelectedLoggerColumnEntryList();
+                boolean isEmptyLoggerColumnEntryList = logMessagesLoggerSelectPanel.isEmptyLoggerColumnEntryList();
 
                 // collate log entry indexes for export
                 Set<LogEntryKey> logEntrySet = new TreeSet<>();
 
-                for (CheckBoxMenuItemPopupEntry<LogEntryKey> loggerColumnEntry : selectedLoggerColumnEntryList) {
+                if (isEmptyLoggerColumnEntryList) {
+                    // TODO
+                } else {
+                    List<CheckBoxMenuItemPopupEntry<LogEntryKey>> selectedLoggerColumnEntryList;
+                    selectedLoggerColumnEntryList = logMessagesLoggerSelectPanel.getSelectedLoggerColumnEntryList();
 
-                    List<LogEntryKey> rowIndexList = loggerColumnEntry.getRowIndexList();
+                    for (CheckBoxMenuItemPopupEntry<LogEntryKey> loggerColumnEntry : selectedLoggerColumnEntryList) {
 
-                    logEntrySet.addAll(rowIndexList);
+                        List<LogEntryKey> rowIndexList = loggerColumnEntry.getRowIndexList();
+
+                        logEntrySet.addAll(rowIndexList);
+                    }
                 }
 
                 final int rowCount = logEntrySet.size();

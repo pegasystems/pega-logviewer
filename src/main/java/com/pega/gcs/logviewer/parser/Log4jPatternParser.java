@@ -70,7 +70,7 @@ public class Log4jPatternParser extends LogParser {
 
     // not including MESSAGE as its processed separately
     // TIMESTAMP [THREAD] [PEGATHREAD] [TENANTID] [APP] (LOGGER) LEVEL STACK REQUESTORID CORRELATIONID USERID -
-    private static final String V2_STR_FORMAT = "%s [%s] [%s] [%s] (%s) %s %s %s %s %s - ";
+    protected static final String V2_STR_FORMAT = "%s [%s] [%s] [%s] (%s) %s %s %s %s %s - ";
 
     private String regExp;
 
@@ -165,6 +165,10 @@ public class Log4jPatternParser extends LogParser {
 
     }
 
+    protected Pattern getLinePattern() {
+        return linePattern;
+    }
+
     protected int getLevelIndex() {
 
         if (levelIndex == -1) {
@@ -219,281 +223,284 @@ public class Log4jPatternParser extends LogParser {
 
         Log4jPattern log4jPattern = (Log4jPattern) getLogPattern();
 
-        String logPatternStr = log4jPattern.getPatternString();
+        if (log4jPattern != null) {
+            String logPatternStr = log4jPattern.getPatternString();
 
-        String pattern = OptionConverter.convertSpecialChars(logPatternStr);
+            String pattern = OptionConverter.convertSpecialChars(logPatternStr);
 
-        LOG.info("getLogEntryColumnsFromLog4jPattern - logPatternStr: " + logPatternStr);
+            LOG.info("getLogEntryColumnsFromLog4jPattern - logPatternStr: " + logPatternStr);
 
-        PatternParser patternParser = LogPatternFactory.getInstance().getPatternParser();
+            PatternParser patternParser = LogPatternFactory.getInstance().getPatternParser();
 
-        List<PatternFormatter> patternFormatterList = patternParser.parse(pattern);
+            List<PatternFormatter> patternFormatterList = patternParser.parse(pattern);
 
-        logEntryColumnList.add(LogEntryColumn.LINE);
+            logEntryColumnList.add(LogEntryColumn.LINE);
 
-        for (PatternFormatter patternFormatter : patternFormatterList) {
+            for (PatternFormatter patternFormatter : patternFormatterList) {
 
-            String format = null;
+                String format = null;
 
-            FormattingInfo formattingInfo = patternFormatter.getFormattingInfo();
-            int minLength = formattingInfo.getMinLength();
-            int maxLength = formattingInfo.getMaxLength();
+                FormattingInfo formattingInfo = patternFormatter.getFormattingInfo();
+                int minLength = formattingInfo.getMinLength();
+                int maxLength = formattingInfo.getMaxLength();
 
-            PatternConverter patternConverter = patternFormatter.getConverter();
-            String patternConverterName = patternConverter.getName();
+                PatternConverter patternConverter = patternFormatter.getConverter();
+                String patternConverterName = patternConverter.getName();
 
-            String mapPropertyName = null;
-            String mdcPropertyName = null;
+                String mapPropertyName = null;
+                String mdcPropertyName = null;
 
-            if (patternConverterName.startsWith("MAP{")) {
-                mapPropertyName = getMAPName(patternConverterName);
-                patternConverterName = "MAP";
+                if (patternConverterName.startsWith("MAP{")) {
+                    mapPropertyName = getMAPName(patternConverterName);
+                    patternConverterName = "MAP";
 
-            } else if (patternConverterName.startsWith("MDC{")) {
-                mdcPropertyName = getMDCName(patternConverterName);
-                patternConverterName = "MDC";
-            }
+                } else if (patternConverterName.startsWith("MDC{")) {
+                    mdcPropertyName = getMDCName(patternConverterName);
+                    patternConverterName = "MDC";
+                }
 
-            switch (patternConverterName) {
+                switch (patternConverterName) {
 
-            // ClassNamePatternConverter
-            case "Class Name":
+                // ClassNamePatternConverter
+                case "Class Name":
 
-                format = DEFAULT_GROUP;
+                    format = DEFAULT_GROUP;
 
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.CLASS);
+                    regExp = regExp + format;
+                    logEntryColumnList.add(LogEntryColumn.CLASS);
 
-                break;
+                    break;
 
-            // DatePatternConverter
-            case "Date":
+                // DatePatternConverter
+                case "Date":
 
-                // this sets the parsers model zone id and model datetimeformatter
-                format = getTimeStampFormat(logPatternStr);
-                format = format.replaceAll(Pattern.quote("+"), "[+]");
-                format = format.replaceAll(("[" + DateTimeUtilities.VALID_DATEFORMAT_CHARS + "]+"), "\\\\S+");
-                format = format.replaceAll(Pattern.quote("."), "\\\\.");
-                format = "(" + format + ")";
+                    // this sets the parsers model zone id and model datetimeformatter
+                    format = getTimeStampFormat(logPatternStr);
+                    format = format.replaceAll(Pattern.quote("'"), "");
+                    format = format.replaceAll(Pattern.quote("+"), "[+]");
+                    format = format.replaceAll(("[" + DateTimeUtilities.VALID_DATEFORMAT_CHARS + "]+"), "\\\\S+");
+                    format = format.replaceAll(Pattern.quote("."), "\\\\.");
+                    format = "(" + format + ")";
 
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.TIMESTAMP);
+                    regExp = regExp + format;
+                    logEntryColumnList.add(LogEntryColumn.TIMESTAMP);
 
-                break;
+                    break;
 
-            // FileLocationPatternConverter
-            case "File Location":
+                // FileLocationPatternConverter
+                case "File Location":
 
-                format = DEFAULT_GROUP;
+                    format = DEFAULT_GROUP;
 
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.FILE);
+                    regExp = regExp + format;
+                    logEntryColumnList.add(LogEntryColumn.FILE);
 
-                break;
+                    break;
 
-            // FullLocationPatternConverter
-            case "Full Location":
+                // FullLocationPatternConverter
+                case "Full Location":
 
-                format = DEFAULT_GROUP;
+                    format = DEFAULT_GROUP;
 
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.LOCATIONINFO);
+                    regExp = regExp + format;
+                    logEntryColumnList.add(LogEntryColumn.LOCATIONINFO);
 
-                break;
+                    break;
 
-            // LevelPatternConverter
-            case "Level":
+                // LevelPatternConverter
+                case "Level":
 
-                if (minLength > 0) {
-                    format = LOG_LEVEL_GROUP;
-                    // the Regex parsing is very slow if the max value is open
-                    // ended like {5,} hence setting both min and max to min
-                    // value because i assume that standard log levels are
-                    // not going to be greater than 5 chars.
-                    format = format.replace("n", String.valueOf(minLength));
+                    if (minLength > 0) {
+                        format = LOG_LEVEL_GROUP;
+                        // the Regex parsing is very slow if the max value is open
+                        // ended like {5,} hence setting both min and max to min
+                        // value because i assume that standard log levels are
+                        // not going to be greater than 5 chars.
+                        format = format.replace("n", String.valueOf(minLength));
 
-                    if (maxLength != Integer.MAX_VALUE) {
-                        format = format.replace("m", String.valueOf(maxLength));
+                        if (maxLength != Integer.MAX_VALUE) {
+                            format = format.replace("m", String.valueOf(maxLength));
+                        } else {
+                            format = format.replace("m", String.valueOf(minLength));
+                        }
                     } else {
-                        format = format.replace("m", String.valueOf(minLength));
+                        format = NOSPACE_GROUP;
                     }
-                } else {
+
+                    regExp = regExp + format;
+                    logEntryColumnList.add(LogEntryColumn.LEVEL);
+
+                    break;
+
+                // LineLocationPatternConverter
+                case "Line":
+
+                    format = DEFAULT_GROUP;
+
+                    regExp = regExp + format;
+                    logEntryColumnList.add(LogEntryColumn.LINE);
+
+                    break;
+
+                // LineSeparatorPatternConverter
+                case "Line Sep":
+
+                    lineCount++;
+
+                    break;
+
+                // LiteralPatternConverter
+                case "Literal":
+
+                    format = ((LiteralPatternConverter) patternConverter).getLiteral();
+
+                    if (Pattern.quote("${CW_LOG} ").equals(Pattern.quote(format))) {
+                        format = ".*?[ ]+";
+                    } else {
+                        format = escapeRegexChars(format);
+                    }
+
+                    regExp = regExp + format;
+
+                    break;
+
+                // LoggerPatternConverter
+                case "Logger":
+
                     format = NOSPACE_GROUP;
-                }
 
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.LEVEL);
+                    regExp = regExp + format;
+                    logEntryColumnList.add(LogEntryColumn.LOGGER);
 
-                break;
+                    break;
 
-            // LineLocationPatternConverter
-            case "Line":
+                // MapPatternConverter
+                case "MAP":
 
-                format = DEFAULT_GROUP;
+                    format = DEFAULT_GROUP;
 
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.LINE);
+                    regExp = regExp + format;
 
-                break;
+                    LogEntryColumn mapLogEntryColumn = LogEntryColumn.getTableColumnById(mapPropertyName.toUpperCase());
 
-            // LineSeparatorPatternConverter
-            case "Line Sep":
+                    logEntryColumnList.add(mapLogEntryColumn);
 
-                lineCount++;
+                    break;
 
-                break;
+                // MdcPatternConverter
+                case "MDC":
 
-            // LiteralPatternConverter
-            case "Literal":
+                    if (minLength > 0) {
+                        format = LIMITING_GROUP;
+                        format = format.replace("n", String.valueOf(minLength));
 
-                format = ((LiteralPatternConverter) patternConverter).getLiteral();
-
-                if (Pattern.quote("${CW_LOG} ").equals(Pattern.quote(format))) {
-                    format = ".*?[ ]+";
-                } else {
-                    format = escapeRegexChars(format);
-                }
-
-                regExp = regExp + format;
-
-                break;
-
-            // LoggerPatternConverter
-            case "Logger":
-
-                format = NOSPACE_GROUP;
-
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.LOGGER);
-
-                break;
-
-            // MapPatternConverter
-            case "MAP":
-
-                format = DEFAULT_GROUP;
-
-                regExp = regExp + format;
-
-                LogEntryColumn mapLogEntryColumn = LogEntryColumn.getTableColumnById(mapPropertyName.toUpperCase());
-
-                logEntryColumnList.add(mapLogEntryColumn);
-
-                break;
-
-            // MdcPatternConverter
-            case "MDC":
-
-                if (minLength > 0) {
-                    format = LIMITING_GROUP;
-                    format = format.replace("n", String.valueOf(minLength));
-
-                    if ((maxLength > 0) && (maxLength < Integer.MAX_VALUE)) {
-                        format = format.replace("m", String.valueOf(maxLength));
+                        if ((maxLength > 0) && (maxLength < Integer.MAX_VALUE)) {
+                            format = format.replace("m", String.valueOf(maxLength));
+                        } else {
+                            format = format.replace("m", "");
+                        }
                     } else {
-                        format = format.replace("m", "");
+                        format = OPTIONAL_GROUP;
                     }
-                } else {
-                    format = OPTIONAL_GROUP;
+
+                    regExp = regExp + format;
+
+                    LogEntryColumn mdcLogEntryColumn = LogEntryColumn.getTableColumnById(mdcPropertyName.toUpperCase());
+
+                    logEntryColumnList.add(mdcLogEntryColumn);
+
+                    break;
+
+                // MessagePatternConverter
+                case "Message":
+
+                    format = GREEDY_GROUP;
+
+                    regExp = regExp + format;
+                    logEntryColumnList.add(LogEntryColumn.MESSAGE);
+
+                    break;
+
+                // MethodLocationPatternConverter
+                case "Method":
+
+                    format = DEFAULT_GROUP;
+
+                    regExp = regExp + format;
+                    logEntryColumnList.add(LogEntryColumn.METHOD);
+
+                    break;
+
+                // NdcPatternConverter
+                case "NDC":
+
+                    format = DEFAULT_GROUP;
+
+                    regExp = regExp + format;
+                    logEntryColumnList.add(LogEntryColumn.NDC);
+
+                    break;
+
+                // RelativeTimePatternConverter
+                case "Time":
+
+                    format = DEFAULT_GROUP;
+
+                    regExp = regExp + format;
+                    logEntryColumnList.add(LogEntryColumn.RELATIVETIME);
+
+                    break;
+
+                // SequenceNumberPatternConverter
+                case "Sequence Number":
+
+                    format = DEFAULT_GROUP;
+
+                    regExp = regExp + format;
+                    logEntryColumnList.add(LogEntryColumn.LOG4JID);
+
+                    break;
+
+                // SimpleLiteralPatternConverter
+                case "SimpleLiteral":
+
+                    StringBuilder literalSB = new StringBuilder();
+
+                    patternConverter.format(null, literalSB);
+
+                    format = literalSB.toString();
+
+                    format = escapeRegexChars(format);
+
+                    regExp = regExp + format;
+
+                    break;
+
+                // ThreadNamePatternConverter
+                case "Thread":
+
+                    format = DEFAULT_GROUP;
+
+                    regExp = regExp + format;
+                    logEntryColumnList.add(LogEntryColumn.THREAD);
+
+                    break;
+
+                default:
+                    LOG.error("Unknown patternConverterName: " + patternConverterName);
+                    break;
+
                 }
-
-                regExp = regExp + format;
-
-                LogEntryColumn mdcLogEntryColumn = LogEntryColumn.getTableColumnById(mdcPropertyName.toUpperCase());
-
-                logEntryColumnList.add(mdcLogEntryColumn);
-
-                break;
-
-            // MessagePatternConverter
-            case "Message":
-
-                format = GREEDY_GROUP;
-
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.MESSAGE);
-
-                break;
-
-            // MethodLocationPatternConverter
-            case "Method":
-
-                format = DEFAULT_GROUP;
-
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.METHOD);
-
-                break;
-
-            // NdcPatternConverter
-            case "NDC":
-
-                format = DEFAULT_GROUP;
-
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.NDC);
-
-                break;
-
-            // RelativeTimePatternConverter
-            case "Time":
-
-                format = DEFAULT_GROUP;
-
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.RELATIVETIME);
-
-                break;
-
-            // SequenceNumberPatternConverter
-            case "Sequence Number":
-
-                format = DEFAULT_GROUP;
-
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.LOG4JID);
-
-                break;
-
-            // SimpleLiteralPatternConverter
-            case "SimpleLiteral":
-
-                StringBuilder literalSB = new StringBuilder();
-
-                patternConverter.format(null, literalSB);
-
-                format = literalSB.toString();
-
-                format = escapeRegexChars(format);
-
-                regExp = regExp + format;
-
-                break;
-
-            // ThreadNamePatternConverter
-            case "Thread":
-
-                format = DEFAULT_GROUP;
-
-                regExp = regExp + format;
-                logEntryColumnList.add(LogEntryColumn.THREAD);
-
-                break;
-
-            default:
-                LOG.error("Unknown patternConverterName: " + patternConverterName);
-                break;
 
             }
 
+            // LOG.info("loggerIndex: " + levelIndex);
+            LOG.info("generateRegExp - lineCount: " + lineCount);
+            LOG.info("generateRegExp - regExp: " + regExp);
+            LOG.info("generateRegExp - logEntryColumnList: " + logEntryColumnList);
+
+            linePattern = Pattern.compile(regExp);
         }
-
-        // LOG.info("loggerIndex: " + levelIndex);
-        LOG.info("generateRegExp - lineCount: " + lineCount);
-        LOG.info("generateRegExp - regExp: " + regExp);
-        LOG.info("generateRegExp - logEntryColumnList: " + logEntryColumnList);
-
-        linePattern = Pattern.compile(regExp);
 
         return logEntryColumnList;
     }
@@ -526,6 +533,14 @@ public class Log4jPatternParser extends LogParser {
         }
 
         return propertyName;
+    }
+
+    protected ArrayList<String> getAdditionalLines() {
+        return additionalLines;
+    }
+
+    protected void addAllLogEntryColumnValue(List<String> valueList) {
+        logEntryColumnValueList.addAll(valueList);
     }
 
     protected void addLogEntryColumnValue(String value) {
@@ -670,6 +685,10 @@ public class Log4jPatternParser extends LogParser {
         return logEntryColumnValueList;
     }
 
+    protected void setLogEntryText(String logEntryText) {
+        this.logEntryText = logEntryText;
+    }
+
     protected String getLogEntryText() {
         return logEntryText;
     }
@@ -803,6 +822,7 @@ public class Log4jPatternParser extends LogParser {
         AtomicInteger logEntryIndex = getLogEntryIndex();
         ArrayList<String> logEntryColumnValueList = getLogEntryColumnValueList();
         String logEntryText = getLogEntryText();
+        List<String> additionalLines = getAdditionalLines();
 
         if ((logEntryColumnValueList.size() == 0) && (additionalLines.size() > 0)) {
 

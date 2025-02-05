@@ -80,6 +80,10 @@ public class LogMessagesExportTask extends SwingWorker<List<LogEntryKey>, Intege
 
                 break;
 
+            case XML:
+
+                break;
+
             default:
                 break;
             }

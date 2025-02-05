@@ -504,4 +504,8 @@ public class LogMessagesLoggerSelectPanel extends JPanel {
         return selectedLoggerColumnEntryList;
     }
 
+    public boolean isEmptyLoggerColumnEntryList() {
+        return loggerColumnEntryList.size() == 0;
+    }
+
 }

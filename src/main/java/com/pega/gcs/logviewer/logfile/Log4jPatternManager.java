@@ -143,6 +143,29 @@ public class Log4jPatternManager {
         name = "7.x - SOCKET_RECIEVER";
         patStr = "%d [%20.20t] [%20.20X{tenantid}] [%20.20X{app}] (%30.30c{3}) %-5p %X{stack} %X{userid} - %m%n";
         socketRecieverLog4jPattern = logPatternFactory.getLog4jPattern(LogType.PEGA_RULES, name, patStr, false);
+
+        // PEGA_CLOUDK_ISTIO
+        name = "PEGA_CLOUDK_ISTIO";
+        // [%START_TIME%] \"%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%\" %RESPONSE_CODE% %RESPONSE_FLAGS%
+        // %RESPONSE_CODE_DETAILS% %CONNECTION_TERMINATION_DETAILS% \"%UPSTREAM_TRANSPORT_FAILURE_REASON%\" %BYTES_RECEIVED% %BYTES_SENT%
+        // %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% \"%REQ(X-FORWARDED-FOR)%\" \"%REQ(USER-AGENT)%\" \"%REQ(X-REQUEST-ID)%\"
+        // \"%REQ(:AUTHORITY)%\" \"%UPSTREAM_HOST%\" %UPSTREAM_CLUSTER% %UPSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_LOCAL_ADDRESS%
+        // %DOWNSTREAM_REMOTE_ADDRESS% %REQUESTED_SERVER_NAME% %ROUTE_NAME%\n
+        patStr = "%d{yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSSX} [%X{start_time}] \"%X{req_path}\" %X{response_code} %X{response_flags} %X{response_c"
+                + "ode_details} %X{conn_term_details} \"%X{us_trans_fail_reason}\" %X{bytes_received} %X{bytes_sent} %X{duration} %X{resp_x"
+                + "_e_us_serv_time} \"%X{req_x_forwarded_for}\" \"%X{req_user_agent}\" \"%X{req_x_request_id}\" \"%X{req_authority}\" \"%X{"
+                + "us_host}\" %X{us_cluster} %X{us_local_address} %X{ds_local_address} %X{ds_remote_address} %X{requested_server_name} %X{r"
+                + "oute_name}";
+        log4jPattern = logPatternFactory.getLog4jPattern(LogType.PEGA_CLOUDK_ISTIO, name, patStr, false);
+        addToLog4jPatternTypeMap(log4jPattern);
+
+        // PEGA_CLOUDK_ACCESS_LOG
+        name = "PEGA_CLOUDK_ACCESS_LOG";
+        // %{X-Forwarded-For}i %h %l %u %t &quot;%r&quot; %s %b %D %I
+        patStr = "%d{yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSSX} %X{req_x_forwarded_for} %X{remote_host} %X{remote_username} %X{remote_user} [%X{st"
+                + "art_time}] \"%X{req_path}\" %X{response_code} %X{bytes_sent} %X{duration} %X{req_thread_name}";
+        log4jPattern = logPatternFactory.getLog4jPattern(LogType.PEGA_CLOUDK_ACCESS_LOG, name, patStr, false);
+        addToLog4jPatternTypeMap(log4jPattern);
     }
 
     public static Log4jPatternManager getInstance() {
@@ -200,6 +223,20 @@ public class Log4jPatternManager {
         Map<LogType, Set<Log4jPattern>> log4jPatternTypeMap = getLog4jPatternTypeMap();
 
         return Collections.unmodifiableSet(log4jPatternTypeMap.get(LogType.PEGA_DDSMETRIC));
+    }
+
+    public Set<Log4jPattern> getDefaultPegaCloudKIstioLog4jPatternSet() {
+
+        Map<LogType, Set<Log4jPattern>> log4jPatternTypeMap = getLog4jPatternTypeMap();
+
+        return Collections.unmodifiableSet(log4jPatternTypeMap.get(LogType.PEGA_CLOUDK_ISTIO));
+    }
+
+    public Set<Log4jPattern> getDefaultPegaCloudKAccessLog4jPatternSet() {
+
+        Map<LogType, Set<Log4jPattern>> log4jPatternTypeMap = getLog4jPatternTypeMap();
+
+        return Collections.unmodifiableSet(log4jPatternTypeMap.get(LogType.PEGA_CLOUDK_ACCESS_LOG));
     }
 
     public Log4jPattern getSocketRecieverLog4jPattern() {

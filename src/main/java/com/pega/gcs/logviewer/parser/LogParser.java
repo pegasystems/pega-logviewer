@@ -23,6 +23,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.JacksonException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
@@ -102,7 +103,9 @@ public abstract class LogParser {
         this.processedCount = new AtomicInteger(0);
         this.resetProcessedCount = false;
 
-        String cloudkRegex = ".*?\\s(.*)";
+        // String cloudkRegex = ".*?\\s(.*)";
+        String cloudkRegex = "(?:\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z)?(.*)";
+
         cloudkPattern = Pattern.compile(cloudkRegex);
 
         // 2023-04-26T13:28:31.811Z
@@ -152,6 +155,10 @@ public abstract class LogParser {
 
     protected AtomicInteger getLogEntryIndex() {
         return logEntryIndex;
+    }
+
+    private ObjectMapper getObjectMapper() {
+        return objectMapper;
     }
 
     public void parse(String line) {
@@ -274,11 +281,11 @@ public abstract class LogParser {
                 }
             }
 
-            String quoteTimeStamp = quoteTimeStampChars(timeStampFormat);
+            // String quoteTimeStamp = quoteTimeStampChars(timeStampFormat);
 
-            LOG.info("Using Timestamp format: " + quoteTimeStamp);
+            LOG.info("Using Timestamp format: " + timeStampFormat);
 
-            DateTimeFormatter modelDateTimeFormatter = DateTimeFormatter.ofPattern(quoteTimeStamp);
+            DateTimeFormatter modelDateTimeFormatter = DateTimeFormatter.ofPattern(timeStampFormat);
 
             if (timeZoneStr != null) {
 
@@ -357,6 +364,17 @@ public abstract class LogParser {
             Set<Log4jPattern> log4jPatternSet = log4jPatternManager.getDefaultDdsMetricLog4jPatternSet();
 
             logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayZoneId);
+        } else if (filename.toUpperCase().contains("ISTIO")) {
+
+            Set<Log4jPattern> log4jPatternSet = log4jPatternManager.getDefaultPegaCloudKIstioLog4jPatternSet();
+
+            logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayZoneId);
+
+        } else if ((filename.toUpperCase().contains("LOCALHOST_ACCESS_LOG"))) {
+
+            Set<Log4jPattern> log4jPatternSet = log4jPatternManager.getDefaultPegaCloudKAccessLog4jPatternSet();
+
+            logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayZoneId);
         }
 
         // check if a PegaRules log file
@@ -366,8 +384,6 @@ public abstract class LogParser {
 
             logParser = getLog4jParser(readLineList, pegaRulesLog4jPatternSet, charset, locale, displayZoneId);
         }
-
-        // TODO other log file types
 
         return logParser;
     }
@@ -399,6 +415,14 @@ public abstract class LogParser {
             logParser = new DdsMetricLog4jPatternParser((Log4jPattern) abstractLogPattern, charset, locale,
                     displayZoneId);
             break;
+        case PEGA_CLOUDK_ISTIO:
+            logParser = new CloudKIstioLogPatternParser((Log4jPattern) abstractLogPattern, charset, locale,
+                    displayZoneId);
+            break;
+        case PEGA_CLOUDK_ACCESS_LOG:
+            logParser = new CloudKAccessLogPatternParser((Log4jPattern) abstractLogPattern, charset, locale,
+                    displayZoneId);
+            break;
         default:
             break;
         }
@@ -422,8 +446,9 @@ public abstract class LogParser {
 
             CloudKVersion cloudKVersion = currentLogParser.getCloudKVersion();
 
-            // trying only once as we know the pattern for cloudk v2 logs
-            if (CloudKVersion.V2.equals(cloudKVersion)) {
+            // trying only once as we know the pattern for all other logs (cloudk v2, v3)
+            if (!((CloudKVersion.NULL.equals(cloudKVersion) || CloudKVersion.V0.equals(cloudKVersion)
+                    || CloudKVersion.V1.equals(cloudKVersion)))) {
                 logParser = currentLogParser;
 
                 break;
@@ -512,6 +537,9 @@ public abstract class LogParser {
             if ((logMessage != null) && (!"".equals(logMessage.trim()))) {
 
                 try {
+
+                    ObjectMapper objectMapper = getObjectMapper();
+
                     TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
                     };
 
@@ -612,6 +640,7 @@ public abstract class LogParser {
         return cloudKVersion;
     }
 
+    // removes the first timestamp string and parses the remaining string as JSON
     protected Map<String, Object> getCloudKFieldMap(String line) {
 
         Map<String, Object> fieldMap = null;
@@ -619,6 +648,8 @@ public abstract class LogParser {
         try {
 
             String json = extractLogMessage(line);
+
+            ObjectMapper objectMapper = getObjectMapper();
 
             TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
             };
@@ -652,15 +683,13 @@ public abstract class LogParser {
         case V1:
             try {
 
-                String logMessage = extractLogMessage(line);
+                Map<String, Object> fieldMap = getCloudKFieldMap(line);
 
-                TypeReference<HashMap<String, Object>> typeRef = new TypeReference<HashMap<String, Object>>() {
-                };
-
-                Map<String, Object> fieldMap = objectMapper.readValue(logMessage, typeRef);
-
-                lineFromCloudK = (String) fieldMap.get("message");
-
+                if (fieldMap != null) {
+                    lineFromCloudK = (String) fieldMap.get("message");
+                } else {
+                    lineFromCloudK = line;
+                }
             } catch (Exception e) {
                 LOG.error("Error parsing CloudK Json", e.getMessage());
 
@@ -681,5 +710,19 @@ public abstract class LogParser {
         }
 
         return lineFromCloudK;
+    }
+
+    protected <T, V> String getJsonString(Map<T, V> fieldMap) {
+
+        String jsonString = null;
+
+        try {
+            ObjectMapper objectMapper = getObjectMapper();
+            jsonString = objectMapper.writeValueAsString(fieldMap);
+        } catch (JsonProcessingException e) {
+            LOG.error("Error converting map to Json string", e);
+        }
+
+        return jsonString;
     }
 }
