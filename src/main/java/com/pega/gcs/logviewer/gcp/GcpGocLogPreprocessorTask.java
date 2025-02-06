@@ -108,10 +108,10 @@ public class GcpGocLogPreprocessorTask extends SwingWorker<List<File>, Integer> 
 
                 Map<String, Object> fieldMap = getJsonFieldMap(line);
 
-                String container_name = (String) fieldMap.get("container_name");
+                String containerName = (String) fieldMap.get("container_name");
                 String severity = (String) fieldMap.get("severity");
 
-                if (PEGA_TOMCAT_CONTAINER.equals(container_name)) {
+                if (PEGA_TOMCAT_CONTAINER.equals(containerName)) {
 
                     if ("ALERT".equals(severity)) {
 
