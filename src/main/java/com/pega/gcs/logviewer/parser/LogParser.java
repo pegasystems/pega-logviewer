@@ -28,6 +28,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.DateTimeUtilities;
+import com.pega.gcs.logviewer.LogViewer;
 import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
 import com.pega.gcs.logviewer.logfile.AbstractLogPattern.LogType;
 import com.pega.gcs.logviewer.logfile.AlertLogPattern;
@@ -331,7 +332,7 @@ public abstract class LogParser {
 
         Log4jPatternManager log4jPatternManager = Log4jPatternManager.getInstance();
 
-        if (filename.toUpperCase().contains("GCP-PegaRULES-ALERT")) {
+        if (filename.toUpperCase().contains(LogViewer.GCP_GOC_FILE_SUFFIX_ALERT.toUpperCase())) {
 
             AlertLogPattern alertLogPattern = LogPatternFactory.getInstance().getAlertLogPattern();
 
@@ -389,7 +390,7 @@ public abstract class LogParser {
             Set<Log4jPattern> log4jPatternSet = log4jPatternManager.getDefaultPegaCloudKAccessLog4jPatternSet();
 
             logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayZoneId);
-        } else if ((filename.toUpperCase().contains("GCP-PEGARULES"))) {
+        } else if ((filename.toUpperCase().contains(LogViewer.GCP_GOC_FILE_SUFFIX_RULES.toUpperCase()))) {
 
             JsonLogParser jsonLogParser = new JsonLogParser(charset, locale, displayZoneId);
 

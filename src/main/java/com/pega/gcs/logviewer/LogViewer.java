@@ -115,6 +115,9 @@ public class LogViewer extends BaseFrame {
     // GCP GOC file pattern
     private static final String GCP_GOC_FILE_NAME_REGEX = "^\\d+$";
 
+    public static final String GCP_GOC_FILE_SUFFIX_RULES = "GCP-PegaRULES";
+
+    public static final String GCP_GOC_FILE_SUFFIX_ALERT = "GCP-PegaRULES-ALERT";
     /* ================================== */
 
     private String appName;

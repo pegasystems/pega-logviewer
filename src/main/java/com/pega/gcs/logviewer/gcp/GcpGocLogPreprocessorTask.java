@@ -14,6 +14,7 @@ import java.util.Map;
 import javax.swing.SwingWorker;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -25,10 +26,6 @@ import com.pega.gcs.logviewer.LogViewer;
 public class GcpGocLogPreprocessorTask extends SwingWorker<List<File>, Integer> {
 
     private static final Log4j2Helper LOG = new Log4j2Helper(GcpGocLogPreprocessorTask.class);
-
-    private static final String FILE_SUFFIX_RULES = "GCP-PegaRULES.log";
-
-    private static final String FILE_SUFFIX_ALERT = "GCP-PegaRULES-ALERT.log";
 
     private static final String PEGA_TOMCAT_CONTAINER = "pega-web-tomcat";
 
@@ -64,10 +61,12 @@ public class GcpGocLogPreprocessorTask extends SwingWorker<List<File>, Integer> 
 
         File gcpGocLogFile = getGcpGocLogFile();
         File baseFolder = gcpGocLogFile.getParentFile();
-        String baseFileName = gcpGocLogFile.getName();
+        String baseFileName = FilenameUtils.getBaseName(gcpGocLogFile.getName());
+        String rulesFileName = baseFileName + "-" + LogViewer.GCP_GOC_FILE_SUFFIX_RULES + ".json";
+        String alertFileName = baseFileName + "-" + LogViewer.GCP_GOC_FILE_SUFFIX_ALERT + ".json";
 
-        File pegaRulesLogFile = new File(baseFolder, baseFileName + "-" + FILE_SUFFIX_RULES);
-        File pegaAlertLogFile = new File(baseFolder, baseFileName + "-" + FILE_SUFFIX_ALERT);
+        File pegaRulesLogFile = new File(baseFolder, rulesFileName);
+        File pegaAlertLogFile = new File(baseFolder, alertFileName);
 
         int totalLineCount = 0;
 
