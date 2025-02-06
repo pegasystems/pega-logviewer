@@ -97,6 +97,8 @@ public class AlertLogParser extends LogParser {
 
             String[] fields = null;
 
+            StringBuilder fullLogEntryTextSB = getFullLogEntryTextSB();
+
             // logEntryColumnListSize has additional Line column
             if ((fullLogEntryTextSB.length() > 0) && (capturedColumnCount < (logEntryColumnListSize - 1))) {
 
@@ -106,7 +108,7 @@ public class AlertLogParser extends LogParser {
 
             } else {
 
-                buildLogEntry();
+                buildLogEntry(null);
 
                 fullLogEntryTextSB.append(line);
                 fields = fullLogEntryTextSB.toString().split("\\*");
@@ -146,7 +148,7 @@ public class AlertLogParser extends LogParser {
         }
     }
 
-    private void processClouldKMessage(String message) {
+    protected void processClouldKMessage(String message) {
 
         setupLogEntryColumnList(message);
 
@@ -158,9 +160,11 @@ public class AlertLogParser extends LogParser {
 
         if (logEntryColumnListSize > 0) {
 
+            StringBuilder fullLogEntryTextSB = getFullLogEntryTextSB();
+
             fullLogEntryTextSB.append(message);
 
-            buildLogEntry();
+            buildLogEntry(null);
         }
     }
 
@@ -180,7 +184,9 @@ public class AlertLogParser extends LogParser {
             // 22 is the lowest count of fields, for Alert Version 4.
             if (fieldsLen >= 22) {
 
-                alertVersion = Integer.parseInt(fields[1]);
+                int alertVersion = Integer.parseInt(fields[1]);
+
+                setAlertVersion(alertVersion);
 
                 // // 37 is max column count for v8 alert
                 // if (fieldsLen > 37) {
@@ -191,51 +197,51 @@ public class AlertLogParser extends LogParser {
 
                 case 4:
                     logEntryColumnList = getAlertColumnListV4();
-                    timestampIndex = oldStyleIndex + 0;
-                    messageIDIndex = oldStyleIndex + 2;
-                    observedKPIIndex = oldStyleIndex + 3;
-                    palDataIndex = oldStyleIndex + 20;
+                    setTimestampIndex(oldStyleIndex + 0);
+                    setMessageIDIndex(oldStyleIndex + 2);
+                    setObservedKPIIndex(oldStyleIndex + 3);
+                    setPalDataIndex(oldStyleIndex + 20);
                     break;
 
                 case 5:
                     logEntryColumnList = getAlertColumnListV5();
-                    timestampIndex = oldStyleIndex + 0;
-                    messageIDIndex = oldStyleIndex + 2;
-                    observedKPIIndex = oldStyleIndex + 3;
-                    palDataIndex = oldStyleIndex + 20;
+                    setTimestampIndex(oldStyleIndex + 0);
+                    setMessageIDIndex(oldStyleIndex + 2);
+                    setObservedKPIIndex(oldStyleIndex + 3);
+                    setPalDataIndex(oldStyleIndex + 20);
                     break;
 
                 case 6:
                     logEntryColumnList = getAlertColumnListV6();
-                    timestampIndex = oldStyleIndex + 0;
-                    messageIDIndex = oldStyleIndex + 2;
-                    observedKPIIndex = oldStyleIndex + 3;
-                    palDataIndex = oldStyleIndex + 22;
+                    setTimestampIndex(oldStyleIndex + 0);
+                    setMessageIDIndex(oldStyleIndex + 2);
+                    setObservedKPIIndex(oldStyleIndex + 3);
+                    setPalDataIndex(oldStyleIndex + 22);
                     break;
 
                 case 7:
                     logEntryColumnList = getAlertColumnListV7();
-                    timestampIndex = oldStyleIndex + 0;
-                    messageIDIndex = oldStyleIndex + 2;
-                    observedKPIIndex = oldStyleIndex + 3;
-                    palDataIndex = oldStyleIndex + 24;
+                    setTimestampIndex(oldStyleIndex + 0);
+                    setMessageIDIndex(oldStyleIndex + 2);
+                    setObservedKPIIndex(oldStyleIndex + 3);
+                    setPalDataIndex(oldStyleIndex + 24);
                     break;
 
                 case 8:
                     logEntryColumnList = getAlertColumnListV8();
-                    timestampIndex = oldStyleIndex + 0;
-                    messageIDIndex = oldStyleIndex + 2;
-                    observedKPIIndex = oldStyleIndex + 3;
-                    palDataIndex = oldStyleIndex + 29;
+                    setTimestampIndex(oldStyleIndex + 0);
+                    setMessageIDIndex(oldStyleIndex + 2);
+                    setObservedKPIIndex(oldStyleIndex + 3);
+                    setPalDataIndex(oldStyleIndex + 29);
                     break;
 
                 default:
                     // set to v6 alert.
                     logEntryColumnList = getAlertColumnListV6();
-                    timestampIndex = oldStyleIndex + 0;
-                    messageIDIndex = oldStyleIndex + 2;
-                    observedKPIIndex = oldStyleIndex + 3;
-                    palDataIndex = oldStyleIndex + 22;
+                    setTimestampIndex(oldStyleIndex + 0);
+                    setMessageIDIndex(oldStyleIndex + 2);
+                    setObservedKPIIndex(oldStyleIndex + 3);
+                    setPalDataIndex(oldStyleIndex + 22);
                     break;
                 }
 
@@ -249,10 +255,34 @@ public class AlertLogParser extends LogParser {
 
     }
 
+    protected StringBuilder getFullLogEntryTextSB() {
+        return fullLogEntryTextSB;
+    }
+
+    protected void setAlertVersion(int alertVersion) {
+        this.alertVersion = alertVersion;
+    }
+
+    protected void setMessageIDIndex(int messageIDIndex) {
+        this.messageIDIndex = messageIDIndex;
+    }
+
+    protected void setTimestampIndex(int timestampIndex) {
+        this.timestampIndex = timestampIndex;
+    }
+
+    protected void setObservedKPIIndex(int observedKPIIndex) {
+        this.observedKPIIndex = observedKPIIndex;
+    }
+
+    protected void setPalDataIndex(int palDataIndex) {
+        this.palDataIndex = palDataIndex;
+    }
+
     @Override
     public void parseFinalInternal() {
 
-        buildLogEntry();
+        buildLogEntry(null);
 
         alertLogEntryModel.processAlertMessageReportModels();
     }
@@ -262,9 +292,11 @@ public class AlertLogParser extends LogParser {
         return alertLogEntryModel;
     }
 
-    private AlertLogEntry buildLogEntry() {
+    protected AlertLogEntry buildLogEntry(List<String> additionalColumnValueList) {
 
         AlertLogEntry alertLogEntry = null;
+
+        StringBuilder fullLogEntryTextSB = getFullLogEntryTextSB();
 
         if (fullLogEntryTextSB.length() > 0) {
 
@@ -332,6 +364,10 @@ public class AlertLogParser extends LogParser {
                 logEntryColumnValueList.add(String.valueOf(logEntryIndex));
                 logEntryColumnValueList.addAll(Arrays.asList(fields));
 
+                if (additionalColumnValueList != null) {
+                    logEntryColumnValueList.addAll(additionalColumnValueList);
+                }
+
                 String messageIdStr = fields[messageIDIndex];
 
                 AlertMessageListProvider alertMessageListProvider = AlertMessageListProvider.getInstance();
@@ -355,21 +391,21 @@ public class AlertLogParser extends LogParser {
 
                 LogEntryKey logEntryKey = new LogEntryKey(logEntryIndex.intValue(), logEntryTime);
 
-                alertLogEntry = new AlertLogEntry(logEntryKey, logEntryColumnValueList, logEntryText, alertVersion,
-                        alertId, observedKPI, criticalAlertEntry, palDataValueArray);
+                alertLogEntry = new AlertLogEntry(logEntryKey, logEntryColumnValueList, logEntryText, alertId,
+                        observedKPI, criticalAlertEntry, palDataValueArray);
 
                 alertLogEntryModel.addLogEntry(alertLogEntry, logEntryColumnValueList, getCharset(), getLocale());
 
                 // update the processed counter
                 incrementAndGetProcessedCount();
 
-                fullLogEntryTextSB = new StringBuilder();
+                fullLogEntryTextSB.setLength(0); // Clear contents
             } catch (Exception e) {
                 LOG.error("Error parsing Log text: \n" + fullLogEntryTextSB.toString());
                 LOG.error("Error parsing Log index: " + logEntryIndex, e);
 
                 // discard the previous accumulated text
-                fullLogEntryTextSB = new StringBuilder();
+                fullLogEntryTextSB.setLength(0);
             }
         }
 
@@ -574,7 +610,7 @@ public class AlertLogParser extends LogParser {
         return alertColumnList;
     }
 
-    private static List<LogEntryColumn> getAlertColumnListV8() {
+    protected static List<LogEntryColumn> getAlertColumnListV8() {
 
         List<LogEntryColumn> alertColumnList = new ArrayList<>();
 

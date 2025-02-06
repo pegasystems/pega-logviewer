@@ -118,6 +118,7 @@ public class LogEntryColumn extends DefaultTableColumn {
     public static final LogEntryColumn REMOTE_USER           = new LogEntryColumn("REMOTE_USER"             ,"REMOTE_USER"               , 70  , SwingConstants.CENTER , true  , false );
     public static final LogEntryColumn REQ_THREAD_NAME       = new LogEntryColumn("REQ_THREAD_NAME"         ,"REQ_THREAD_NAME"           , 70  , SwingConstants.CENTER , true  , false );
 
+    public static final LogEntryColumn POD_NAME              = new LogEntryColumn("POD_NAME"                ,"POD_NAME"                  , 100 , SwingConstants.CENTER , true  , true );
 
     // futureX keys are placeholder
     // CHECKSTYLE:ON

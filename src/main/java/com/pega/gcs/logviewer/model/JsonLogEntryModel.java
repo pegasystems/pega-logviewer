@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.LogViewerUtil;
@@ -57,36 +56,23 @@ public class JsonLogEntryModel extends LogEntryModel {
 
     }
 
-    public void addLogEntry(int logEntryIndex, Map<String, String> fieldMap, String logEntryText) {
+    public void addLogEntry(LogEntryKey logEntryKey, Map<LogEntryColumn, String> logEntryColumnValueMap,
+            String logEntryText, Charset charset, Locale locale) {
 
         List<LogEntryColumn> logEntryColumnList = getLogEntryColumnList();
-        DateTimeFormatter modelDateTimeFormatter = getModelDateTimeFormatter();
-        ZoneId modelZoneId = getModelZoneId();
 
         ArrayList<String> columnValueList = new ArrayList<String>();
 
-        columnValueList.add(String.valueOf(logEntryIndex));
-
-        String timestampStr = null;
-
         for (LogEntryColumn logEntryColumn : logEntryColumnList) {
-
-            String columnId = logEntryColumn.getColumnId();
-            String columnValue = fieldMap.get(columnId);
+            String columnValue = logEntryColumnValueMap.get(logEntryColumn);
             columnValueList.add(columnValue);
-
-            if (logEntryColumn.equals(LogEntryColumn.TIMESTAMP)) {
-                timestampStr = columnValue;
-            }
         }
 
         try {
 
-            long logEntryTime = LogViewerUtil.getTimeMillis(timestampStr, modelDateTimeFormatter, modelZoneId);
-
-            LogEntryKey logEntryKey = new LogEntryKey(logEntryIndex, logEntryTime);
-
             JsonLogEntry jsonLogEntry = new JsonLogEntry(logEntryKey, columnValueList, logEntryText);
+
+            super.addLogEntry(jsonLogEntry, columnValueList, charset, locale);
 
         } catch (Exception e) {
             LOG.error(e);

@@ -669,99 +669,100 @@ public class ChartAndLegendPanel extends JPanel implements ListSelectionListener
             Set<LogSeriesCollection> logTimeSeriesCollectionSet;
             logTimeSeriesCollectionSet = logEntryModel.getLogTimeSeriesCollectionSet(isAnyColumnFiltered, locale);
 
-            Iterator<LogSeriesCollection> logSeriesCollectionIt = logTimeSeriesCollectionSet.iterator();
+            if (logTimeSeriesCollectionSet != null) {
+                Iterator<LogSeriesCollection> logSeriesCollectionIt = logTimeSeriesCollectionSet.iterator();
 
-            while (logSeriesCollectionIt.hasNext()) {
+                while (logSeriesCollectionIt.hasNext()) {
 
-                LogSeriesCollection logSeriesCollection = logSeriesCollectionIt.next();
+                    LogSeriesCollection logSeriesCollection = logSeriesCollectionIt.next();
 
-                String logSeriesCollectionName = logSeriesCollection.getName();
-                Collection<LogSeries> logSeriesList = logSeriesCollection.getLogSeriesList();
+                    String logSeriesCollectionName = logSeriesCollection.getName();
+                    Collection<LogSeries> logSeriesList = logSeriesCollection.getLogSeriesList();
 
-                logSeriesCollectionNameArray.add(logSeriesCollectionName);
+                    logSeriesCollectionNameArray.add(logSeriesCollectionName);
 
-                XYPlot xyPlot = xyPlotMap.get(logSeriesCollectionName);
-                // CategoryPlot categoryPlot = categoryPlotMap.get(logSeriesCollectionName);
-                LogSeriesCollectionCheckBoxPanel lsccbp = logSeriesCollectionCheckBoxPanelMap
-                        .get(logSeriesCollectionName);
+                    XYPlot xyPlot = xyPlotMap.get(logSeriesCollectionName);
+                    // CategoryPlot categoryPlot = categoryPlotMap.get(logSeriesCollectionName);
+                    LogSeriesCollectionCheckBoxPanel lsccbp = logSeriesCollectionCheckBoxPanelMap
+                            .get(logSeriesCollectionName);
 
-                if (xyPlot == null) {
+                    if (xyPlot == null) {
 
-                    final XYPlot lscXYPlot = new XYPlot();
-                    lscXYPlot.setDomainCrosshairVisible(false);
-                    lscXYPlot.setDomainCrosshairLockedOnData(false);
-                    lscXYPlot.setRangeCrosshairVisible(false);
-                    lscXYPlot.setRangeCrosshairLockedOnData(false);
+                        final XYPlot lscXYPlot = new XYPlot();
+                        lscXYPlot.setDomainCrosshairVisible(false);
+                        lscXYPlot.setDomainCrosshairLockedOnData(false);
+                        lscXYPlot.setRangeCrosshairVisible(false);
+                        lscXYPlot.setRangeCrosshairLockedOnData(false);
 
-                    // final CategoryPlot lscCategoryPlot = new CategoryPlot();
-                    // lscCategoryPlot.setDomainCrosshairVisible(false);
-                    // lscCategoryPlot.setRangeCrosshairVisible(false);
-                    // lscCategoryPlot.setRangeCrosshairLockedOnData(false);
+                        // final CategoryPlot lscCategoryPlot = new CategoryPlot();
+                        // lscCategoryPlot.setDomainCrosshairVisible(false);
+                        // lscCategoryPlot.setRangeCrosshairVisible(false);
+                        // lscCategoryPlot.setRangeCrosshairLockedOnData(false);
 
-                    // add to main plot
-                    combinedDomainXYPlot.add(lscXYPlot);
-                    // combinedBoxAndWiskerCategoryPlot.add(lscCategoryPlot);
+                        // add to main plot
+                        combinedDomainXYPlot.add(lscXYPlot);
+                        // combinedBoxAndWiskerCategoryPlot.add(lscCategoryPlot);
 
-                    xyPlotMap.put(logSeriesCollectionName, lscXYPlot);
-                    // categoryPlotMap.put(logSeriesCollectionName, lscCategoryPlot);
+                        xyPlotMap.put(logSeriesCollectionName, lscXYPlot);
+                        // categoryPlotMap.put(logSeriesCollectionName, lscCategoryPlot);
 
-                    lsccbp = new LogSeriesCollectionCheckBoxPanel(logSeriesList);
+                        lsccbp = new LogSeriesCollectionCheckBoxPanel(logSeriesList);
 
-                    JCheckBox checkbox = lsccbp.getCheckBox();
+                        JCheckBox checkbox = lsccbp.getCheckBox();
 
-                    checkbox.addItemListener(new ItemListener() {
+                        checkbox.addItemListener(new ItemListener() {
 
-                        @Override
-                        public void itemStateChanged(ItemEvent itemEvent) {
+                            @Override
+                            public void itemStateChanged(ItemEvent itemEvent) {
 
-                            if (itemEvent.getStateChange() == ItemEvent.DESELECTED) {
-                                lscXYPlot.setWeight(0);
-                                // lscCategoryPlot.setWeight(0);
-                            } else {
-                                lscXYPlot.setWeight(1);
-                                // lscCategoryPlot.setWeight(1);
+                                if (itemEvent.getStateChange() == ItemEvent.DESELECTED) {
+                                    lscXYPlot.setWeight(0);
+                                    // lscCategoryPlot.setWeight(0);
+                                } else {
+                                    lscXYPlot.setWeight(1);
+                                    // lscCategoryPlot.setWeight(1);
+                                }
+
+                                processLogSeriesCollectionCheckBoxPanelMap();
                             }
+                        });
 
-                            processLogSeriesCollectionCheckBoxPanelMap();
-                        }
-                    });
+                        logSeriesCollectionCheckBoxPanelMap.put(logSeriesCollectionName, lsccbp);
 
-                    logSeriesCollectionCheckBoxPanelMap.put(logSeriesCollectionName, lsccbp);
+                        int yindex = logSeriesCollectionCheckBoxPanelMap.size() - 1;
 
-                    int yindex = logSeriesCollectionCheckBoxPanelMap.size() - 1;
+                        GridBagConstraints gbc1 = new GridBagConstraints();
+                        gbc1.gridx = 0;
+                        gbc1.gridy = yindex;
+                        gbc1.weightx = 1.0D;
+                        gbc1.weighty = 1.0D;
+                        gbc1.fill = GridBagConstraints.BOTH;
+                        gbc1.anchor = GridBagConstraints.NORTHWEST;
+                        gbc1.insets = new Insets(0, 0, 0, 0);
 
-                    GridBagConstraints gbc1 = new GridBagConstraints();
-                    gbc1.gridx = 0;
-                    gbc1.gridy = yindex;
-                    gbc1.weightx = 1.0D;
-                    gbc1.weighty = 1.0D;
-                    gbc1.fill = GridBagConstraints.BOTH;
-                    gbc1.anchor = GridBagConstraints.NORTHWEST;
-                    gbc1.insets = new Insets(0, 0, 0, 0);
+                        legendPanel.add(lsccbp, gbc1);
 
-                    legendPanel.add(lsccbp, gbc1);
+                        xyPlot = lscXYPlot;
+                        // categoryPlot = lscCategoryPlot;
+                    }
 
-                    xyPlot = lscXYPlot;
-                    // categoryPlot = lscCategoryPlot;
+                    // check if plot needs to be visible based on whether it was
+                    // unchecked before
+                    if (lsccbp.getCheckBox().isSelected()) {
+                        xyPlot.setWeight(1);
+                        // categoryPlot.setWeight(1);
+                    } else {
+                        xyPlot.setWeight(0);
+                        // categoryPlot.setWeight(0);
+                    }
+
+                    LogViewerUtil.updatePlots(xyPlot, /* categoryPlot */ null, logSeriesCollection, modelTimeZone,
+                            locale, false);
+
+                    lsccbp.updatelogSeriesCounts(logSeriesList);
+
                 }
-
-                // check if plot needs to be visible based on whether it was
-                // unchecked before
-                if (lsccbp.getCheckBox().isSelected()) {
-                    xyPlot.setWeight(1);
-                    // categoryPlot.setWeight(1);
-                } else {
-                    xyPlot.setWeight(0);
-                    // categoryPlot.setWeight(0);
-                }
-
-                LogViewerUtil.updatePlots(xyPlot, /* categoryPlot */ null, logSeriesCollection, modelTimeZone, locale,
-                        false);
-
-                lsccbp.updatelogSeriesCounts(logSeriesList);
-
             }
-
             // setup Permanent markers
 
             // clear permanent markers as plot as constant now.

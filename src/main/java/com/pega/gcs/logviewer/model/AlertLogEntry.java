@@ -20,8 +20,6 @@ public class AlertLogEntry extends LogEntry {
 
     private static final long serialVersionUID = -6395874651333188874L;
 
-    private int version;
-
     private int alertId;
 
     private long observedKPI;
@@ -30,21 +28,16 @@ public class AlertLogEntry extends LogEntry {
 
     private Number[] palDataValueArray;
 
-    public AlertLogEntry(LogEntryKey logEntryKey, ArrayList<String> logEntryValueList, String logEntryText, int version,
-            int alertId, long observedKPI, boolean criticalAlertEntry, Number[] palDataValueArray) {
+    public AlertLogEntry(LogEntryKey logEntryKey, ArrayList<String> logEntryValueList, String logEntryText, int alertId,
+            long observedKPI, boolean criticalAlertEntry, Number[] palDataValueArray) {
 
         super(logEntryKey, logEntryValueList, logEntryText);
 
-        this.version = version;
         this.alertId = alertId;
         this.observedKPI = observedKPI;
         this.criticalAlertEntry = criticalAlertEntry;
         this.palDataValueArray = palDataValueArray;
 
-    }
-
-    public int getVersion() {
-        return version;
     }
 
     public int getAlertId() {

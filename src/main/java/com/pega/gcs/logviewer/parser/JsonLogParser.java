@@ -9,27 +9,24 @@ package com.pega.gcs.logviewer.parser;
 
 import java.nio.charset.Charset;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
 
 import javax.swing.SwingConstants;
 
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.logviewer.LogViewerUtil;
-import com.pega.gcs.logviewer.model.AlertLogEntry;
-import com.pega.gcs.logviewer.model.AlertLogEntryModel;
 import com.pega.gcs.logviewer.model.JsonLogEntryModel;
 import com.pega.gcs.logviewer.model.LogEntryColumn;
 import com.pega.gcs.logviewer.model.LogEntryKey;
-import com.pega.gcs.logviewer.model.alert.AlertMessageListProvider;
 
 public class JsonLogParser extends LogParser {
 
@@ -37,14 +34,24 @@ public class JsonLogParser extends LogParser {
 
     private JsonLogEntryModel jsonLogEntryModel;
 
+    private Map<String, LogEntryColumn> fieldKeyColumnMap;
+
     public JsonLogParser(Charset charset, Locale locale, ZoneId displayZoneId) {
 
         super(null, charset, locale, displayZoneId);
 
-        DateTimeFormatter modelDateTimeFormatter = getModelDateTimeFormatter();
-        ZoneId modelZoneId = getModelZoneId();
+        DateTimeFormatter modelDateTimeFormatter = new DateTimeFormatterBuilder().appendPattern("yyyy-MM-dd HH:mm:ss")
+                .optionalStart().appendFraction(ChronoField.MICRO_OF_SECOND, 1, 6, true).optionalEnd()
+                .appendLiteral(" UTC").toFormatter();
+
+        ZoneId modelZoneId = ZoneOffset.UTC;
 
         jsonLogEntryModel = new JsonLogEntryModel(modelDateTimeFormatter, modelZoneId, displayZoneId);
+
+        setModelZoneId(modelZoneId);
+        setModelDateTimeFormatter(modelDateTimeFormatter);
+
+        fieldKeyColumnMap = new HashMap<>();
     }
 
     @Override
@@ -60,71 +67,68 @@ public class JsonLogParser extends LogParser {
     @Override
     protected void parseV3(String line) {
 
-        Map<String, Object> fieldMap = getCloudKFieldMap(line);
+        Map<String, String> fieldMap = getJsonFieldMap(line);
 
         if (fieldMap != null) {
 
-            setupLogEntryColumnList(line);
+            setupLogEntryColumnList(fieldMap);
 
-            @SuppressWarnings("unchecked")
-            Map<String, String> logMap = (Map<String, String>) fieldMap.get("log");
-
-            String message = (String) logMap.get("message");
-            // TODO - implement
-            buildLogEntry(logMap);
+            buildLogEntry(fieldMap, line);
+        } else {
+            LOG.info("discarding line: " + line);
         }
     }
 
-    private void setupLogEntryColumnList(String line) {
+    private void setupLogEntryColumnList(Map<String, String> fieldMap) {
 
         JsonLogEntryModel jsonLogEntryModel = getLogEntryModel();
         List<LogEntryColumn> jsonLogEntryColumnList = jsonLogEntryModel.getLogEntryColumnList();
 
-        if ((line != null) && (!line.isEmpty())
-                && ((jsonLogEntryColumnList == null) || (jsonLogEntryColumnList.isEmpty()))) {
+        if ((fieldMap != null) && ((jsonLogEntryColumnList == null) || (jsonLogEntryColumnList.isEmpty()))) {
 
-            Map<String, Object> fieldMap = getCloudKFieldMap(line);
+            int prefColumnWidth = 200;
+            int horizontalAlignment = SwingConstants.CENTER;
+            boolean visibleColumn = true;
+            boolean filterable = true;
 
-            if (fieldMap != null) {
+            fieldKeyColumnMap.clear();
 
-                int prefColumnWidth = 200;
-                int horizontalAlignment = SwingConstants.CENTER;
-                boolean visibleColumn = true;
-                boolean filterable = true;
+            for (String fieldkey : fieldMap.keySet()) {
 
-                Map<String, LogEntryColumn> logEntryColumnMap = new HashMap<>();
+                String upperFieldKey = fieldkey.toUpperCase();
+                LogEntryColumn logEntryColumn = LogEntryColumn.getTableColumnById(upperFieldKey);
 
-                for (String fieldkey : fieldMap.keySet()) {
-
-                    LogEntryColumn logEntryColumn = LogEntryColumn.getTableColumnById(fieldkey);
-
-                    if (logEntryColumn == null) {
-                        logEntryColumn = new LogEntryColumn(fieldkey, fieldkey, prefColumnWidth, horizontalAlignment,
-                                visibleColumn, filterable);
-                    }
-
-                    logEntryColumnMap.put(fieldkey, logEntryColumn);
-
+                if (logEntryColumn == null) {
+                    logEntryColumn = new LogEntryColumn(fieldkey, fieldkey, prefColumnWidth, horizontalAlignment,
+                            visibleColumn, filterable);
                 }
 
-                List<LogEntryColumn> logEntryColumnList = new ArrayList<>();
+                fieldKeyColumnMap.put(fieldkey, logEntryColumn);
 
-                // add timestamp first
-                LogEntryColumn logEntryColumn = logEntryColumnMap.get(LogEntryColumn.TIMESTAMP.getColumnId());
-                logEntryColumnList.add(logEntryColumn);
-                logEntryColumnMap.remove(logEntryColumn.getColumnId());
-
-                logEntryColumnList.addAll(logEntryColumnMap.values());
-
-                LOG.info("logEntryColumnList: " + logEntryColumnList);
-
-                jsonLogEntryModel.updateLogEntryColumnList(logEntryColumnList);
-
-            } else {
-                LOG.info("discarding line: " + line);
             }
-        }
 
+            List<LogEntryColumn> logEntryColumnList = new ArrayList<>();
+
+            // add Line and timestamp first
+            logEntryColumnList.add(LogEntryColumn.LINE);
+            logEntryColumnList.add(LogEntryColumn.TIMESTAMP);
+
+            for (LogEntryColumn logEntryColumn : fieldKeyColumnMap.values()) {
+
+                if ((!logEntryColumnList.contains(logEntryColumn))
+                        && (!LogEntryColumn.MESSAGE.equals(logEntryColumn))) {
+                    logEntryColumnList.add(logEntryColumn);
+                }
+            }
+
+            // add message column to last
+            logEntryColumnList.add(LogEntryColumn.MESSAGE);
+
+            LOG.info("logEntryColumnList: " + logEntryColumnList);
+
+            jsonLogEntryModel.updateLogEntryColumnList(logEntryColumnList);
+
+        }
     }
 
     @Override
@@ -137,9 +141,7 @@ public class JsonLogParser extends LogParser {
         return jsonLogEntryModel;
     }
 
-    private AlertLogEntry buildLogEntry(Map<String, String> fieldMap) {
-
-        AlertLogEntry alertLogEntry = null;
+    private void buildLogEntry(Map<String, String> fieldMap, String line) {
 
         if (fieldMap != null) {
 
@@ -148,11 +150,38 @@ public class JsonLogParser extends LogParser {
 
             try {
 
-                logEntryIndex.incrementAndGet();
+                String timestampStr = null;
+                Map<LogEntryColumn, String> logEntryColumnValueMap = new HashMap<>();
 
-                String jsonString = getJsonString(fieldMap);
+                for (String fieldkey : fieldMap.keySet()) {
+                    LogEntryColumn logEntryColumn = fieldKeyColumnMap.get(fieldkey);
 
-                jsonLogEntryModel.addLogEntry(logEntryIndex.get(), fieldMap, jsonString);
+                    String columnValue = fieldMap.get(fieldkey);
+                    logEntryColumnValueMap.put(logEntryColumn, columnValue);
+
+                    if (logEntryColumn.equals(LogEntryColumn.TIMESTAMP)) {
+                        timestampStr = columnValue;
+                    }
+                }
+
+                int lineNo = logEntryIndex.incrementAndGet();
+
+                logEntryColumnValueMap.put(LogEntryColumn.LINE, String.valueOf(lineNo));
+
+                long logEntryTime = -1;
+                try {
+                    DateTimeFormatter modelDateTimeFormatter = jsonLogEntryModel.getModelDateTimeFormatter();
+                    ZoneId modelZoneId = jsonLogEntryModel.getModelZoneId();
+
+                    logEntryTime = LogViewerUtil.getTimeMillis(timestampStr, modelDateTimeFormatter, modelZoneId);
+
+                } catch (Exception e) {
+                    LOG.error("Error parsing line: [" + logEntryIndex + "] logentry: [" + line + "]", e);
+                }
+
+                LogEntryKey logEntryKey = new LogEntryKey(lineNo, logEntryTime);
+
+                jsonLogEntryModel.addLogEntry(logEntryKey, logEntryColumnValueMap, line, getCharset(), getLocale());
 
                 // update the processed counter
                 incrementAndGetProcessedCount();
@@ -163,8 +192,6 @@ public class JsonLogParser extends LogParser {
 
             }
         }
-
-        return alertLogEntry;
     }
 
 }

@@ -331,8 +331,22 @@ public abstract class LogParser {
 
         Log4jPatternManager log4jPatternManager = Log4jPatternManager.getInstance();
 
-        // check if an Alert log file
-        if (filename.toUpperCase().contains("ALERT")) {
+        if (filename.toUpperCase().contains("GCP-PegaRULES-ALERT")) {
+
+            AlertLogPattern alertLogPattern = LogPatternFactory.getInstance().getAlertLogPattern();
+
+            AlertLogParser alertLogParser = new GcpGocAlertLogParser(alertLogPattern, charset, locale, displayZoneId);
+
+            int rowCount = tryLogParser(alertLogParser, readLineList);
+
+            if (rowCount > 0) {
+                // success
+                LOG.info("creating GcpGocAlertLogParser for " + filename);
+                logParser = alertLogParser;
+            }
+
+        } else if (filename.toUpperCase().contains("ALERT")) {
+            // check if an Alert log file
 
             AlertLogPattern alertLogPattern = LogPatternFactory.getInstance().getAlertLogPattern();
 
@@ -375,6 +389,17 @@ public abstract class LogParser {
             Set<Log4jPattern> log4jPatternSet = log4jPatternManager.getDefaultPegaCloudKAccessLog4jPatternSet();
 
             logParser = getLog4jParser(readLineList, log4jPatternSet, charset, locale, displayZoneId);
+        } else if ((filename.toUpperCase().contains("GCP-PEGARULES"))) {
+
+            JsonLogParser jsonLogParser = new JsonLogParser(charset, locale, displayZoneId);
+
+            int rowCount = tryLogParser(jsonLogParser, readLineList);
+
+            if (rowCount > 0) {
+                // success
+                LOG.info("creating JsonLogParser for " + filename);
+                logParser = jsonLogParser;
+            }
         }
 
         // check if a PegaRules log file
@@ -655,6 +680,26 @@ public abstract class LogParser {
             };
 
             fieldMap = objectMapper.readValue(json, typeRef);
+
+        } catch (JacksonException e) {
+            LOG.error("Error parsing log json data", e.getMessage());
+        }
+
+        return fieldMap;
+    }
+
+    protected Map<String, String> getJsonFieldMap(String line) {
+
+        Map<String, String> fieldMap = null;
+
+        try {
+
+            ObjectMapper objectMapper = getObjectMapper();
+
+            TypeReference<HashMap<String, String>> typeRef = new TypeReference<HashMap<String, String>>() {
+            };
+
+            fieldMap = objectMapper.readValue(line, typeRef);
 
         } catch (JacksonException e) {
             LOG.error("Error parsing log json data", e.getMessage());

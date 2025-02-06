@@ -682,7 +682,7 @@ public class LogDataMainPanel extends JPanel {
             Dimension size = new Dimension(90, 26);
             overviewButton.setPreferredSize(size);
 
-            overviewButton.setEnabled(true);
+            overviewButton.setEnabled(false);
 
             overviewButton.addActionListener(new ActionListener() {
 
@@ -691,7 +691,9 @@ public class LogDataMainPanel extends JPanel {
 
                     SystemReportDialog systemReportDialog = getSystemReportDialog();
 
-                    systemReportDialog.toFront();
+                    if (systemReportDialog != null) {
+                        systemReportDialog.toFront();
+                    }
 
                 }
             });
@@ -1027,6 +1029,10 @@ public class LogDataMainPanel extends JPanel {
         logExportButton.setEnabled(false);
 
         if (abstractLogPattern != null) {
+
+            JButton overviewButton = getOverviewButton();
+
+            overviewButton.setEnabled(true);
 
             LogType logType = abstractLogPattern.getLogType();
 

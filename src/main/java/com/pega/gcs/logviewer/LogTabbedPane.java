@@ -27,14 +27,17 @@ import javax.swing.BorderFactory;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
+import javax.swing.UIManager;
 import javax.swing.border.Border;
 
 import com.pega.gcs.fringecommon.guiutilities.ButtonTabComponent;
+import com.pega.gcs.fringecommon.guiutilities.ModalProgressMonitor;
 import com.pega.gcs.fringecommon.guiutilities.RecentFileContainer;
 import com.pega.gcs.fringecommon.log4j2.Log4j2Helper;
 import com.pega.gcs.fringecommon.utilities.FileUtilities;
 import com.pega.gcs.logviewer.dataflow.lifecycleevent.LifeCycleEventMainPanel;
 import com.pega.gcs.logviewer.ddsmetrics.DdsMetricMainPanel;
+import com.pega.gcs.logviewer.gcp.GcpGocLogPreprocessorTask;
 import com.pega.gcs.logviewer.hotfixscan.HotfixScanMainPanel;
 import com.pega.gcs.logviewer.logfile.AbstractLogPattern;
 import com.pega.gcs.logviewer.model.LogViewerSetting;
@@ -236,6 +239,8 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
             loadSystemStateFile(selectedFile);
         } else if (LogViewer.isLifeCycleEventsFile(selectedFile)) {
             loadLifeCycleEventsFile(selectedFile);
+        } else if (LogViewer.isGcpGocFile(selectedFile)) {
+            loadGcpGocLogFile(selectedFile);
         } else {
             loadLogFile(selectedFile);
         }
@@ -369,5 +374,51 @@ public class LogTabbedPane extends JTabbedPane implements DropTargetListener {
         ArrayList<String> openFileList = new ArrayList<>(fileTabIndexMap.keySet());
 
         return openFileList;
+    }
+
+    public void loadGcpGocLogFile(File gcpGocLogFile) {
+
+        UIManager.put("ModalProgressMonitor.progressText", "Exporting selected log entries");
+
+        ModalProgressMonitor modalProgressMonitor = new ModalProgressMonitor(this, "",
+                "processing lines (0%)                                   ", 0, 100);
+        modalProgressMonitor.setMillisToDecideToPopup(0);
+        modalProgressMonitor.setMillisToPopup(0);
+
+        GcpGocLogPreprocessorTask gcpGocLogPreprocessorTask;
+
+        gcpGocLogPreprocessorTask = new GcpGocLogPreprocessorTask(gcpGocLogFile, modalProgressMonitor) {
+
+            @Override
+            protected void done() {
+
+                List<File> pegaFileList = null;
+                try {
+
+                    pegaFileList = get();
+
+                } catch (Exception e) {
+                    LOG.error("GcpGocLogPreprocessorTask erorr: ", e);
+                } finally {
+
+                    modalProgressMonitor.close();
+                    System.gc();
+
+                    if ((pegaFileList != null)) {
+
+                        for (File gcpGocLogFile : pegaFileList) {
+                            LogViewer logViewer = LogViewer.getInstance();
+                            logViewer.loadLogFile(gcpGocLogFile);
+                        }
+
+                    }
+                }
+            }
+
+        };
+
+        gcpGocLogPreprocessorTask.execute();
+
+        modalProgressMonitor.show();
     }
 }

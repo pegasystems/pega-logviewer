@@ -112,6 +112,10 @@ public class LogViewer extends BaseFrame {
     private static final String LIFECYCLEEVENTS_FILE_NAME_REGEX = "Get_events_for_run_(.*?)";
 
     /* ================================== */
+    // GCP GOC file pattern
+    private static final String GCP_GOC_FILE_NAME_REGEX = "^\\d+$";
+
+    /* ================================== */
 
     private String appName;
 
@@ -172,7 +176,7 @@ public class LogViewer extends BaseFrame {
         return _INSTANCE;
     }
 
-    private LogViewerSetting getLogViewerSetting() {
+    public LogViewerSetting getLogViewerSetting() {
         return logViewerSetting;
     }
 
@@ -280,6 +284,26 @@ public class LogViewer extends BaseFrame {
         }
 
         return isLifeCycleEventsFile;
+
+    }
+
+    public static boolean isGcpGocFile(File gcpGocFile) {
+
+        boolean isGcpGocFile = false;
+
+        String filename = FileUtilities.getFileBaseName(gcpGocFile);
+
+        Pattern fileNamePattern = Pattern.compile(GCP_GOC_FILE_NAME_REGEX, Pattern.CASE_INSENSITIVE);
+
+        Matcher fileNameMatcher = fileNamePattern.matcher(filename);
+
+        if (fileNameMatcher.matches()) {
+            isGcpGocFile = true;
+        } else {
+            isGcpGocFile = false;
+        }
+
+        return isGcpGocFile;
 
     }
 
@@ -552,7 +576,7 @@ public class LogViewer extends BaseFrame {
                         selectedFile);
 
                 if (file != null) {
-                    loadLogFile(file);
+                    loadFile(file);
                 }
             }
         });
