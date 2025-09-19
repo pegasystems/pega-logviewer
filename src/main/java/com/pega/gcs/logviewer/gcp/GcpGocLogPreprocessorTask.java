@@ -124,40 +124,40 @@ public class GcpGocLogPreprocessorTask extends SwingWorker<List<File>, Integer> 
 
                         if ("ALERT".equals(severity)) {
 
-                        alertLogDataSB.append(line);
-                        alertLogDataSB.append(System.getProperty("line.separator"));
+                            alertLogDataSB.append(line);
+                            alertLogDataSB.append(System.getProperty("line.separator"));
 
-                        int accumulatedSize = alertLogDataSB.length();
+                            int accumulatedSize = alertLogDataSB.length();
 
-                        if (accumulatedSize > batchSize) {
+                            if (accumulatedSize > batchSize) {
 
-                            FileUtils.writeStringToFile(pegaAlertLogFile, alertLogDataSB.toString(), charset,
-                                    alertAppend);
+                                FileUtils.writeStringToFile(pegaAlertLogFile, alertLogDataSB.toString(), charset,
+                                        alertAppend);
 
-                            alertLogDataSB = new StringBuilder();
+                                alertLogDataSB = new StringBuilder();
 
-                            if (!alertAppend) {
-                                alertAppend = true;
+                                if (!alertAppend) {
+                                    alertAppend = true;
+                                }
+                            }
+                        } else {
+                            rulesLogDataSB.append(line);
+                            rulesLogDataSB.append(System.getProperty("line.separator"));
+
+                            int accumulatedSize = rulesLogDataSB.length();
+
+                            if (accumulatedSize > batchSize) {
+
+                                FileUtils.writeStringToFile(pegaRulesLogFile, rulesLogDataSB.toString(), charset,
+                                        rulesAppend);
+
+                                rulesLogDataSB = new StringBuilder();
+
+                                if (!rulesAppend) {
+                                    rulesAppend = true;
+                                }
                             }
                         }
-                    } else {
-                        rulesLogDataSB.append(line);
-                        rulesLogDataSB.append(System.getProperty("line.separator"));
-
-                        int accumulatedSize = rulesLogDataSB.length();
-
-                        if (accumulatedSize > batchSize) {
-
-                            FileUtils.writeStringToFile(pegaRulesLogFile, rulesLogDataSB.toString(), charset,
-                                    rulesAppend);
-
-                            rulesLogDataSB = new StringBuilder();
-
-                            if (!rulesAppend) {
-                                rulesAppend = true;
-                            }
-                        }
-                    }
 
                     }
                 }
