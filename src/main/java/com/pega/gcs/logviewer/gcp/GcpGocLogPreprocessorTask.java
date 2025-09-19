@@ -107,12 +107,22 @@ public class GcpGocLogPreprocessorTask extends SwingWorker<List<File>, Integer> 
 
                 Map<String, Object> fieldMap = getJsonFieldMap(line);
 
-                String containerName = (String) fieldMap.get("container_name");
-                String severity = (String) fieldMap.get("severity");
+                if (fieldMap != null) {
+                    // Extract container_name from nested structure: resource.labels.container_name
+                    String containerName = null;
+                    String severity = (String) fieldMap.get("severity");
 
-                if (PEGA_TOMCAT_CONTAINER.equals(containerName)) {
+                    Map<String, Object> resource = (Map<String, Object>) fieldMap.get("resource");
+                    if (resource != null) {
+                        Map<String, Object> labels = (Map<String, Object>) resource.get("labels");
+                        if (labels != null) {
+                            containerName = (String) labels.get("container_name");
+                        }
+                    }
 
-                    if ("ALERT".equals(severity)) {
+                    if (PEGA_TOMCAT_CONTAINER.equals(containerName)) {
+
+                        if ("ALERT".equals(severity)) {
 
                         alertLogDataSB.append(line);
                         alertLogDataSB.append(System.getProperty("line.separator"));
@@ -149,6 +159,7 @@ public class GcpGocLogPreprocessorTask extends SwingWorker<List<File>, Integer> 
                         }
                     }
 
+                    }
                 }
 
             }
