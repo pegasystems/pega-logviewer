@@ -12,17 +12,17 @@ jar {
 }
 
 task sourcesJar(type: Jar) {
-    classifier 'sources'
+    archiveClassifier.set('sources')
     from sourceSets.main.allSource
 }
 
 task docsJar(type: Jar, dependsOn: javadoc) {
-    classifier 'docs'
+    archiveClassifier.set('docs')
     from javadoc.destinationDir
 }
 
 task testsJar(type: Jar) {
-    classifier = 'tests'
+    archiveClassifier.set('tests')
     from sourceSets.test.output
 }
 
