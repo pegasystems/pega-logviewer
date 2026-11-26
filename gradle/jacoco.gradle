@@ -6,8 +6,8 @@ jacoco {
 
 jacocoTestReport {
     reports {
-        xml.enabled = false
-        html.enabled = true
+        xml.required = false
+        html.required = true
     }
     
     afterEvaluate {
